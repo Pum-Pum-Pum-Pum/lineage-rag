@@ -9,8 +9,11 @@ if str(ROOT_DIR) not in sys.path:
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
+from app.ingestion.chunked_artifact_writer import write_chunked_document_to_json
+from app.ingestion.chunker import chunk_normalized_artifact
 from app.ingestion.docx_ingestion_artifact import ingest_docx_file
 from app.ingestion.docx_loader import discover_docx_files
+from app.ingestion.normalized_artifact import build_normalized_artifact
 from app.ingestion.processed_artifact_writer import write_ingested_artifact_to_json
 
 
@@ -25,12 +28,17 @@ def main() -> None:
     for discovered in discovered_files:
         artifact = ingest_docx_file(discovered.file_path)
         output_file = write_ingested_artifact_to_json(artifact, settings.processed_dir)
+        normalized_artifact = build_normalized_artifact(artifact)
+        chunked_document = chunk_normalized_artifact(normalized_artifact)
+        chunk_output_file = write_chunked_document_to_json(chunked_document, settings.processed_dir)
         logger.info(
-            "Ingested %s -> %s | paragraphs=%s | tables=%s",
+            "Ingested %s -> %s | chunked=%s | paragraphs=%s | tables=%s | chunks=%s",
             discovered.file_name,
             output_file.name,
+            chunk_output_file.name,
             artifact.extracted_text.non_empty_paragraph_count,
             artifact.extracted_tables.table_count,
+            chunked_document.total_chunks,
         )
 
 

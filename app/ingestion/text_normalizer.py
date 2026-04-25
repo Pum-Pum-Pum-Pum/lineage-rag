@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 from app.ingestion.docx_ingestion_artifact import IngestedDocxArtifact
 
@@ -8,12 +9,51 @@ from app.ingestion.docx_ingestion_artifact import IngestedDocxArtifact
 NOISE_EXACT_MATCHES = {
     "You can delete any elements of this cover page that you do not need for your document.",
     "To add additional approval lines, press [Tab] from the last cell in the table above.",
+    "Oracle Corporation",
 }
 
 NOISE_CONTAINS_PATTERNS = [
     "Title, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark",
     "Show bookmarks option in the Show document content region",
+    "World Headquarters",
+    "Worldwide Inquiries:",
+    "www.oracle.com/ financial_services/",
+    "Copyright ©",
+    "No part of this work may be reproduced",
+    "Oracle Financial Services Software Limited",
+    "All company and product names are trademarks",
 ]
+
+NOISE_PREFIX_PATTERNS = [
+    "Client Name",
+    "Release Name",
+    "Project ID",
+    "Document Ref",
+    "Author",
+    "Creation Date",
+    "Last Updated",
+    "Version",
+    "Version number:",
+    "Phone:",
+    "Fax:",
+]
+
+TOC_LINE_PATTERN = re.compile(r"^(\d+(\.\d+)*)\.?\s+.+\t\d+$")
+
+
+def is_front_matter_heading(paragraph: str) -> bool:
+    return paragraph in {
+        "Document Control",
+        "Change Record",
+        "Reviewers",
+        "Approvers",
+        "Traceability Matrix",
+        "Table of Contents",
+    }
+
+
+def is_toc_like_line(paragraph: str) -> bool:
+    return bool(TOC_LINE_PATTERN.match(paragraph.strip()))
 
 
 @dataclass(frozen=True)
@@ -30,6 +70,12 @@ def is_noise_paragraph(paragraph: str) -> bool:
     if not stripped:
         return True
     if stripped in NOISE_EXACT_MATCHES:
+        return True
+    if is_front_matter_heading(stripped):
+        return True
+    if is_toc_like_line(stripped):
+        return True
+    if any(stripped.startswith(prefix) for prefix in NOISE_PREFIX_PATTERNS):
         return True
     return any(pattern in stripped for pattern in NOISE_CONTAINS_PATTERNS)
 
