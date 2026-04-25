@@ -15,6 +15,9 @@ from app.ingestion.docx_ingestion_artifact import ingest_docx_file
 from app.ingestion.docx_loader import discover_docx_files
 from app.ingestion.normalized_artifact import build_normalized_artifact
 from app.ingestion.processed_artifact_writer import write_ingested_artifact_to_json
+from app.ingestion.retrieval_ready_artifact import build_retrieval_ready_artifact
+from app.ingestion.retrieval_ready_artifact_writer import write_retrieval_ready_artifact_to_json
+from app.ingestion.table_chunker import chunk_tables_from_artifact
 
 
 def main() -> None:
@@ -30,15 +33,27 @@ def main() -> None:
         output_file = write_ingested_artifact_to_json(artifact, settings.processed_dir)
         normalized_artifact = build_normalized_artifact(artifact)
         chunked_document = chunk_normalized_artifact(normalized_artifact)
+        chunked_tables = chunk_tables_from_artifact(normalized_artifact)
+        retrieval_ready_artifact = build_retrieval_ready_artifact(
+            normalized_artifact,
+            chunked_document,
+            chunked_tables,
+        )
         chunk_output_file = write_chunked_document_to_json(chunked_document, settings.processed_dir)
+        retrieval_ready_output_file = write_retrieval_ready_artifact_to_json(
+            retrieval_ready_artifact,
+            settings.processed_dir,
+        )
         logger.info(
-            "Ingested %s -> %s | chunked=%s | paragraphs=%s | tables=%s | chunks=%s",
+            "Ingested %s -> %s | chunked=%s | retrieval_ready=%s | paragraphs=%s | tables=%s | chunks=%s | retrieval_units=%s",
             discovered.file_name,
             output_file.name,
             chunk_output_file.name,
+            retrieval_ready_output_file.name,
             artifact.extracted_text.non_empty_paragraph_count,
             artifact.extracted_tables.table_count,
             chunked_document.total_chunks,
+            retrieval_ready_artifact.total_units,
         )
 
 
