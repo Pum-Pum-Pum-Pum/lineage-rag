@@ -30,10 +30,23 @@ def embed_batch(
     embedding_client = client or get_embedding_client()
     texts = [record.text for record in batch.records]
 
+    if not texts:
+        return EmbeddingBatch(
+            document_name=batch.document_name,
+            total_records=0,
+            records=[],
+        )
+
     response = embedding_client.embeddings.create(
         model=settings.openai_embedding_model,
         input=texts,
     )
+
+    if len(response.data) != len(batch.records):
+        raise RuntimeError(
+            "Embedding response count does not match input record count: "
+            f"expected={len(batch.records)}, received={len(response.data)}"
+        )
 
     updated_records: list[EmbeddingRecord] = []
     for record, response_item in zip(batch.records, response.data):
