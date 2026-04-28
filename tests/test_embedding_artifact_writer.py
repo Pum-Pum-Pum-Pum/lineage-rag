@@ -16,6 +16,9 @@ def test_write_embedding_batch_to_json(tmp_path: Path) -> None:
                 source_kind="paragraph",
                 document_family="FS_FCIS_14.7.0.0.0$ASNB",
                 release_label="R24",
+                content_hash="hash-paragraph",
+                artifact_version="v1",
+                cache_key="cache-key-paragraph",
                 text="Paragraph text",
                 embedding_model="text-embedding-3-large",
                 embedding_status="embedded",
@@ -27,6 +30,9 @@ def test_write_embedding_batch_to_json(tmp_path: Path) -> None:
                 source_kind="table",
                 document_family="FS_FCIS_14.7.0.0.0$ASNB",
                 release_label="R24",
+                content_hash="hash-table",
+                artifact_version="v1",
+                cache_key="cache-key-table",
                 text="Column | Description",
                 embedding_model="text-embedding-3-large",
                 embedding_status="embedded",
@@ -44,5 +50,8 @@ def test_write_embedding_batch_to_json(tmp_path: Path) -> None:
     assert payload["document_name"] == "FS_FCIS_14.7.0.0.0$ASNB_R24_Test.docx"
     assert payload["total_records"] == 2
     assert payload["records"][0]["source_kind"] == "paragraph"
+    assert payload["records"][0]["content_hash"] == "hash-paragraph"
+    assert payload["records"][0]["artifact_version"] == "v1"
+    assert payload["records"][0]["cache_key"] == "cache-key-paragraph"
     assert payload["records"][1]["source_kind"] == "table"
     assert payload["records"][1]["vector"] == [0.4, 0.5, 0.6]

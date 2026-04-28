@@ -1,8 +1,10 @@
 from pathlib import Path
+from dataclasses import replace
 
 from docx import Document
 
 from app.embeddings.client import embed_batch
+from app.embeddings.embedding_artifact_writer import write_embedding_batch_to_json
 from app.embeddings.embedding_contract import EmbeddingBatch, build_embedding_batch_contract
 from app.ingestion.chunker import chunk_normalized_artifact
 from app.ingestion.docx_ingestion_artifact import ingest_docx_file
@@ -22,7 +24,11 @@ class FakeEmbeddingResponse:
 
 
 class FakeEmbeddingsAPI:
+    def __init__(self) -> None:
+        self.calls: list[list[str]] = []
+
     def create(self, model: str, input: list[str]) -> FakeEmbeddingResponse:
+        self.calls.append(input)
         return FakeEmbeddingResponse(
             [FakeEmbeddingItem([float(index), float(index) + 0.5]) for index, _ in enumerate(input)]
         )
@@ -113,3 +119,46 @@ def test_embed_batch_raises_when_response_count_mismatches_input(tmp_path: Path)
         assert "Embedding response count does not match input record count" in str(exc)
     else:
         raise AssertionError("Expected RuntimeError for mismatched embedding response count")
+
+
+def test_embed_batch_reuses_cached_records_and_embeds_only_uncached(tmp_path: Path) -> None:
+    file_path = tmp_path / "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx"
+
+    document = Document()
+    document.add_paragraph("Paragraph 1")
+    document.add_paragraph("Paragraph 2")
+    document.save(file_path)
+
+    raw_artifact = ingest_docx_file(file_path)
+    normalized_artifact = build_normalized_artifact(raw_artifact)
+    paragraph_chunks = chunk_normalized_artifact(normalized_artifact, max_paragraphs_per_chunk=1)
+    table_chunks = chunk_tables_from_artifact(normalized_artifact)
+    retrieval_ready = build_retrieval_ready_artifact(
+        normalized_artifact,
+        paragraph_chunks,
+        table_chunks,
+    )
+    batch = build_embedding_batch_contract(retrieval_ready, embedding_model="text-embedding-3-large")
+
+    cached_record = replace(
+        batch.records[0],
+        embedding_status="embedded",
+        vector=[9.0, 9.1],
+    )
+    cached_batch = EmbeddingBatch(
+        document_name=batch.document_name,
+        total_records=1,
+        records=[cached_record],
+    )
+    cache_dir = tmp_path / "embedding-cache"
+    write_embedding_batch_to_json(cached_batch, cache_dir)
+
+    fake_client = FakeOpenAIClient()
+    embedded_batch = embed_batch(batch, client=fake_client, cache_directory=cache_dir)
+
+    assert embedded_batch.total_records == 2
+    assert embedded_batch.records[0].embedding_status == "cached"
+    assert embedded_batch.records[0].vector == [9.0, 9.1]
+    assert embedded_batch.records[1].embedding_status == "embedded"
+    assert embedded_batch.records[1].vector == [0.0, 0.5]
+    assert fake_client.embeddings.calls == [[batch.records[1].text]]
