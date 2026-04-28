@@ -29,6 +29,9 @@ class EmbeddingBatch:
     document_name: str
     total_records: int
     records: list[EmbeddingRecord]
+    cached_count: int = 0
+    embedded_count: int = 0
+    cache_miss_count: int = 0
 
 
 def compute_content_hash(text: str) -> str:

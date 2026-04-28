@@ -75,6 +75,9 @@ def test_embed_batch_updates_status_and_vectors(tmp_path: Path) -> None:
     embedded_batch = embed_batch(batch, client=FakeOpenAIClient())
 
     assert embedded_batch.total_records == batch.total_records
+    assert embedded_batch.cached_count == 0
+    assert embedded_batch.embedded_count == 2
+    assert embedded_batch.cache_miss_count == 2
     assert embedded_batch.records[0].embedding_status == "embedded"
     assert embedded_batch.records[0].vector == [0.0, 0.5]
     assert embedded_batch.records[1].vector == [1.0, 1.5]
@@ -92,6 +95,9 @@ def test_embed_batch_returns_empty_batch_without_api_call() -> None:
     assert embedded_batch.document_name == "empty.docx"
     assert embedded_batch.total_records == 0
     assert embedded_batch.records == []
+    assert embedded_batch.cached_count == 0
+    assert embedded_batch.embedded_count == 0
+    assert embedded_batch.cache_miss_count == 0
 
 
 def test_embed_batch_raises_when_response_count_mismatches_input(tmp_path: Path) -> None:
@@ -157,6 +163,9 @@ def test_embed_batch_reuses_cached_records_and_embeds_only_uncached(tmp_path: Pa
     embedded_batch = embed_batch(batch, client=fake_client, cache_directory=cache_dir)
 
     assert embedded_batch.total_records == 2
+    assert embedded_batch.cached_count == 1
+    assert embedded_batch.embedded_count == 1
+    assert embedded_batch.cache_miss_count == 1
     assert embedded_batch.records[0].embedding_status == "cached"
     assert embedded_batch.records[0].vector == [9.0, 9.1]
     assert embedded_batch.records[1].embedding_status == "embedded"

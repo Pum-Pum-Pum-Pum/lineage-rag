@@ -34,15 +34,20 @@ def embed_batch(
             document_name=batch.document_name,
             total_records=0,
             records=[],
+            cached_count=0,
+            embedded_count=0,
+            cache_miss_count=0,
         )
 
     cache = load_embedding_cache(cache_directory) if cache_directory is not None else {}
     updated_records: list[EmbeddingRecord | None] = [None] * len(batch.records)
     uncached_records: list[tuple[int, EmbeddingRecord]] = []
+    cached_count = 0
 
     for index, record in enumerate(batch.records):
         cached_record = cache.get(record.cache_key)
         if cached_record is not None:
+            cached_count += 1
             updated_records[index] = replace(
                 record,
                 embedding_status="cached",
@@ -80,4 +85,7 @@ def embed_batch(
         document_name=batch.document_name,
         total_records=len(finalized_records),
         records=finalized_records,
+        cached_count=cached_count,
+        embedded_count=len(uncached_records),
+        cache_miss_count=len(uncached_records),
     )

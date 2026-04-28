@@ -9,6 +9,9 @@ def test_write_embedding_batch_to_json(tmp_path: Path) -> None:
     batch = EmbeddingBatch(
         document_name="FS_FCIS_14.7.0.0.0$ASNB_R24_Test.docx",
         total_records=2,
+        cached_count=1,
+        embedded_count=1,
+        cache_miss_count=1,
         records=[
             EmbeddingRecord(
                 unit_id="doc::chunk_0",
@@ -49,6 +52,9 @@ def test_write_embedding_batch_to_json(tmp_path: Path) -> None:
     payload = json.loads(output_file.read_text(encoding="utf-8"))
     assert payload["document_name"] == "FS_FCIS_14.7.0.0.0$ASNB_R24_Test.docx"
     assert payload["total_records"] == 2
+    assert payload["cached_count"] == 1
+    assert payload["embedded_count"] == 1
+    assert payload["cache_miss_count"] == 1
     assert payload["records"][0]["source_kind"] == "paragraph"
     assert payload["records"][0]["content_hash"] == "hash-paragraph"
     assert payload["records"][0]["artifact_version"] == "v1"
