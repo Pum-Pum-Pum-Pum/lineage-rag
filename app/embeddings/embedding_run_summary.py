@@ -18,17 +18,6 @@ class EmbeddingRunSummary:
     embedding_models: list[str]
     artifact_versions: list[str]
 
-@dataclass(frozen=True)
-class EmbeddingRunSummary:
-    document_name: str
-    total_records: int
-    cached_count: int
-    embedded_count: int
-    cache_miss_count: int
-    cache_hit_rate: float
-    embedding_models: list[str]
-    artifact_versions: list[str]
-
 
 def build_embedding_run_summary(batch: EmbeddingBatch) -> EmbeddingRunSummary:
     """Build a lightweight local observability summary for one embedding batch."""
