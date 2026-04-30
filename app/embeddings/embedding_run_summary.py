@@ -7,6 +7,16 @@ from pathlib import Path
 from app.embeddings.embedding_contract import EmbeddingBatch
 from app.embeddings.embedding_metrics import calculate_cache_hit_rate
 
+@dataclass(frozen=True)
+class EmbeddingRunSummary:
+    document_name: str
+    total_records: int
+    cached_count: int
+    embedded_count: int
+    cache_miss_count: int
+    cache_hit_rate: float
+    embedding_models: list[str]
+    artifact_versions: list[str]
 
 @dataclass(frozen=True)
 class EmbeddingRunSummary:
