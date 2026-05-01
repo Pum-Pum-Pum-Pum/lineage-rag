@@ -1,1 +1,7 @@
 pandas
+openai
+pydantic
+pydantic-settings
+python-docx
+pytest
+qdrant-client
