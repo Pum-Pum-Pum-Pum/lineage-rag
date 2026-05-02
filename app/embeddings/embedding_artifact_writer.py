@@ -10,6 +10,7 @@ from app.embeddings.embedding_contract import EmbeddingBatch
 def write_embedding_batch_to_json(
     batch: EmbeddingBatch,
     output_directory: str | Path,
+    file_stem_suffix: str = "",
 ) -> Path:
     """Persist an embedding batch as a local JSON artifact.
 
@@ -20,7 +21,7 @@ def write_embedding_batch_to_json(
     output_dir = Path(output_directory)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_file = output_dir / f"{Path(batch.document_name).stem}.embeddings.json"
+    output_file = output_dir / f"{Path(batch.document_name).stem}{file_stem_suffix}.embeddings.json"
     output_file.write_text(
         json.dumps(asdict(batch), indent=2, ensure_ascii=False),
         encoding="utf-8",

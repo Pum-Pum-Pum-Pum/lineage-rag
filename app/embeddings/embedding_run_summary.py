@@ -40,13 +40,14 @@ def build_embedding_run_summary(batch: EmbeddingBatch) -> EmbeddingRunSummary:
 def write_embedding_run_summary_to_json(
     summary: EmbeddingRunSummary,
     output_directory: str | Path,
+    file_stem_suffix: str = "",
 ) -> Path:
     """Persist embedding run metrics as a JSON artifact."""
 
     output_dir = Path(output_directory)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_file = output_dir / f"{Path(summary.document_name).stem}.embedding_summary.json"
+    output_file = output_dir / f"{Path(summary.document_name).stem}{file_stem_suffix}.embedding_summary.json"
     output_file.write_text(
         json.dumps(asdict(summary), indent=2, ensure_ascii=False),
         encoding="utf-8",

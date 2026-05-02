@@ -17,7 +17,7 @@ from app.embeddings.embedding_run_summary import (
     build_embedding_run_summary,
     write_embedding_run_summary_to_json,
 )
-from app.embeddings.smoke_test import limit_embedding_batch
+from app.embeddings.smoke_test import filter_embedding_batch_by_source_kind, limit_embedding_batch
 from app.ingestion.chunker import chunk_normalized_artifact
 from app.ingestion.docx_ingestion_artifact import ingest_docx_file
 from app.ingestion.docx_loader import discover_docx_files
@@ -41,6 +41,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default="",
         help="Optional exact DOCX filename from data/raw_specs. Defaults to first valid DOCX.",
+    )
+    parser.add_argument(
+        "--source-kind",
+        choices=["paragraph", "table"],
+        default=None,
+        help="Optional retrieval unit source kind to smoke test: paragraph or table.",
     )
     return parser.parse_args()
 
@@ -66,6 +72,7 @@ def main() -> None:
 
     logger.info("Selected document: %s", selected_file.file_name)
     logger.info("Embedding smoke-test limit: %s", args.limit)
+    logger.info("Source-kind filter: %s", args.source_kind or "none")
     logger.info("Embedding cache directory: %s", embedding_cache_dir)
 
     raw_artifact = ingest_docx_file(selected_file.file_path)
@@ -82,14 +89,33 @@ def main() -> None:
         embedding_model=settings.openai_embedding_model,
         artifact_version=settings.artifact_version,
     )
-    smoke_batch = limit_embedding_batch(embedding_batch, limit=args.limit)
+    filtered_batch = filter_embedding_batch_by_source_kind(
+        embedding_batch,
+        source_kind=args.source_kind,
+    )
+    if not filtered_batch.records:
+        raise RuntimeError(
+            "No retrieval-ready units found for embedding smoke test "
+            f"with source_kind={args.source_kind!r}."
+        )
+
+    smoke_batch = limit_embedding_batch(filtered_batch, limit=args.limit)
     embedded_batch = embed_batch(
         smoke_batch,
         cache_directory=embedding_cache_dir,
     )
-    embedding_output = write_embedding_batch_to_json(embedded_batch, embedding_cache_dir)
+    output_suffix = f".{args.source_kind}" if args.source_kind else ""
+    embedding_output = write_embedding_batch_to_json(
+        embedded_batch,
+        embedding_cache_dir,
+        file_stem_suffix=output_suffix,
+    )
     summary = build_embedding_run_summary(embedded_batch)
-    summary_output = write_embedding_run_summary_to_json(summary, embedding_cache_dir)
+    summary_output = write_embedding_run_summary_to_json(
+        summary,
+        embedding_cache_dir,
+        file_stem_suffix=output_suffix,
+    )
 
     first_vector_length = 0
     if embedded_batch.records and embedded_batch.records[0].vector is not None:

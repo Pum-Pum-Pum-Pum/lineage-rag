@@ -61,3 +61,19 @@ def test_write_embedding_batch_to_json(tmp_path: Path) -> None:
     assert payload["records"][0]["cache_key"] == "cache-key-paragraph"
     assert payload["records"][1]["source_kind"] == "table"
     assert payload["records"][1]["vector"] == [0.4, 0.5, 0.6]
+
+
+def test_write_embedding_batch_to_json_supports_file_stem_suffix(tmp_path: Path) -> None:
+    batch = EmbeddingBatch(
+        document_name="example.docx",
+        total_records=0,
+        records=[],
+    )
+
+    output_file = write_embedding_batch_to_json(
+        batch,
+        tmp_path / "embeddings",
+        file_stem_suffix=".table",
+    )
+
+    assert output_file.name == "example.table.embeddings.json"

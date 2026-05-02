@@ -70,6 +70,23 @@ def test_write_embedding_run_summary_to_json(tmp_path: Path) -> None:
     assert payload["cache_hit_rate"] == 0.5
 
 
+def test_write_embedding_run_summary_to_json_supports_file_stem_suffix(tmp_path: Path) -> None:
+    batch = EmbeddingBatch(
+        document_name="example.docx",
+        total_records=0,
+        records=[],
+    )
+    summary = build_embedding_run_summary(batch)
+
+    output_file = write_embedding_run_summary_to_json(
+        summary,
+        tmp_path / "summaries",
+        file_stem_suffix=".table",
+    )
+
+    assert output_file.name == "example.table.embedding_summary.json"
+
+
 def test_build_embedding_run_summary_empty_batch() -> None:
     batch = EmbeddingBatch(
         document_name="empty.docx",

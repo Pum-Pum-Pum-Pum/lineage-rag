@@ -1,0 +1,65 @@
+[
+  {
+    "case_id": "r24_branch_reports_realignment_summary",
+    "query": "branch reports realignment",
+    "filters": {
+      "release_label": "R24",
+      "source_kind": "paragraph"
+    },
+    "expectation": {
+      "expected_to_pass": true,
+      "min_results": 1,
+      "expected_release_label": "R24",
+      "expected_source_kind": "paragraph",
+      "expected_top1_contains_any": ["The enhancements scoped", "multiple Teller reports", "multiple Branch reports"],
+      "expected_text_contains_any": ["The enhancements scoped", "multiple Teller reports", "multiple Branch reports"]
+    }
+  },
+  {
+    "case_id": "r24_b01_report_layout_missing_embedded_attachment",
+    "query": "report layout for B-01 report",
+    "filters": {
+      "release_label": "R24",
+      "source_kind": "table"
+    },
+    "expectation": {
+      "expected_to_pass": false,
+      "min_results": 1,
+      "expected_release_label": "R24",
+      "expected_source_kind": "table",
+      "expected_top1_contains_any": ["B-01", "Branch End of Day", "layout"],
+      "expected_text_contains_any": ["B-01", "Branch End of Day", "layout"]
+    },
+    "notes": "Expected to expose a current limitation: the actual layout may live in an embedded Excel attachment that is not extracted yet."
+  },
+  {
+    "case_id": "r2_branch_online_reports_bip",
+    "query": "Branch Online Report BIP reporting needs",
+    "filters": {
+      "release_label": "R2"
+    },
+    "expectation": {
+      "expected_to_pass": true,
+      "min_results": 1,
+      "expected_release_label": "R2",
+      "expected_top1_contains_any": ["Branch Online Report", "BIP", "business reporting"],
+      "expected_text_contains_any": ["Branch Online Report", "BIP", "business reporting"]
+    }
+  },
+  {
+    "case_id": "r24_table_acronym_pnb",
+    "query": "what does PNB stand for",
+    "filters": {
+      "release_label": "R24",
+      "source_kind": "table"
+    },
+    "expectation": {
+      "expected_to_pass": true,
+      "min_results": 1,
+      "expected_release_label": "R24",
+      "expected_source_kind": "table",
+      "expected_top1_contains_any": ["Permodalan Nasional Berhad", "PNB"],
+      "expected_text_contains_any": ["Permodalan Nasional Berhad", "PNB"]
+    }
+  }
+]
