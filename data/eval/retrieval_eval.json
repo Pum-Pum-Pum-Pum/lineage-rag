@@ -61,5 +61,52 @@
       "expected_top1_contains_any": ["Permodalan Nasional Berhad", "PNB"],
       "expected_text_contains_any": ["Permodalan Nasional Berhad", "PNB"]
     }
+  },
+  {
+    "case_id": "r24_existing_functionality_reports_count",
+    "query": "how many teller and BO reports currently need to be printed by branch EOD",
+    "filters": {
+      "release_label": "R24",
+      "source_kind": "paragraph"
+    },
+    "expectation": {
+      "expected_to_pass": true,
+      "min_results": 1,
+      "expected_release_label": "R24",
+      "expected_source_kind": "paragraph",
+      "expected_top1_contains_any": ["23 reports", "Teller Report", "BO Report"],
+      "expected_text_contains_any": ["23 reports", "Teller Report", "BO Report"]
+    }
+  },
+  {
+    "case_id": "r24_assumptions_extraction_logic_same",
+    "query": "what is the assumption about extraction logic of reports",
+    "filters": {
+      "release_label": "R24",
+      "source_kind": "paragraph"
+    },
+    "expectation": {
+      "expected_to_pass": true,
+      "min_results": 1,
+      "expected_release_label": "R24",
+      "expected_source_kind": "paragraph",
+      "expected_top1_contains_any": ["Extraction logic", "remains same"],
+      "expected_text_contains_any": ["Extraction logic", "remains same"]
+    }
+  },
+  {
+    "case_id": "r24_unanswerable_mobile_app_login",
+    "query": "what is the mobile app login flow for retail customers",
+    "filters": {
+      "release_label": "R24"
+    },
+    "expectation": {
+      "expected_to_pass": false,
+      "min_results": 1,
+      "expected_release_label": "R24",
+      "expected_top1_contains_any": ["mobile app login", "retail customers", "authentication"],
+      "expected_text_contains_any": ["mobile app login", "retail customers", "authentication"]
+    },
+    "notes": "Expected to fail because current indexed R24 evidence is about teller/branch report realignment, not mobile app login."
   }
 ]

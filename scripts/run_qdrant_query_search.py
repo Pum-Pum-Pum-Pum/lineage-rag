@@ -10,6 +10,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
+from app.retrieval.evidence_sufficiency import assess_evidence_sufficiency
 from app.retrieval.query_search import search_query_text
 from app.vectorstore.qdrant_schema import create_persistent_qdrant_client
 
@@ -23,6 +24,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--document-family", default=None, help="Optional document_family filter.")
     parser.add_argument("--release-label", default=None, help="Optional release_label filter, e.g. R24.")
     parser.add_argument("--source-kind", default=None, help="Optional source_kind filter: paragraph or table.")
+    parser.add_argument(
+        "--min-top-score",
+        type=float,
+        default=0.30,
+        help="Minimum top score required for baseline evidence sufficiency.",
+    )
     return parser.parse_args()
 
 
@@ -52,6 +59,18 @@ def main() -> None:
 
     logger.info("Query: %s", args.query)
     logger.info("Results returned: %s", len(results))
+
+    sufficiency = assess_evidence_sufficiency(
+        results,
+        min_results=1,
+        min_top_score=args.min_top_score,
+    )
+    logger.info(
+        "Evidence sufficiency | sufficient=%s | reason=%s | top_score=%s",
+        sufficiency.is_sufficient,
+        sufficiency.reason,
+        sufficiency.top_score,
+    )
 
     for index, result in enumerate(results, start=1):
         payload = result.payload
