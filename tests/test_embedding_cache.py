@@ -23,13 +23,14 @@ def _record(cache_key: str, status: str, vector: list[float] | None) -> Embeddin
     )
 
 
-def test_load_embedding_cache_returns_only_embedded_records(tmp_path: Path) -> None:
+def test_load_embedding_cache_returns_only_records_with_usable_vectors(tmp_path: Path) -> None:
     cache_dir = tmp_path / "embeddings"
     batch = EmbeddingBatch(
         document_name="example.docx",
-        total_records=2,
+        total_records=3,
         records=[
             _record("embedded-key", "embedded", [0.1, 0.2]),
+            _record("cached-key", "cached", [0.3, 0.4]),
             _record("pending-key", "pending", None),
         ],
     )
@@ -37,8 +38,9 @@ def test_load_embedding_cache_returns_only_embedded_records(tmp_path: Path) -> N
 
     cache = load_embedding_cache(cache_dir)
 
-    assert list(cache.keys()) == ["embedded-key"]
+    assert set(cache.keys()) == {"cached-key", "embedded-key"}
     assert cache["embedded-key"].vector == [0.1, 0.2]
+    assert cache["cached-key"].vector == [0.3, 0.4]
 
 
 def test_find_cached_embedding_returns_record_by_cache_key(tmp_path: Path) -> None:

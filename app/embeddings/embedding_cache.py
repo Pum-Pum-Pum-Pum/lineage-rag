@@ -6,11 +6,14 @@ from pathlib import Path
 from app.embeddings.embedding_contract import EmbeddingRecord
 
 
+USABLE_EMBEDDING_STATUSES = {"embedded", "cached"}
+
+
 def load_embedding_cache(cache_directory: str | Path) -> dict[str, EmbeddingRecord]:
     """Load embedded records from persisted embedding JSON artifacts.
 
-    This is a minimal cache lookup layer. It only loads records that are already
-    embedded and have vectors. Pending or incomplete records are ignored.
+    This is a minimal cache lookup layer. It only loads records that already
+    have usable vectors. Pending or incomplete records are ignored.
     """
 
     directory = Path(cache_directory)
@@ -23,7 +26,7 @@ def load_embedding_cache(cache_directory: str | Path) -> dict[str, EmbeddingReco
         payload = json.loads(embedding_file.read_text(encoding="utf-8"))
 
         for record_payload in payload.get("records", []):
-            if record_payload.get("embedding_status") != "embedded":
+            if record_payload.get("embedding_status") not in USABLE_EMBEDDING_STATUSES:
                 continue
             if record_payload.get("vector") is None:
                 continue

@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     qdrant_host: str = Field(default="localhost", alias="QDRANT_HOST")
     qdrant_port: int = Field(default=6333, alias="QDRANT_PORT")
     qdrant_collection_name: str = Field(default="functional_specs", alias="QDRANT_COLLECTION_NAME")
+    qdrant_vector_size: int = Field(default=3072, alias="QDRANT_VECTOR_SIZE")
+    qdrant_local_path: Path = Field(default=ROOT_DIR / "data" / "qdrant_local", alias="QDRANT_LOCAL_PATH")
 
 
 def get_settings() -> Settings:
