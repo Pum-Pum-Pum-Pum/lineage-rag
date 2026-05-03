@@ -13,6 +13,7 @@ from app.core.logging import configure_logging, get_logger
 from app.retrieval.evidence_sufficiency import assess_evidence_sufficiency
 from app.retrieval.query_search import search_query_text
 from app.services.answer_generation import generate_grounded_answer
+from app.services.answer_trace import build_answer_trace, write_answer_trace
 from app.vectorstore.qdrant_schema import create_persistent_qdrant_client
 
 
@@ -70,8 +71,22 @@ def main() -> None:
         retrieved_results=retrieved_results,
         sufficiency=sufficiency,
     )
+    trace = build_answer_trace(
+        query=args.query,
+        filters={
+            "document_family": args.document_family,
+            "release_label": args.release_label,
+            "source_kind": args.source_kind,
+        },
+        sufficiency=sufficiency,
+        answer_response=response,
+        retrieval_results=retrieved_results,
+    )
+    trace_output = write_answer_trace(trace, settings.exports_dir / "answer_runs")
 
     logger.info("Query: %s", response.query)
+    logger.info("Request id: %s", trace.request_id)
+    logger.info("Wrote answer trace: %s", trace_output)
     logger.info("Evidence sufficient: %s", sufficiency.is_sufficient)
     logger.info("Sufficiency reason: %s", sufficiency.reason)
     logger.info("Answered: %s", response.is_answered)

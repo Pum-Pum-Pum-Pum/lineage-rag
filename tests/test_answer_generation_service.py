@@ -26,22 +26,23 @@ class FakeUsage:
 
 
 class FakeCompletionsAPI:
-    def __init__(self) -> None:
+    def __init__(self, content: str = "The reports were consolidated [C1].") -> None:
+        self.content = content
         self.calls: list[dict] = []
 
     def create(self, model: str, messages: list[dict]) -> FakeChatResponse:
         self.calls.append({"model": model, "messages": messages})
-        return FakeChatResponse("The reports were consolidated [C1].")
+        return FakeChatResponse(self.content)
 
 
 class FakeChatAPI:
-    def __init__(self) -> None:
-        self.completions = FakeCompletionsAPI()
+    def __init__(self, content: str = "The reports were consolidated [C1].") -> None:
+        self.completions = FakeCompletionsAPI(content)
 
 
 class FakeOpenAIClient:
-    def __init__(self) -> None:
-        self.chat = FakeChatAPI()
+    def __init__(self, content: str = "The reports were consolidated [C1].") -> None:
+        self.chat = FakeChatAPI(content)
 
 
 def _result() -> QdrantSearchResult:
@@ -103,3 +104,23 @@ def test_generate_grounded_answer_calls_llm_when_evidence_is_sufficient() -> Non
     assert response.cost is not None
     assert response.cost.total_cost == 0.0
     assert fake_client.chat.completions.calls[0]["model"] == "test-model"
+
+
+def test_generate_grounded_answer_refuses_when_llm_returns_invalid_citation() -> None:
+    fake_client = FakeOpenAIClient(content="The reports were consolidated [C99].")
+    response = generate_grounded_answer(
+        query="What changed in branch reports?",
+        retrieved_results=[_result()],
+        sufficiency=EvidenceSufficiencyDecision(
+            is_sufficient=True,
+            reason="Retrieved evidence passed baseline sufficiency checks.",
+            result_count=1,
+            top_score=0.75,
+        ),
+        llm_client=fake_client,
+        model="test-model",
+    )
+
+    assert response.is_answered is False
+    assert response.refusal_reason is not None
+    assert "Citation validation failed" in response.refusal_reason

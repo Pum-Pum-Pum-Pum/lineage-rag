@@ -9,6 +9,7 @@ from app.llm.answer_contract import (
     build_citations_from_results,
     build_insufficient_evidence_response,
 )
+from app.llm.citation_validator import validate_answer_citations
 from app.llm.client import generate_chat_completion_with_usage
 from app.llm.prompt_template import build_grounded_prompt
 from app.llm.usage import estimate_llm_cost
@@ -48,7 +49,7 @@ def generate_grounded_answer(
     )
     citations = build_citations_from_results(retrieved_results)
 
-    return GroundedAnswerResponse(
+    response = GroundedAnswerResponse(
         query=query,
         answer=completion.content,
         is_answered=True,
@@ -57,3 +58,20 @@ def generate_grounded_answer(
         usage=completion.usage,
         cost=cost,
     )
+
+    citation_validation = validate_answer_citations(response)
+    if not citation_validation.is_valid:
+        return GroundedAnswerResponse(
+            query=query,
+            answer=(
+                "I generated an answer, but citation validation failed. "
+                "To avoid presenting unsupported citations, I am refusing to return the generated answer."
+            ),
+            is_answered=False,
+            refusal_reason=f"Citation validation failed: {citation_validation}",
+            citations=citations,
+            usage=completion.usage,
+            cost=cost,
+        )
+
+    return response
