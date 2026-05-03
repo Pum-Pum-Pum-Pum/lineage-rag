@@ -27,8 +27,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--min-top-score",
         type=float,
-        default=0.30,
-        help="Minimum top score required for baseline evidence sufficiency.",
+        default=None,
+        help="Minimum top score required for baseline evidence sufficiency. Defaults to config value.",
     )
     return parser.parse_args()
 
@@ -60,16 +60,18 @@ def main() -> None:
     logger.info("Query: %s", args.query)
     logger.info("Results returned: %s", len(results))
 
+    min_top_score = args.min_top_score if args.min_top_score is not None else settings.retrieval_min_top_score
     sufficiency = assess_evidence_sufficiency(
         results,
         min_results=1,
-        min_top_score=args.min_top_score,
+        min_top_score=min_top_score,
     )
     logger.info(
-        "Evidence sufficiency | sufficient=%s | reason=%s | top_score=%s",
+        "Evidence sufficiency | sufficient=%s | reason=%s | top_score=%s | min_top_score=%s",
         sufficiency.is_sufficient,
         sufficiency.reason,
         sufficiency.top_score,
+        min_top_score,
     )
 
     for index, result in enumerate(results, start=1):

@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     qdrant_vector_size: int = Field(default=3072, alias="QDRANT_VECTOR_SIZE")
     qdrant_local_path: Path = Field(default=ROOT_DIR / "data" / "qdrant_local", alias="QDRANT_LOCAL_PATH")
 
+    retrieval_min_top_score: float = Field(default=0.30, alias="RETRIEVAL_MIN_TOP_SCORE")
+
 
 def get_settings() -> Settings:
     return Settings()
