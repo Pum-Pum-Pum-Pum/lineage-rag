@@ -60,3 +60,5 @@ def test_build_insufficient_evidence_response() -> None:
     assert response.refusal_reason == "Top score is below threshold."
     assert "could not find sufficient evidence" in response.answer
     assert len(response.citations) == 1
+    assert response.usage is None
+    assert response.cost is None

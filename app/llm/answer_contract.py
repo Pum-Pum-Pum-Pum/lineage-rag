@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.llm.usage import LLMCostEstimate, LLMUsage
 from app.retrieval.evidence_sufficiency import EvidenceSufficiencyDecision
 from app.vectorstore.qdrant_search import QdrantSearchResult
 
@@ -30,6 +31,8 @@ class GroundedAnswerResponse:
     is_answered: bool
     refusal_reason: str | None
     citations: list[Citation]
+    usage: LLMUsage | None = None
+    cost: LLMCostEstimate | None = None
 
 
 def build_citations_from_results(

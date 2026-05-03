@@ -16,6 +16,13 @@ class FakeChoice:
 class FakeChatResponse:
     def __init__(self, content: str) -> None:
         self.choices = [FakeChoice(content)]
+        self.usage = FakeUsage()
+
+
+class FakeUsage:
+    prompt_tokens = 20
+    completion_tokens = 7
+    total_tokens = 27
 
 
 class FakeCompletionsAPI:
@@ -91,4 +98,8 @@ def test_generate_grounded_answer_calls_llm_when_evidence_is_sufficient() -> Non
     assert response.answer == "The reports were consolidated [C1]."
     assert response.refusal_reason is None
     assert len(response.citations) == 1
+    assert response.usage is not None
+    assert response.usage.total_tokens == 27
+    assert response.cost is not None
+    assert response.cost.total_cost == 0.0
     assert fake_client.chat.completions.calls[0]["model"] == "test-model"

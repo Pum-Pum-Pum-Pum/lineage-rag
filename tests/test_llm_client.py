@@ -1,4 +1,4 @@
-from app.llm.client import generate_chat_completion
+from app.llm.client import generate_chat_completion, generate_chat_completion_with_usage
 from app.llm.prompt_template import GroundedPrompt
 
 
@@ -13,8 +13,15 @@ class FakeChoice:
 
 
 class FakeChatResponse:
-    def __init__(self, choices: list[FakeChoice]) -> None:
+    def __init__(self, choices: list[FakeChoice], usage: object | None = None) -> None:
         self.choices = choices
+        self.usage = usage
+
+
+class FakeUsage:
+    prompt_tokens = 10
+    completion_tokens = 5
+    total_tokens = 15
 
 
 class FakeCompletionsAPI:
@@ -46,7 +53,9 @@ def _prompt() -> GroundedPrompt:
 
 
 def test_generate_chat_completion_returns_content() -> None:
-    fake_client = FakeOpenAIClient(FakeChatResponse([FakeChoice(" Grounded answer [C1]. ")]))
+    fake_client = FakeOpenAIClient(
+        FakeChatResponse([FakeChoice(" Grounded answer [C1]. ")], usage=FakeUsage())
+    )
 
     answer = generate_chat_completion(
         prompt=_prompt(),
@@ -58,6 +67,39 @@ def test_generate_chat_completion_returns_content() -> None:
     assert fake_client.chat.completions.calls[0]["model"] == "test-model"
     assert fake_client.chat.completions.calls[0]["messages"][0]["role"] == "system"
     assert fake_client.chat.completions.calls[0]["messages"][1]["role"] == "user"
+
+
+def test_generate_chat_completion_with_usage_returns_content_and_usage() -> None:
+    fake_client = FakeOpenAIClient(
+        FakeChatResponse([FakeChoice("Grounded answer [C1].")], usage=FakeUsage())
+    )
+
+    result = generate_chat_completion_with_usage(
+        prompt=_prompt(),
+        model="test-model",
+        client=fake_client,
+    )
+
+    assert result.content == "Grounded answer [C1]."
+    assert result.usage.model == "test-model"
+    assert result.usage.prompt_tokens == 10
+    assert result.usage.completion_tokens == 5
+    assert result.usage.total_tokens == 15
+
+
+def test_generate_chat_completion_with_usage_handles_missing_usage() -> None:
+    fake_client = FakeOpenAIClient(FakeChatResponse([FakeChoice("Grounded answer [C1].")]))
+
+    result = generate_chat_completion_with_usage(
+        prompt=_prompt(),
+        model="test-model",
+        client=fake_client,
+    )
+
+    assert result.usage.model == "test-model"
+    assert result.usage.prompt_tokens is None
+    assert result.usage.completion_tokens is None
+    assert result.usage.total_tokens is None
 
 
 def test_generate_chat_completion_rejects_missing_choices() -> None:

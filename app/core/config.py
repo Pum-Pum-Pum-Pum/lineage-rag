@@ -46,6 +46,9 @@ class Settings(BaseSettings):
 
     retrieval_min_top_score: float = Field(default=0.30, alias="RETRIEVAL_MIN_TOP_SCORE")
 
+    llm_input_cost_per_1k_tokens: float = Field(default=0.0, alias="LLM_INPUT_COST_PER_1K_TOKENS")
+    llm_output_cost_per_1k_tokens: float = Field(default=0.0, alias="LLM_OUTPUT_COST_PER_1K_TOKENS")
+
 
 def get_settings() -> Settings:
     return Settings()
