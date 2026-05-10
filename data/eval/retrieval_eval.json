@@ -27,8 +27,10 @@
       "min_results": 1,
       "expected_release_label": "R24",
       "expected_source_kind": "table",
+      "expected_marker_contains_any": ["B-01", "Branch End of Day", "layout"],
       "expected_top1_contains_any": ["B-01", "Branch End of Day", "layout"],
-      "expected_text_contains_any": ["B-01", "Branch End of Day", "layout"]
+      "expected_text_contains_any": ["B-01", "Branch End of Day", "layout"],
+      "unsupported_evidence_contains_any": ["attached sample report", "Sample Report", ".xlsx"]
     },
     "notes": "Expected to expose a current limitation: the actual layout may live in an embedded Excel attachment that is not extracted yet."
   },

@@ -21,8 +21,10 @@ class RetrievalEvalExpectation:
     min_results: int = 1
     expected_release_label: str | None = None
     expected_source_kind: str | None = None
+    expected_marker_contains_any: list[str] | None = None
     expected_top1_contains_any: list[str] | None = None
     expected_text_contains_any: list[str] | None = None
+    unsupported_evidence_contains_any: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -123,6 +125,14 @@ def evaluate_retrieval_results(
                 f"{expectation.expected_text_contains_any}"
             )
 
+    if expectation.expected_marker_contains_any:
+        combined_text = "\n".join(str(result.payload.get("text", "")) for result in results)
+        if not any(expected_marker in combined_text for expected_marker in expectation.expected_marker_contains_any):
+            failures.append(
+                "None of the expected marker/reference text values were found: "
+                f"{expectation.expected_marker_contains_any}"
+            )
+
     if expectation.expected_top1_contains_any:
         if not results:
             failures.append(
@@ -135,6 +145,19 @@ def evaluate_retrieval_results(
                     "Top-1 result did not contain expected text markers: "
                     f"{expectation.expected_top1_contains_any}"
                 )
+
+    if expectation.unsupported_evidence_contains_any:
+        combined_text = "\n".join(str(result.payload.get("text", "")) for result in results)
+        found_unsupported_markers = [
+            marker
+            for marker in expectation.unsupported_evidence_contains_any
+            if marker in combined_text
+        ]
+        if found_unsupported_markers:
+            failures.append(
+                "Retrieved evidence appears to contain unsupported marker/reference-only content: "
+                f"{found_unsupported_markers}"
+            )
 
     passed = not failures
 
