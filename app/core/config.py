@@ -44,7 +44,11 @@ class Settings(BaseSettings):
     qdrant_vector_size: int = Field(default=3072, alias="QDRANT_VECTOR_SIZE")
     qdrant_local_path: Path = Field(default=ROOT_DIR / "data" / "qdrant_local", alias="QDRANT_LOCAL_PATH")
 
+    retrieval_mode: str = Field(default="hybrid", alias="RETRIEVAL_MODE")
     retrieval_min_top_score: float = Field(default=0.30, alias="RETRIEVAL_MIN_TOP_SCORE")
+    hybrid_dense_weight: float = Field(default=0.60, alias="HYBRID_DENSE_WEIGHT")
+    hybrid_lexical_weight: float = Field(default=0.40, alias="HYBRID_LEXICAL_WEIGHT")
+    hybrid_candidate_limit: int = Field(default=10, alias="HYBRID_CANDIDATE_LIMIT")
 
     llm_input_cost_per_1k_tokens: float = Field(default=0.0, alias="LLM_INPUT_COST_PER_1K_TOKENS")
     llm_output_cost_per_1k_tokens: float = Field(default=0.0, alias="LLM_OUTPUT_COST_PER_1K_TOKENS")
