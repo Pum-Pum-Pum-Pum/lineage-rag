@@ -4,6 +4,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from app.llm.answer_contract import GroundedAnswerResponse
@@ -20,6 +21,7 @@ class AnswerTrace:
     sufficiency: EvidenceSufficiencyDecision
     answer_response: GroundedAnswerResponse
     retrieval_results: list[dict]
+    retrieval_metadata: dict[str, Any] | None = None
 
 
 def build_answer_trace(
@@ -29,6 +31,7 @@ def build_answer_trace(
     answer_response: GroundedAnswerResponse,
     retrieval_results: list[QdrantSearchResult],
     request_id: str | None = None,
+    retrieval_metadata: dict[str, Any] | None = None,
 ) -> AnswerTrace:
     """Build a trace object for one answer-generation run."""
 
@@ -47,6 +50,7 @@ def build_answer_trace(
             }
             for result in retrieval_results
         ],
+        retrieval_metadata=retrieval_metadata,
     )
 
 
