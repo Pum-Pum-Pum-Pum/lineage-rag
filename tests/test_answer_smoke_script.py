@@ -3,9 +3,12 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+from app.llm.answer_contract import Citation
 from app.llm.answer_contract import GroundedAnswerResponse
+from app.retrieval.evidence_sufficiency import EvidenceSufficiencyDecision
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
-from app.retrieval.retrieval_router import RoutedRetrievalResult
+from app.services.answer_orchestration import AnswerOrchestrationResult
+from app.services.answer_trace import build_answer_trace
 from app.vectorstore.qdrant_search import QdrantSearchResult
 from scripts import run_answer_smoke_test
 
@@ -30,7 +33,7 @@ def test_answer_smoke_collection_requirement_depends_on_retrieval_mode() -> None
     assert run_answer_smoke_test._requires_qdrant_collection("lexical") is False
 
 
-def test_answer_smoke_script_uses_retrieval_service(monkeypatch, tmp_path: Path) -> None:
+def test_answer_smoke_script_uses_answer_orchestration_service(monkeypatch, tmp_path: Path) -> None:
     settings = SimpleNamespace(
         log_level="INFO",
         retrieval_min_top_score=0.25,
@@ -57,6 +60,38 @@ def test_answer_smoke_script_uses_retrieval_service(monkeypatch, tmp_path: Path)
             "source_kind": "paragraph",
         },
     )
+    sufficiency = EvidenceSufficiencyDecision(
+        is_sufficient=True,
+        reason="Retrieved evidence passed baseline sufficiency checks.",
+        result_count=1,
+        top_score=0.82,
+    )
+    response = GroundedAnswerResponse(
+        query="What changed in branch reports?",
+        answer="Grounded answer [C1].",
+        is_answered=True,
+        refusal_reason=None,
+        citations=[
+            Citation(
+                unit_id="FS_ASNB_R24::chunk_1",
+                document_family="ASNB",
+                release_label="R24",
+                source_kind="paragraph",
+                score=0.82,
+                text_preview="Branch report evidence",
+            )
+        ],
+    )
+    trace = build_answer_trace(
+        query="What changed in branch reports?",
+        filters={"document_family": "ASNB", "release_label": "R24", "source_kind": "paragraph"},
+        sufficiency=sufficiency,
+        answer_response=response,
+        retrieval_results=[retrieved_result],
+        request_id="answer-smoke-test-request",
+        retrieval_metadata={"retrieval_mode": "hybrid"},
+    )
+    trace_output_path = tmp_path / "exports" / "answer_runs" / "answer-smoke-test-request.json"
     captured: dict[str, object] = {}
 
     class FakeQdrantClient:
@@ -73,30 +108,21 @@ def test_answer_smoke_script_uses_retrieval_service(monkeypatch, tmp_path: Path)
 
     fake_client = FakeQdrantClient()
 
-    def fake_retrieve_query_evidence(**kwargs):
-        captured["retrieve_kwargs"] = kwargs
-        return RoutedRetrievalResult(
+    def fake_run_grounded_answer_query(**kwargs):
+        captured["orchestration_kwargs"] = kwargs
+        return AnswerOrchestrationResult(
             retrieval_mode="hybrid",
-            results=[retrieved_result],
-        )
-
-    def fake_generate_grounded_answer(query, retrieved_results, sufficiency):
-        captured["answer_query"] = query
-        captured["answer_results"] = retrieved_results
-        captured["sufficiency"] = sufficiency
-        return GroundedAnswerResponse(
-            query=query,
-            answer="Grounded answer [C1].",
-            is_answered=True,
-            refusal_reason=None,
-            citations=[],
+            retrieval_results=[retrieved_result],
+            sufficiency=sufficiency,
+            answer_response=response,
+            trace=trace,
+            trace_output_path=trace_output_path,
         )
 
     monkeypatch.setattr(run_answer_smoke_test, "get_settings", lambda: settings)
     monkeypatch.setattr(run_answer_smoke_test, "build_retrieval_runtime_config", lambda loaded_settings: retrieval_config)
     monkeypatch.setattr(run_answer_smoke_test, "create_persistent_qdrant_client", lambda path: fake_client)
-    monkeypatch.setattr(run_answer_smoke_test, "retrieve_query_evidence", fake_retrieve_query_evidence)
-    monkeypatch.setattr(run_answer_smoke_test, "generate_grounded_answer", fake_generate_grounded_answer)
+    monkeypatch.setattr(run_answer_smoke_test, "run_grounded_answer_query", fake_run_grounded_answer_query)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -117,18 +143,19 @@ def test_answer_smoke_script_uses_retrieval_service(monkeypatch, tmp_path: Path)
 
     run_answer_smoke_test.main()
 
-    retrieve_kwargs = captured["retrieve_kwargs"]
-    assert retrieve_kwargs["qdrant_client"] is fake_client
-    assert retrieve_kwargs["collection_name"] == "lineage_chunks"
-    assert retrieve_kwargs["query_text"] == "What changed in branch reports?"
-    assert retrieve_kwargs["embedding_model"] == "test-embedding-model"
-    assert retrieve_kwargs["retrieval_config"] == retrieval_config
-    assert retrieve_kwargs["lexical_artifact_directory"] == settings.processed_dir
-    assert retrieve_kwargs["limit"] == 3
-    assert retrieve_kwargs["document_family"] == "ASNB"
-    assert retrieve_kwargs["release_label"] == "R24"
-    assert retrieve_kwargs["source_kind"] == "paragraph"
-    assert captured["answer_results"] == [retrieved_result]
-    assert captured["sufficiency"].is_sufficient is True
+    orchestration_kwargs = captured["orchestration_kwargs"]
+    assert orchestration_kwargs["qdrant_client"] is fake_client
+    assert orchestration_kwargs["collection_name"] == "lineage_chunks"
+    assert orchestration_kwargs["query_text"] == "What changed in branch reports?"
+    assert orchestration_kwargs["embedding_model"] == "test-embedding-model"
+    assert orchestration_kwargs["retrieval_config"] == retrieval_config
+    assert orchestration_kwargs["lexical_artifact_directory"] == settings.processed_dir
+    assert orchestration_kwargs["trace_output_directory"] == settings.exports_dir / "answer_runs"
+    assert orchestration_kwargs["limit"] == 3
+    assert orchestration_kwargs["min_results"] == 1
+    assert orchestration_kwargs["min_top_score"] == 0.25
+    assert orchestration_kwargs["document_family"] == "ASNB"
+    assert orchestration_kwargs["release_label"] == "R24"
+    assert orchestration_kwargs["source_kind"] == "paragraph"
     assert fake_client.collection_exists_calls == ["lineage_chunks"]
     assert fake_client.closed is True

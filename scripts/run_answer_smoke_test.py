@@ -10,11 +10,8 @@ if str(ROOT_DIR) not in sys.path:
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
-from app.retrieval.evidence_sufficiency import assess_evidence_sufficiency
 from app.retrieval.retrieval_config import build_retrieval_runtime_config
-from app.services.answer_generation import generate_grounded_answer
-from app.services.answer_trace import build_answer_trace, write_answer_trace
-from app.services.query_retrieval import retrieve_query_evidence
+from app.services.answer_orchestration import run_grounded_answer_query
 from app.vectorstore.qdrant_schema import create_persistent_qdrant_client
 
 
@@ -52,45 +49,28 @@ def main() -> None:
         ):
             raise RuntimeError("Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first.")
 
-        routed = retrieve_query_evidence(
+        orchestration_result = run_grounded_answer_query(
             qdrant_client=client,
             collection_name=settings.qdrant_collection_name,
             query_text=args.query,
             embedding_model=settings.openai_embedding_model,
             retrieval_config=retrieval_config,
             lexical_artifact_directory=settings.processed_dir,
+            trace_output_directory=settings.exports_dir / "answer_runs",
             limit=args.limit,
+            min_results=1,
+            min_top_score=min_top_score,
             document_family=args.document_family,
             release_label=args.release_label,
             source_kind=args.source_kind,
         )
-        retrieved_results = routed.results
     finally:
         client.close()
 
-    sufficiency = assess_evidence_sufficiency(
-        retrieved_results,
-        min_results=1,
-        min_top_score=min_top_score,
-    )
-
-    response = generate_grounded_answer(
-        query=args.query,
-        retrieved_results=retrieved_results,
-        sufficiency=sufficiency,
-    )
-    trace = build_answer_trace(
-        query=args.query,
-        filters={
-            "document_family": args.document_family,
-            "release_label": args.release_label,
-            "source_kind": args.source_kind,
-        },
-        sufficiency=sufficiency,
-        answer_response=response,
-        retrieval_results=retrieved_results,
-    )
-    trace_output = write_answer_trace(trace, settings.exports_dir / "answer_runs")
+    response = orchestration_result.answer_response
+    sufficiency = orchestration_result.sufficiency
+    trace = orchestration_result.trace
+    trace_output = orchestration_result.trace_output_path
 
     logger.info("Query: %s", response.query)
     logger.info("Request id: %s", trace.request_id)
@@ -98,7 +78,7 @@ def main() -> None:
     logger.info(
         "Retrieval config | mode=%s | hybrid_dense_weight=%s | hybrid_lexical_weight=%s | "
         "hybrid_candidate_limit=%s | limit=%s | document_family=%s | release_label=%s | source_kind=%s",
-        routed.retrieval_mode,
+        orchestration_result.retrieval_mode,
         retrieval_config.hybrid_dense_weight,
         retrieval_config.hybrid_lexical_weight,
         retrieval_config.hybrid_candidate_limit,

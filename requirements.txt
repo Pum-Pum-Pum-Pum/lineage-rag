@@ -1,4 +1,6 @@
 pandas
+fastapi
+httpx
 openai
 pydantic
 pydantic-settings
