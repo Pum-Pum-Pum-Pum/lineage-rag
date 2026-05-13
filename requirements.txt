@@ -7,3 +7,4 @@ pydantic-settings
 python-docx
 pytest
 qdrant-client
+uvicorn
