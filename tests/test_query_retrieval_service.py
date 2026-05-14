@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from app.embeddings.embedding_contract import EmbeddingBatch, EmbeddingRecord
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
 from app.services.query_retrieval import retrieve_query_evidence
@@ -30,6 +32,16 @@ class FakeEmbeddingsAPI:
 class FakeOpenAIClient:
     def __init__(self) -> None:
         self.embeddings = FakeEmbeddingsAPI()
+
+
+class FailingEmbeddingsAPI:
+    def create(self, model: str, input: list[str]) -> FakeEmbeddingResponse:
+        raise AssertionError("Lexical retrieval should not call embedding APIs")
+
+
+class FailingOpenAIClient:
+    def __init__(self) -> None:
+        self.embeddings = FailingEmbeddingsAPI()
 
 
 def _retrieval_config(mode: str = "hybrid") -> RetrievalRuntimeConfig:
@@ -148,6 +160,49 @@ def test_retrieve_query_evidence_lexical_mode_uses_artifacts(tmp_path: Path) -> 
     assert routed.retrieval_mode == "lexical"
     assert routed.results[0].payload["unit_id"] == "lexical-only"
     assert routed.results[0].payload["retrieval_method"] == "lexical"
+
+
+def test_retrieve_query_evidence_lexical_mode_does_not_require_qdrant_or_embeddings(
+    tmp_path: Path,
+) -> None:
+    artifact_dir = _write_retrieval_ready_artifact(tmp_path)
+
+    routed = retrieve_query_evidence(
+        qdrant_client=None,
+        collection_name="unused-for-lexical",
+        query_text="exact lexical only",
+        embedding_model="text-embedding-3-large",
+        embedding_client=FailingOpenAIClient(),
+        retrieval_config=_retrieval_config("lexical"),
+        lexical_artifact_directory=artifact_dir,
+        limit=1,
+    )
+
+    assert routed.retrieval_mode == "lexical"
+    assert routed.results[0].payload["unit_id"] == "lexical-only"
+
+
+@pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
+def test_retrieve_query_evidence_dense_or_hybrid_mode_requires_qdrant_client(
+    tmp_path: Path, retrieval_mode: str
+) -> None:
+    artifact_dir = _write_retrieval_ready_artifact(tmp_path)
+
+    try:
+        retrieve_query_evidence(
+            qdrant_client=None,
+            collection_name="test_functional_specs",
+            query_text="branch report",
+            embedding_model="text-embedding-3-large",
+            embedding_client=FakeOpenAIClient(),
+            retrieval_config=_retrieval_config(retrieval_mode),
+            lexical_artifact_directory=artifact_dir,
+            limit=1,
+        )
+    except ValueError as exc:
+        assert "qdrant_client is required" in str(exc)
+    else:
+        raise AssertionError(f"Expected {retrieval_mode} retrieval to require a Qdrant client")
 
 
 def test_retrieve_query_evidence_hybrid_mode_fuses_dense_and_lexical(tmp_path: Path) -> None:

@@ -21,6 +21,7 @@ class ApiSmokeResult:
     """Structured result for one API smoke-test run."""
 
     health_payload: dict[str, Any]
+    readiness_payload: dict[str, Any] | None = None
     query_payload: dict[str, Any] | None = None
 
 
@@ -37,6 +38,11 @@ def parse_args() -> argparse.Namespace:
         "--query",
         default=None,
         help="Optional question to send to POST /query. If omitted, only /health is checked.",
+    )
+    parser.add_argument(
+        "--check-ready",
+        action="store_true",
+        help="Optionally call GET /ready after /health and before /query.",
     )
     parser.add_argument("--limit", type=int, default=5, help="Number of retrieval results to request.")
     parser.add_argument("--document-family", default=None, help="Optional document_family filter.")
@@ -61,18 +67,24 @@ def run_api_smoke_test(
     client: httpx.Client,
     base_url: str,
     query: str | None = None,
+    check_ready: bool = False,
     limit: int = 5,
     document_family: str | None = None,
     release_label: str | None = None,
     source_kind: str | None = None,
     min_top_score: float | None = None,
 ) -> ApiSmokeResult:
-    """Call /health and optionally /query on a running FastAPI backend."""
+    """Call /health, optionally /ready, and optionally /query on a running backend."""
 
     cleaned_base_url = _normalize_base_url(base_url)
 
     health_response = client.get(f"{cleaned_base_url}/health")
     health_payload = _extract_success_json(health_response, label="GET /health")
+
+    readiness_payload = None
+    if check_ready:
+        readiness_response = client.get(f"{cleaned_base_url}/ready")
+        readiness_payload = _extract_success_json(readiness_response, label="GET /ready")
 
     query_payload = None
     if query is not None:
@@ -91,6 +103,7 @@ def run_api_smoke_test(
 
     return ApiSmokeResult(
         health_payload=health_payload,
+        readiness_payload=readiness_payload,
         query_payload=query_payload,
     )
 
@@ -106,6 +119,7 @@ def main() -> None:
             client=client,
             base_url=args.base_url,
             query=args.query,
+            check_ready=args.check_ready,
             limit=args.limit,
             document_family=args.document_family,
             release_label=args.release_label,
@@ -123,6 +137,26 @@ def main() -> None:
         health.get("retrieval_mode"),
         health.get("qdrant_required_for_current_mode"),
     )
+
+    if result.readiness_payload is not None:
+        readiness = result.readiness_payload
+        logger.info(
+            "Readiness | status=%s | is_ready=%s | retrieval_mode=%s | "
+            "qdrant_required=%s | lexical_artifacts_required=%s",
+            readiness.get("status"),
+            readiness.get("is_ready"),
+            readiness.get("retrieval_mode"),
+            readiness.get("qdrant_required_for_current_mode"),
+            readiness.get("lexical_artifacts_required_for_current_mode"),
+        )
+        for check in readiness.get("checks", []):
+            logger.info(
+                "Readiness check | name=%s | required=%s | ready=%s | detail=%s",
+                check.get("name"),
+                check.get("required"),
+                check.get("is_ready"),
+                check.get("detail"),
+            )
 
     if result.query_payload is None:
         logger.info("No query supplied. Skipped POST /query.")

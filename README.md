@@ -61,10 +61,10 @@ Expected interpretation:
 
 Use this first when you only want a cheap liveness/config check.
 
-Readiness check:
+Health plus readiness smoke test:
 
 ```bash
-curl http://127.0.0.1:8000/ready
+python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --check-ready
 ```
 
 Expected interpretation:
@@ -76,16 +76,18 @@ Expected interpretation:
 - checks Qdrant collection existence when dense or hybrid retrieval needs vector search
 - returns `503 Service Unavailable` with structured readiness details when a required dependency is missing
 - does **not** run retrieval, embeddings, LLM generation, answer trace writing, or a user query
+- when `--check-ready` fails, the smoke-test client stops before any optional `POST /query`
 
-Health plus query smoke test:
+Health plus readiness plus query smoke test:
 
 ```bash
-python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --query "What changed in branch reports?" --limit 5
+python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --check-ready --query "What changed in branch reports?" --limit 5
 ```
 
 Expected interpretation:
 
 - calls `GET /health` first
+- calls `GET /ready` only when `--check-ready` is supplied
 - then calls `POST /query` only because `--query` was explicitly supplied
 - may trigger retrieval, embedding calls, LLM generation, local answer trace writing, latency, and API cost depending on active retrieval mode and model settings
 - logs answer status, evidence sufficiency, refusal reason when present, trace ID, and citations
@@ -95,6 +97,7 @@ With filters:
 ```bash
 python scripts/run_api_smoke_test.py ^
   --base-url http://127.0.0.1:8000 ^
+  --check-ready ^
   --query "What changed in branch reports?" ^
   --limit 5 ^
   --release-label R24 ^
@@ -184,6 +187,7 @@ Filtered request example:
 - `/health` is a cheap liveness/config check; `/ready` is a dependency/artifact readiness check.
 - If dense/hybrid mode is active and the Qdrant collection is missing, `POST /query` returns `503`.
 - If `/ready` returns `503`, inspect the failed readiness check before running `POST /query`.
+- `scripts/run_api_smoke_test.py --check-ready --query ...` stops before `/query` when `/ready` fails.
 - Unexpected API errors return safe generic messages instead of raw exception details.
 - Answer traces are written locally for debugging and reproducibility.
 

@@ -6,6 +6,7 @@ def test_readme_documents_api_run_and_smoke_commands() -> None:
 
     assert "python -m uvicorn app.api.main:app --reload" in readme
     assert "python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000" in readme
+    assert "--check-ready" in readme
     assert "GET /health" in readme
     assert "GET /ready" in readme
     assert "POST /query" in readme
@@ -38,10 +39,12 @@ def test_readme_documents_safe_failure_interpretation() -> None:
 def test_readme_documents_readiness_endpoint_contract() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "curl http://127.0.0.1:8000/ready" in readme
+    assert "python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --check-ready" in readme
     assert "dependency/artifact readiness check" in readme
     assert "checks model configuration is present without calling model APIs" in readme
     assert "checks `.retrieval_ready.json` artifacts when lexical or hybrid retrieval needs local lexical evidence" in readme
     assert "checks Qdrant collection existence when dense or hybrid retrieval needs vector search" in readme
     assert "does **not** run retrieval, embeddings, LLM generation" in readme
+    assert "when `--check-ready` fails, the smoke-test client stops before any optional `POST /query`" in readme
+    assert "stops before `/query` when `/ready` fails" in readme
     assert "Missing corpus evidence during a real query should produce an insufficient-evidence/refusal response" in readme

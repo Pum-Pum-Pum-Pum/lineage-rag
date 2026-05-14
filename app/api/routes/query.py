@@ -27,6 +27,7 @@ def query_answer(request: QueryRequest) -> QueryResponse:
 
     settings = get_settings()
     retrieval_config = build_retrieval_runtime_config(settings)
+    qdrant_required = _requires_qdrant_collection(retrieval_config.retrieval_mode)
     min_top_score = (
         request.min_top_score
         if request.min_top_score is not None
@@ -35,15 +36,14 @@ def query_answer(request: QueryRequest) -> QueryResponse:
 
     client = None
     try:
-        client = create_persistent_qdrant_client(settings.qdrant_local_path)
+        if qdrant_required:
+            client = create_persistent_qdrant_client(settings.qdrant_local_path)
 
-        if _requires_qdrant_collection(retrieval_config.retrieval_mode) and not client.collection_exists(
-            settings.qdrant_collection_name
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Qdrant collection does not exist. Run indexing before querying.",
-            )
+            if not client.collection_exists(settings.qdrant_collection_name):
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Qdrant collection does not exist. Run indexing before querying.",
+                )
 
         orchestration_result = run_grounded_answer_query(
             qdrant_client=client,

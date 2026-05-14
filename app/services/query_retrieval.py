@@ -12,7 +12,7 @@ from app.retrieval.retrieval_router import RoutedRetrievalResult, route_retrieva
 
 
 def retrieve_query_evidence(
-    qdrant_client: QdrantClient,
+    qdrant_client: QdrantClient | None,
     collection_name: str,
     query_text: str,
     embedding_model: str,
@@ -31,11 +31,15 @@ def retrieve_query_evidence(
     query, filters, and runtime dependencies, then delegates mode selection to
     `route_retrieval`.
 
-    It intentionally does not call the LLM or generate answers.
+    It intentionally does not call the LLM or generate answers. Lexical-only
+    retrieval can run without a Qdrant client; dense and hybrid retrieval cannot.
     """
 
     if limit <= 0:
         raise ValueError("Retrieval limit must be greater than 0")
+
+    if retrieval_config.retrieval_mode in {"dense", "hybrid"} and qdrant_client is None:
+        raise ValueError("qdrant_client is required for dense or hybrid retrieval")
 
     def dense_search(search_limit: int):
         return search_query_text(

@@ -31,7 +31,7 @@ class AnswerOrchestrationResult:
 
 
 def run_grounded_answer_query(
-    qdrant_client: QdrantClient,
+    qdrant_client: QdrantClient | None,
     collection_name: str,
     query_text: str,
     embedding_model: str,
@@ -52,8 +52,10 @@ def run_grounded_answer_query(
     """Run the reusable retrieval -> sufficiency -> answer -> trace flow.
 
     The caller owns infrastructure lifecycle such as creating and closing the
-    Qdrant client. This service focuses on query orchestration so API, CLI, and
-    future UI layers can share one tested answer path.
+    Qdrant client. Lexical-only callers may pass ``None`` because lexical
+    retrieval reads local artifacts instead of vector-store state. This service
+    focuses on query orchestration so API, CLI, and future UI layers can share
+    one tested answer path.
     """
 
     routed = retrieve_query_evidence(

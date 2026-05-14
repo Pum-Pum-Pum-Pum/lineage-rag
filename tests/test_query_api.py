@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
@@ -165,33 +166,42 @@ def test_query_endpoint_rejects_blank_query() -> None:
 def test_query_endpoint_skips_qdrant_collection_check_for_lexical(monkeypatch, tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     retrieval_config = _retrieval_config("lexical")
-    fake_client = FakeQdrantClient(collection_exists=False)
+    captured: dict[str, object] = {}
+
+    def fail_if_qdrant_created(path):
+        raise AssertionError("Lexical query should not create a Qdrant client")
+
+    def fake_run_grounded_answer_query(**kwargs):
+        captured["orchestration_kwargs"] = kwargs
+        return _orchestration_result(tmp_path, retrieval_mode="lexical")
 
     monkeypatch.setattr(query_route, "get_settings", lambda: settings)
     monkeypatch.setattr(query_route, "build_retrieval_runtime_config", lambda loaded_settings: retrieval_config)
-    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", lambda path: fake_client)
-    monkeypatch.setattr(
-        query_route,
-        "run_grounded_answer_query",
-        lambda **kwargs: _orchestration_result(tmp_path, retrieval_mode="lexical"),
-    )
+    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", fail_if_qdrant_created)
+    monkeypatch.setattr(query_route, "run_grounded_answer_query", fake_run_grounded_answer_query)
 
     response = TestClient(create_app()).post("/query", json={"query": "exact branch report"})
 
     assert response.status_code == 200
     assert response.json()["retrieval_mode"] == "lexical"
-    assert fake_client.collection_exists_calls == []
-    assert fake_client.closed is True
+    orchestration_kwargs = captured["orchestration_kwargs"]
+    assert orchestration_kwargs["qdrant_client"] is None
+    assert orchestration_kwargs["collection_name"] == "lineage_chunks"
 
 
-def test_query_endpoint_returns_service_unavailable_when_required_collection_is_missing(
-    monkeypatch, tmp_path: Path
+@pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
+def test_query_endpoint_returns_service_unavailable_when_required_qdrant_collection_is_missing(
+    monkeypatch, tmp_path: Path, retrieval_mode: str
 ) -> None:
     settings = _settings(tmp_path)
     fake_client = FakeQdrantClient(collection_exists=False)
 
     monkeypatch.setattr(query_route, "get_settings", lambda: settings)
-    monkeypatch.setattr(query_route, "build_retrieval_runtime_config", lambda loaded_settings: _retrieval_config("dense"))
+    monkeypatch.setattr(
+        query_route,
+        "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config(retrieval_mode),
+    )
     monkeypatch.setattr(query_route, "create_persistent_qdrant_client", lambda path: fake_client)
 
     response = TestClient(create_app()).post("/query", json={"query": "branch report"})
