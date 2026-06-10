@@ -48,3 +48,18 @@ def test_readme_documents_readiness_endpoint_contract() -> None:
     assert "when `--check-ready` fails, the smoke-test client stops before any optional `POST /query`" in readme
     assert "stops before `/query` when `/ready` fails" in readme
     assert "Missing corpus evidence during a real query should produce an insufficient-evidence/refusal response" in readme
+
+
+def test_readme_documents_retrieval_mode_dependency_matrix() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "### Retrieval-mode dependency matrix" in readme
+    assert "| `lexical` |" in readme
+    assert "| `dense` |" in readme
+    assert "| `hybrid` |" in readme
+    assert "local lexical artifacts only; no Qdrant client or collection check" in readme
+    assert "no embedding call for retrieval" in readme
+    assert "Qdrant collection and embedding call for dense vector search" in readme
+    assert "both Qdrant dense search and local lexical artifacts" in readme
+    assert "must fail fast when vector-store state is unavailable" in readme
+    assert "avoids wasted model spend and misleading answers" in readme

@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api import main as api_main
@@ -87,8 +88,9 @@ def test_ready_endpoint_returns_ready_for_hybrid_when_dependencies_exist(monkeyp
     assert fake_client.closed is True
 
 
+@pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
 def test_ready_endpoint_returns_503_when_required_qdrant_collection_is_missing(
-    monkeypatch, tmp_path: Path
+    monkeypatch, tmp_path: Path, retrieval_mode: str
 ) -> None:
     settings = _settings(tmp_path)
     _write_retrieval_ready_artifact(settings.processed_dir)
@@ -99,7 +101,7 @@ def test_ready_endpoint_returns_503_when_required_qdrant_collection_is_missing(
     monkeypatch.setattr(
         readiness_route,
         "build_retrieval_runtime_config",
-        lambda loaded_settings: _retrieval_config("dense"),
+        lambda loaded_settings: _retrieval_config(retrieval_mode),
     )
     monkeypatch.setattr(readiness_route, "create_persistent_qdrant_client", lambda path: fake_client)
 
@@ -113,6 +115,39 @@ def test_ready_endpoint_returns_503_when_required_qdrant_collection_is_missing(
     assert qdrant_check["required"] is True
     assert qdrant_check["is_ready"] is False
     assert "Run indexing" in qdrant_check["detail"]
+    assert fake_client.collection_exists_calls == ["lineage_chunks"]
+    assert fake_client.closed is True
+
+
+def test_ready_endpoint_dense_mode_does_not_require_lexical_artifacts(
+    monkeypatch, tmp_path: Path
+) -> None:
+    settings = _settings(tmp_path)
+    fake_client = FakeQdrantClient(collection_exists=True)
+
+    monkeypatch.setattr(api_main, "get_settings", lambda: settings)
+    monkeypatch.setattr(readiness_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        readiness_route,
+        "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config("dense"),
+    )
+    monkeypatch.setattr(readiness_route, "create_persistent_qdrant_client", lambda path: fake_client)
+
+    response = TestClient(create_app()).get("/ready")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["retrieval_mode"] == "dense"
+    assert payload["qdrant_required_for_current_mode"] is True
+    assert payload["lexical_artifacts_required_for_current_mode"] is False
+    artifact_check = _check_by_name(payload, "retrieval_ready_artifacts")
+    assert artifact_check["required"] is False
+    assert artifact_check["is_ready"] is True
+    assert "not required for dense-only retrieval" in artifact_check["detail"]
+    qdrant_check = _check_by_name(payload, "qdrant_collection")
+    assert qdrant_check["required"] is True
+    assert qdrant_check["is_ready"] is True
     assert fake_client.collection_exists_calls == ["lineage_chunks"]
     assert fake_client.closed is True
 
@@ -144,26 +179,40 @@ def test_ready_endpoint_skips_qdrant_for_lexical_but_requires_artifacts(monkeypa
     assert _check_by_name(payload, "retrieval_ready_artifacts")["required"] is True
 
 
+@pytest.mark.parametrize("retrieval_mode", ["lexical", "hybrid"])
 def test_ready_endpoint_returns_503_when_required_retrieval_ready_artifacts_are_missing(
-    monkeypatch, tmp_path: Path
+    monkeypatch, tmp_path: Path, retrieval_mode: str
 ) -> None:
     settings = _settings(tmp_path)
+    fake_client = FakeQdrantClient(collection_exists=True)
 
     monkeypatch.setattr(api_main, "get_settings", lambda: settings)
     monkeypatch.setattr(readiness_route, "get_settings", lambda: settings)
     monkeypatch.setattr(
         readiness_route,
         "build_retrieval_runtime_config",
-        lambda loaded_settings: _retrieval_config("lexical"),
+        lambda loaded_settings: _retrieval_config(retrieval_mode),
     )
+    monkeypatch.setattr(readiness_route, "create_persistent_qdrant_client", lambda path: fake_client)
 
     response = TestClient(create_app()).get("/ready")
 
     assert response.status_code == 503
+    payload = response.json()
+    assert payload["retrieval_mode"] == retrieval_mode
     artifact_check = _check_by_name(response.json(), "retrieval_ready_artifacts")
     assert artifact_check["required"] is True
     assert artifact_check["is_ready"] is False
     assert "Run ingestion" in artifact_check["detail"]
+    if retrieval_mode == "hybrid":
+        qdrant_check = _check_by_name(payload, "qdrant_collection")
+        assert qdrant_check["required"] is True
+        assert qdrant_check["is_ready"] is True
+        assert fake_client.collection_exists_calls == ["lineage_chunks"]
+        assert fake_client.closed is True
+    else:
+        assert fake_client.collection_exists_calls == []
+        assert fake_client.closed is False
 
 
 def test_ready_endpoint_returns_safe_error_for_invalid_retrieval_config(monkeypatch, tmp_path: Path) -> None:

@@ -37,13 +37,22 @@ def query_answer(request: QueryRequest) -> QueryResponse:
     client = None
     try:
         if qdrant_required:
-            client = create_persistent_qdrant_client(settings.qdrant_local_path)
+            try:
+                client = create_persistent_qdrant_client(settings.qdrant_local_path)
 
-            if not client.collection_exists(settings.qdrant_collection_name):
+                if not client.collection_exists(settings.qdrant_collection_name):
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Qdrant collection does not exist. Run indexing before querying.",
+                    )
+            except HTTPException:
+                raise
+            except Exception as exc:
+                logger.exception("Qdrant dependency check failed during query")
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Qdrant collection does not exist. Run indexing before querying.",
-                )
+                    detail="Qdrant dependency check failed. Verify vector-store availability before querying.",
+                ) from exc
 
         orchestration_result = run_grounded_answer_query(
             qdrant_client=client,

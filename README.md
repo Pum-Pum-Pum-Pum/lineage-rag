@@ -191,6 +191,16 @@ Filtered request example:
 - Unexpected API errors return safe generic messages instead of raw exception details.
 - Answer traces are written locally for debugging and reproducibility.
 
+### Retrieval-mode dependency matrix
+
+| Active retrieval mode | `/ready` dependency checks | `/query` retrieval dependencies | Model/API calls during `/query` | Failure boundary |
+| --- | --- | --- | --- | --- |
+| `lexical` | validates retrieval config, model config presence, and local `.retrieval_ready.json` artifacts | local lexical artifacts only; no Qdrant client or collection check | no embedding call for retrieval; LLM call only when evidence is sufficient | missing lexical artifacts make `/ready` return `503`; insufficient evidence should produce a safe refusal |
+| `dense` | validates retrieval config, model config presence, and Qdrant collection existence | Qdrant collection and embedding call for dense vector search | embedding call for retrieval; LLM call only when evidence is sufficient | missing Qdrant collection makes `/ready` or `POST /query` return `503` before answer generation |
+| `hybrid` | validates retrieval config, model config presence, local `.retrieval_ready.json` artifacts, and Qdrant collection existence | both Qdrant dense search and local lexical artifacts | embedding call for dense side of retrieval; LLM call only when fused evidence is sufficient | missing lexical artifacts or Qdrant collection makes `/ready` return `503`; missing Qdrant collection makes `POST /query` return `503` |
+
+This matrix is an operational contract. Lexical mode is the cheapest degraded retrieval path and should not instantiate Qdrant or call embedding APIs for retrieval. Dense and hybrid modes are higher-quality semantic retrieval paths, but they must fail fast when vector-store state is unavailable so the system avoids wasted model spend and misleading answers.
+
 ## Run tests
 
 Targeted API tests:

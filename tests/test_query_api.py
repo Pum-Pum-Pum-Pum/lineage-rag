@@ -49,6 +49,12 @@ class FakeQdrantClient:
         self.closed = True
 
 
+class FailingCollectionCheckQdrantClient(FakeQdrantClient):
+    def collection_exists(self, collection_name: str) -> bool:
+        self.collection_exists_calls.append(collection_name)
+        raise RuntimeError("secret-qdrant-check-detail")
+
+
 def _orchestration_result(tmp_path: Path, retrieval_mode: str = "hybrid") -> AnswerOrchestrationResult:
     retrieved_result = QdrantSearchResult(
         point_id="point-1",
@@ -208,6 +214,62 @@ def test_query_endpoint_returns_service_unavailable_when_required_qdrant_collect
 
     assert response.status_code == 503
     assert "Qdrant collection does not exist" in response.json()["detail"]
+    assert fake_client.collection_exists_calls == ["lineage_chunks"]
+    assert fake_client.closed is True
+
+
+@pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
+def test_query_endpoint_returns_safe_503_when_required_qdrant_client_creation_fails(
+    monkeypatch, tmp_path: Path, retrieval_mode: str
+) -> None:
+    settings = _settings(tmp_path)
+
+    def fail_client_creation(path):
+        raise RuntimeError("secret-qdrant-client-path")
+
+    def fail_if_orchestration_runs(**kwargs):
+        raise AssertionError("Query orchestration should not run when Qdrant dependency check fails")
+
+    monkeypatch.setattr(query_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        query_route,
+        "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config(retrieval_mode),
+    )
+    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", fail_client_creation)
+    monkeypatch.setattr(query_route, "run_grounded_answer_query", fail_if_orchestration_runs)
+
+    response = TestClient(create_app()).post("/query", json={"query": "branch report"})
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Qdrant dependency check failed. Verify vector-store availability before querying."
+    assert "secret-qdrant-client-path" not in response.text
+
+
+@pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
+def test_query_endpoint_returns_safe_503_when_required_qdrant_collection_check_fails(
+    monkeypatch, tmp_path: Path, retrieval_mode: str
+) -> None:
+    settings = _settings(tmp_path)
+    fake_client = FailingCollectionCheckQdrantClient(collection_exists=True)
+
+    def fail_if_orchestration_runs(**kwargs):
+        raise AssertionError("Query orchestration should not run when Qdrant dependency check fails")
+
+    monkeypatch.setattr(query_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        query_route,
+        "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config(retrieval_mode),
+    )
+    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", lambda path: fake_client)
+    monkeypatch.setattr(query_route, "run_grounded_answer_query", fail_if_orchestration_runs)
+
+    response = TestClient(create_app()).post("/query", json={"query": "branch report"})
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Qdrant dependency check failed. Verify vector-store availability before querying."
+    assert "secret-qdrant-check-detail" not in response.text
     assert fake_client.collection_exists_calls == ["lineage_chunks"]
     assert fake_client.closed is True
 
