@@ -41,14 +41,14 @@ def main() -> None:
     logger = get_logger("qdrant_query_search")
     retrieval_config = build_retrieval_runtime_config(settings)
 
-    client = create_persistent_qdrant_client(settings.qdrant_local_path)
+    client = None
     try:
-        if _requires_qdrant_collection(retrieval_config.retrieval_mode) and not client.collection_exists(
-            settings.qdrant_collection_name
-        ):
-            raise RuntimeError(
-                "Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first."
-            )
+        if _requires_qdrant_collection(retrieval_config.retrieval_mode):
+            client = create_persistent_qdrant_client(settings.qdrant_local_path)
+            if not client.collection_exists(settings.qdrant_collection_name):
+                raise RuntimeError(
+                    "Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first."
+                )
 
         routed = retrieve_query_evidence(
             qdrant_client=client,
@@ -112,7 +112,8 @@ def main() -> None:
                 preview,
             )
     finally:
-        client.close()
+        if client is not None:
+            client.close()
 
 
 def _requires_qdrant_collection(retrieval_mode: str) -> bool:

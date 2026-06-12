@@ -42,12 +42,12 @@ def main() -> None:
 
     min_top_score = args.min_top_score if args.min_top_score is not None else settings.retrieval_min_top_score
 
-    client = create_persistent_qdrant_client(settings.qdrant_local_path)
+    client = None
     try:
-        if _requires_qdrant_collection(retrieval_config.retrieval_mode) and not client.collection_exists(
-            settings.qdrant_collection_name
-        ):
-            raise RuntimeError("Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first.")
+        if _requires_qdrant_collection(retrieval_config.retrieval_mode):
+            client = create_persistent_qdrant_client(settings.qdrant_local_path)
+            if not client.collection_exists(settings.qdrant_collection_name):
+                raise RuntimeError("Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first.")
 
         orchestration_result = run_grounded_answer_query(
             qdrant_client=client,
@@ -65,7 +65,8 @@ def main() -> None:
             source_kind=args.source_kind,
         )
     finally:
-        client.close()
+        if client is not None:
+            client.close()
 
     response = orchestration_result.answer_response
     sufficiency = orchestration_result.sufficiency

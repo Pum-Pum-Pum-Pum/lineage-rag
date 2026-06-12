@@ -2924,3 +2924,453 @@ The smoke-test client still expects the FastAPI backend to already be running. I
 
 ### Next decision implied
 The next step can either add a small API operational sequence test around the live app contract, or move toward a minimal UI only after confirming the backend health/readiness/query workflow is stable enough for demo use.
+
+
+## Step 71 — Backend-first API verification documentation
+
+### Description
+Hardened the README API run and smoke-test documentation so the FastAPI backend can be operated, verified, and debugged independently before adding any Streamlit UI. This step clarifies expected smoke-test outcomes, cost boundaries, failure interpretation, safe error handling, and where to inspect local answer trace artifacts.
+
+### Code snippets used
+
+#### Health-only smoke command
+```bash
+python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000
+```
+
+#### Query smoke command
+```bash
+python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --query "What changed in branch reports?" --limit 5
+```
+
+#### README regression test for operational interpretation
+```python
+def test_readme_documents_smoke_test_operational_interpretation() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "No query supplied. Skipped POST /query." in readme
+    assert "does **not** run retrieval, embeddings, LLM generation" in readme
+    assert "may trigger retrieval, embedding calls, LLM generation" in readme
+    assert "data/exports/answer_runs/" in readme
+```
+
+#### README regression test for safe failure interpretation
+```python
+def test_readme_documents_safe_failure_interpretation() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "If `/query` returns `503` in dense or hybrid mode" in readme
+    assert "python scripts/run_qdrant_indexing.py" in readme
+    assert "avoids printing raw server response bodies" in readme
+```
+
+### Why this step matters
+Before adding a UI, the backend needs to be independently reproducible. A Streamlit screen should not become the first way to discover whether the API starts, whether `/health` is cheap, whether `/query` may incur cost, or whether failures are safe and debuggable. Documentation is part of the operational contract.
+
+### Production interpretation
+- Health-only smoke testing is the cheap first check and avoids retrieval, embeddings, generation, Qdrant collection checks, and trace writing.
+- Query smoke testing is opt-in because it can trigger retrieval, embeddings, LLM generation, trace writing, latency, and cost.
+- `503` in dense/hybrid mode points to an unavailable Qdrant collection and should lead to indexing verification.
+- Insufficient evidence is treated as a safe refusal behavior, not as a backend crash.
+- Raw server error bodies are intentionally not printed because they may contain secrets, stack traces, file paths, or internal configuration values.
+- Local answer traces under `data/exports/answer_runs/` are the reproducibility artifact for debugging answered queries.
+
+### Failure mode intentionally protected
+The README regression tests now assert that documentation explains safe failure behavior: Qdrant-dependent `503` interpretation, insufficient-evidence handling, and why raw server response bodies should not be exposed by the smoke-test client.
+
+### Validation
+- Updated `README.md`.
+- Updated `tests/test_readme_api_docs.py`.
+- Targeted Step 71 tests passed: `3 passed`.
+- Full regression suite passed: `172 passed`.
+
+### Behaviors documented and tested
+- How to start the FastAPI backend.
+- How to run health-only smoke testing without retrieval or LLM cost.
+- How to run opt-in query smoke testing.
+- How to interpret `503`, insufficient evidence, and safe HTTP client errors.
+- Where to inspect local answer trace artifacts.
+
+### Important limitation
+This step only improves the backend operation contract and documentation tests. It does not add Streamlit, authentication, readiness checks, request IDs supplied by clients, rate limiting, or streaming responses.
+
+### Next decision implied
+The next step should decide whether to add a minimal UI shell or first add a dedicated readiness endpoint. Given the current production-minded sequence, a readiness endpoint is likely more valuable than Streamlit because it separates cheap liveness from dependency readiness before user-facing UI complexity.
+
+## Step 72 — Minimal FastAPI readiness endpoint
+
+### Description
+Added a dedicated FastAPI `/ready` endpoint that checks whether the backend dependencies and local artifacts required for the active retrieval mode are available. This keeps `/health` cheap while giving operators and future UI code a separate readiness contract before running `POST /query`.
+
+The readiness endpoint checks:
+- valid retrieval runtime configuration
+- required model configuration values
+- local `.retrieval_ready.json` artifacts for lexical/hybrid retrieval
+- Qdrant collection existence for dense/hybrid retrieval
+
+It intentionally does **not** run retrieval, embedding API calls, LLM generation, answer trace writing, or user query execution.
+
+### Code snippets used
+
+#### Readiness response schema
+```python
+class ReadinessCheck(BaseModel):
+    name: str
+    required: bool
+    is_ready: bool
+    detail: str
+
+
+class ReadinessResponse(BaseModel):
+    status: str
+    is_ready: bool
+    retrieval_mode: str
+    qdrant_required_for_current_mode: bool
+    lexical_artifacts_required_for_current_mode: bool
+    checks: list[ReadinessCheck]
+```
+
+#### Readiness route registration
+```python
+app.include_router(health_router)
+app.include_router(readiness_router)
+app.include_router(query_router)
+```
+
+#### Mode-aware readiness checks
+```python
+qdrant_required = _requires_qdrant_collection(retrieval_mode)
+lexical_required = _requires_lexical_artifacts(retrieval_mode)
+
+if qdrant_required:
+    client = create_persistent_qdrant_client(settings.qdrant_local_path)
+    collection_exists = client.collection_exists(settings.qdrant_collection_name)
+```
+
+#### Structured 503 readiness response
+```python
+if not response.is_ready:
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=response.model_dump(),
+    )
+```
+
+### Why this step matters
+`/health` should answer “is the backend process alive and minimally configured?” `/ready` should answer “can this backend serve real traffic for the active retrieval mode?” Separating these endpoints avoids making liveness slow or noisy while still giving a reliable pre-query check for Qdrant, local artifacts, and model configuration.
+
+### Production interpretation
+- Dense and hybrid readiness require Qdrant collection availability because they use vector search.
+- Lexical and hybrid readiness require local `.retrieval_ready.json` artifacts because lexical retrieval searches local processed artifacts.
+- Lexical-only readiness skips Qdrant collection checks because Qdrant is not required for lexical retrieval.
+- Readiness checks model configuration presence but does not call model APIs, so it avoids token/cost side effects.
+- A `503` from `/ready` means dependency/artifact readiness failed, not that the corpus lacks answer evidence.
+- Missing corpus evidence during a real query should still produce insufficient-evidence/refusal behavior, not readiness failure.
+
+### Failure mode intentionally protected
+The readiness tests distinguish dependency readiness from evidence sufficiency. A missing Qdrant collection produces `503 Service Unavailable` for dense/hybrid readiness, while lexical-only mode does not create a Qdrant client. Missing retrieval-ready artifacts produce `503` for lexical/hybrid readiness. Missing model configuration is reported without leaking actual secrets.
+
+### Validation
+- Added `app/schemas/readiness_api.py`.
+- Added `app/api/routes/readiness.py`.
+- Updated `app/api/main.py` to register the readiness router.
+- Added `tests/test_readiness_api.py`.
+- Updated `README.md`.
+- Updated `tests/test_readme_api_docs.py`.
+- Targeted Step 72 tests passed: `10 passed`.
+- Full regression suite passed: `179 passed`.
+
+### Behaviors tested
+- `/ready` returns `200` with `status=ready` when hybrid dependencies exist.
+- `/ready` returns structured `503` when a required Qdrant collection is missing.
+- Lexical-only readiness skips Qdrant client creation but requires retrieval-ready artifacts.
+- Lexical readiness returns `503` when required retrieval-ready artifacts are missing.
+- Invalid retrieval configuration returns a safe generic `500` without leaking raw config values.
+- Missing model configuration returns structured `503` without leaking secrets.
+
+### Important limitation
+This is a readiness check, not a full end-to-end query dry run. It does not validate model API reachability, embedding dimensions, Qdrant point count, retrieval quality, answer sufficiency, citation correctness, or LLM generation behavior. Those remain separate smoke-test and evaluation concerns.
+
+### Next decision implied
+The next step should update the API smoke-test client to optionally call `/ready`, or add API documentation/tests that make the health-vs-ready-vs-query operational sequence explicit. We should still defer Streamlit until backend operational checks are stable.
+
+## Step 73 — API smoke-test client optional readiness check
+
+### Description
+Updated the API smoke-test client so it can optionally call `GET /ready` after `GET /health` and before any optional `POST /query`. The new `--check-ready` flag makes dependency/artifact readiness verification explicit while keeping `/query` opt-in to avoid accidental retrieval, embedding, LLM, trace, latency, and cost.
+
+### Code snippets used
+
+#### Smoke result now includes readiness payload
+```python
+@dataclass(frozen=True)
+class ApiSmokeResult:
+    health_payload: dict[str, Any]
+    readiness_payload: dict[str, Any] | None = None
+    query_payload: dict[str, Any] | None = None
+```
+
+#### Optional readiness CLI flag
+```python
+parser.add_argument(
+    "--check-ready",
+    action="store_true",
+    help="Optionally call GET /ready after /health and before /query.",
+)
+```
+
+#### Health → readiness → query sequence
+```python
+health_response = client.get(f"{cleaned_base_url}/health")
+health_payload = _extract_success_json(health_response, label="GET /health")
+
+readiness_payload = None
+if check_ready:
+    readiness_response = client.get(f"{cleaned_base_url}/ready")
+    readiness_payload = _extract_success_json(readiness_response, label="GET /ready")
+
+query_payload = None
+if query is not None:
+    query_response = client.post(f"{cleaned_base_url}/query", json=...)
+```
+
+#### Readiness failure blocks query
+```python
+try:
+    run_api_smoke_test(..., query="...", check_ready=True)
+except RuntimeError as exc:
+    assert str(exc) == "GET /ready failed with HTTP 503"
+
+assert client.post_calls == []
+```
+
+### Why this step matters
+The API smoke-test client now mirrors a production-minded operational sequence: first verify liveness/config, then optionally verify dependency/artifact readiness, and only then run an explicit query. This prevents a missing Qdrant collection or missing retrieval-ready artifacts from being discovered only after attempting a cost-bearing RAG query.
+
+### Production interpretation
+- Health remains the mandatory cheap first check.
+- Readiness is opt-in with `--check-ready` because it may inspect local dependencies and artifacts.
+- Query execution remains opt-in with `--query` because it may trigger retrieval, embedding API calls, LLM generation, trace writing, latency, and cost.
+- If `/ready` fails, the smoke-test client raises a safe status-only error and does not call `/query`.
+- The client still avoids leaking raw server response bodies, including readiness check details that may contain internal paths or config hints.
+
+### Failure mode intentionally protected
+The Step 73 tests simulate a `GET /ready` `503` response containing a fake secret-like readiness detail. The smoke-test client raises `GET /ready failed with HTTP 503`, does not leak the response body, and confirms `POST /query` was never called.
+
+### Validation
+- Updated `scripts/run_api_smoke_test.py`.
+- Updated `tests/test_api_smoke_script.py`.
+- Updated `README.md`.
+- Updated `tests/test_readme_api_docs.py`.
+- Targeted Step 73 tests passed: `11 passed`.
+- Full regression suite passed: `181 passed`.
+
+### Behaviors tested
+- CLI help includes `--check-ready`.
+- Health-only smoke testing still calls only `/health`.
+- `--check-ready` calls `/health` then `/ready`.
+- `--check-ready --query ...` calls `/health`, `/ready`, then `/query` only when readiness succeeds.
+- A failed readiness check blocks query execution.
+- HTTP error handling remains safe and does not expose raw readiness response details.
+
+### Important limitation
+The smoke-test client still expects the FastAPI backend to already be running. It does not start the server, run ingestion, run indexing, or repair failed readiness dependencies.
+
+### Next decision implied
+The next step can either add a small API operational sequence test around the live app contract, or move toward a minimal UI only after confirming the backend health/readiness/query workflow is stable enough for demo use.
+
+## Step 74 ? Lexical /query Qdrant dependency boundary
+
+### Description
+Hardened the FastAPI query path so lexical-only retrieval no longer creates or requires a Qdrant client. Dense and hybrid modes still require Qdrant and still fail fast when the required collection is missing.
+
+### Code snippets used
+
+#### Query route now creates Qdrant only when the active mode requires it
+`python
+retrieval_config = build_retrieval_runtime_config(settings)
+qdrant_required = _requires_qdrant_collection(retrieval_config.retrieval_mode)
+
+client = None
+try:
+    if qdrant_required:
+        client = create_persistent_qdrant_client(settings.qdrant_local_path)
+        if not client.collection_exists(settings.qdrant_collection_name):
+            raise HTTPException(status_code=503, detail= Qdrant collection does not exist. Run indexing before querying.)
+
+    orchestration_result = run_grounded_answer_query(qdrant_client=client, ...)
+finally:
+    if client is not None:
+        client.close()
+`
+
+#### Shared orchestration now permits no Qdrant client for lexical-only mode
+`python
+def run_grounded_answer_query(
+    qdrant_client: QdrantClient | None,
+    collection_name: str,
+    ...,
+) -> AnswerOrchestrationResult:
+    ...
+`
+
+#### Retrieval service guards dense/hybrid modes
+`python
+if retrieval_config.retrieval_mode in {dense, hybrid} and qdrant_client is None:
+    raise ValueError(qdrant_client is required for dense or hybrid retrieval)
+`
+
+#### Lexical regression test intentionally breaks unwanted dependencies
+`python
+def fail_if_qdrant_created(path):
+    raise AssertionError(Lexical query should not create a Qdrant client)
+
+class FailingEmbeddingsAPI:
+    def create(self, model: str, input: list[str]):
+        raise AssertionError(Lexical retrieval should not call embedding APIs)
+`
+
+### Why this step matters
+Readiness already treated lexical retrieval as independent from Qdrant. The query path needed to match that operational contract. If lexical mode can answer from local retrieval-ready artifacts, a missing or corrupted Qdrant store should not make lexical /query unavailable.
+
+### Production interpretation
+- Lexical mode now has a smaller dependency surface: local retrieval-ready artifacts are required, but Qdrant is not.
+- Dense and hybrid modes remain protected because they still require Qdrant and fail before answer orchestration if the collection is missing.
+- This improves local/offline demo resilience and avoids unnecessary vector-store startup or file locking in lexical-only runs.
+- It also avoids accidental embedding calls in lexical-only retrieval tests, keeping cost-bearing behavior mode-specific.
+
+### Failure mode intentionally protected
+The tests deliberately make Qdrant creation fail in lexical /query and make embedding creation fail in lexical retrieval. Both paths still pass, proving lexical mode does not accidentally touch vector-store or embedding dependencies. A separate dense-mode test passes qdrant_client=None and confirms the service raises a clear error instead of failing later with an ambiguous attribute error.
+
+### Validation
+- Updated pp/api/routes/query.py.
+- Updated pp/services/answer_orchestration.py.
+- Updated pp/services/query_retrieval.py.
+- Updated 	ests/test_query_api.py.
+- Updated 	ests/test_query_retrieval_service.py.
+- Targeted Step 74 tests passed: 20 passed.
+- Full regression suite passed: 183 passed.
+
+### Behaviors tested
+- Lexical /query does not create a Qdrant client.
+- Lexical query orchestration receives qdrant_client=None.
+- Lexical retrieval can run without Qdrant and without embedding API calls.
+- Dense retrieval rejects a missing Qdrant client with a clear ValueError.
+- Existing dense/hybrid query and readiness behavior remains green.
+
+### Important limitation
+This step does not add a full lexical API integration test with real artifact files through POST /query; it hardens the route/service dependency boundary with focused unit-style tests. Retrieval quality, citation quality, and corpus evidence sufficiency remain separate evaluation concerns.
+
+### Next decision implied
+The next step can either add an end-to-end lexical-mode API smoke/evaluation path with real local artifacts, or start a minimal UI only after preserving the health/readiness/query dependency contracts.
+
+## Step 74 - Lexical /query Qdrant dependency boundary
+
+### Goal
+Make lexical-only `/query` execution independent of Qdrant while preserving fail-fast Qdrant requirements for dense and hybrid retrieval modes.
+
+### Files touched
+- `tests/test_query_api.py`
+- `tests/test_query_retrieval_service.py`
+
+### What changed
+- Confirmed `app/api/routes/query.py` already creates a Qdrant client only when retrieval mode is dense or hybrid.
+- Confirmed lexical mode passes `qdrant_client=None` into orchestration and relies on local retrieval-ready artifacts.
+- Hardened API tests so missing Qdrant collection returns HTTP 503 for both dense and hybrid modes.
+- Hardened service tests so `retrieve_query_evidence` rejects `qdrant_client=None` for both dense and hybrid modes.
+- No production code change was required because the existing route and service already respected this dependency boundary.
+
+### Code pattern used
+```python
+@pytest.mark.parametrize(...)
+def test_required_qdrant_boundary(...):
+    # dense and hybrid require Qdrant
+    # lexical does not create or require Qdrant
+    ...
+```
+
+### Validation
+- Targeted: `python -m pytest tests/test_query_api.py tests/test_query_retrieval_service.py -q` -> 14 passed.
+- Full suite: `python -m pytest -q` -> 185 passed.
+
+### Production interpretation
+Lexical mode can remain a cheap local fallback when Qdrant is unavailable, while dense and hybrid modes fail early with a service-unavailable signal instead of entering answer generation with missing vector-store state. This reduces unnecessary embedding or LLM spend and makes operational failures easier to diagnose.
+
+### Failure-mode thinking
+Stress case: run `/query` in lexical mode while Qdrant is absent or broken. Expected behavior is no Qdrant client creation, no collection check, and no embedding call. Dense and hybrid must still fail before orchestration if the required collection is missing.
+
+## Step 75 - Retrieval-mode dependency matrix documentation
+
+### Goal
+Document the operational dependency boundaries for `lexical`, `dense`, and `hybrid` retrieval modes so API users understand what `/ready` checks, what `/query` may call, and where failures should occur.
+
+### Files touched
+- `README.md`
+- `tests/test_readme_api_docs.py`
+
+### What changed
+- Added a retrieval-mode dependency matrix under README API operational notes.
+- Documented that lexical mode uses local `.retrieval_ready.json` artifacts only for retrieval and should not instantiate Qdrant or call embedding APIs for retrieval.
+- Documented that dense mode requires Qdrant collection existence and an embedding call for vector search.
+- Documented that hybrid mode requires both Qdrant dense search and local lexical artifacts.
+- Documented failure boundaries: readiness `503`, query `503` for missing Qdrant in dense/hybrid, and safe refusal for insufficient evidence.
+- Added README regression assertions so the dependency matrix stays visible.
+
+### Python/test code used
+```python
+def test_readme_documents_retrieval_mode_dependency_matrix() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    assert "### Retrieval-mode dependency matrix" in readme
+    assert "| `lexical` |" in readme
+    assert "local lexical artifacts only; no Qdrant client or collection check" in readme
+    assert "must fail fast when vector-store state is unavailable" in readme
+```
+
+### Validation
+- Targeted README docs: `python -m pytest tests/test_readme_api_docs.py -q` -> 5 passed.
+- Broader API/docs: `python -m pytest tests/test_health_api.py tests/test_readiness_api.py tests/test_query_api.py tests/test_api_smoke_script.py tests/test_readme_api_docs.py -q` -> 27 passed.
+- Full suite: `python -m pytest -q` -> 186 passed.
+
+### Production interpretation
+This matrix turns implicit retrieval dependencies into an explicit API operations contract. It reduces accidental coupling, helps operators triage `/ready` versus `/query` failures, and prevents engineers from accidentally making lexical degraded mode depend on vector-store infrastructure or embedding spend.
+
+### Failure-mode thinking
+Stress case: Qdrant is down but lexical artifacts exist. `/ready` in lexical mode should still pass, and lexical `/query` should not create Qdrant or call embeddings. Dense/hybrid should fail fast with readiness/query `503` instead of wasting model calls or returning misleading answers.
+
+## Step 76 - Readiness retrieval-mode dependency boundary tests
+
+### Goal
+Verify and lock down that `GET /ready` follows the retrieval-mode dependency matrix: lexical readiness must not touch Qdrant, dense readiness must not require lexical artifacts, and hybrid readiness must require both Qdrant and lexical artifacts.
+
+### Files touched
+- `tests/test_readiness_api.py`
+
+### What changed
+- Added `pytest` parametrization for dense and hybrid missing-Qdrant readiness failures.
+- Added a dense-mode readiness regression test proving dense mode can be ready without `.retrieval_ready.json` artifacts when Qdrant collection exists.
+- Added parametrization proving lexical and hybrid readiness both fail when required retrieval-ready artifacts are missing.
+- Confirmed lexical readiness does not create a Qdrant client.
+- Confirmed hybrid readiness checks Qdrant even when lexical artifacts are missing, so operators see both dependency states in the readiness payload.
+- No production code change was required because `app/api/routes/readiness.py` already followed the dependency matrix.
+
+### Python/test code used
+```python
+@pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
+def test_ready_endpoint_returns_503_when_required_qdrant_collection_is_missing(...):
+    ...
+
+@pytest.mark.parametrize("retrieval_mode", ["lexical", "hybrid"])
+def test_ready_endpoint_returns_503_when_required_retrieval_ready_artifacts_are_missing(...):
+    ...
+```
+
+### Validation
+- Targeted readiness tests: `python -m pytest tests/test_readiness_api.py -q` -> 9 passed.
+- Broader API/docs tests: `python -m pytest tests/test_health_api.py tests/test_readiness_api.py tests/test_query_api.py tests/test_api_smoke_script.py tests/test_readme_api_docs.py -q` -> 30 passed.
+- Full suite: `python -m pytest -q` -> 189 passed.
+
+### Production interpretation
+The readiness endpoint now has stronger regression coverage for degraded-mode behavior. Operators can trust that lexical readiness is independent of Qdrant, dense readiness is independent of lexical artifacts, and hybrid readiness fails if either side of its fused retrieval path is unavailable.
+
+### Failure-mode thinking
+Stress cases covered: Qdrant missing in dense/hybrid, lexical artifacts missing in lexical/hybrid, dense mode with no lexical artifacts, and lexical mode with a Qdrant constructor that would fail if called.

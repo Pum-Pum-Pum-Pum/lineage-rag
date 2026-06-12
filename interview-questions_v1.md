@@ -2806,3 +2806,158 @@ What is the correct operational sequence after Step 73?
 
 **Strong answer:**
 The correct sequence is `GET /health` for cheap liveness/config, optional `GET /ready` for dependency/artifact readiness, and only then optional `POST /query` for cost-bearing RAG execution. This separates liveness, readiness, and answer generation into distinct operational checks.
+
+
+## Step 73 - API smoke-test client optional readiness check
+
+### Questions asked
+1. Why should the API smoke-test client make /ready optional instead of always calling it?
+2. Why should the smoke-test client call /ready before /query when --check-ready is supplied?
+3. Why should a failed /ready check block POST /query in the smoke-test client?
+4. Why should readiness failure errors avoid printing the raw /ready response body?
+5. What is the correct operational sequence after Step 73?
+
+### Correct answers / evaluation
+Accepted: Step 73 answer gate passed.
+
+What was correct:
+- Q1: Correct. You separated cheap liveness from stronger readiness checks.
+- Q2: Correct. You placed readiness before query execution to avoid retrieval, embedding, LLM, trace, latency, and cost when dependencies are missing.
+- Q3: Correct. You connected failed readiness to reliability, failure containment, and wasted work avoidance.
+- Q4: Correct. You identified security and log-hygiene risk from leaking internal dependency details, local paths, config hints, or operational information.
+- Q5: Correct. The operational sequence is health first, optional readiness second, optional query last.
+
+Area to improve:
+- In interview answers, explicitly name that readiness may touch stateful dependencies such as Qdrant or local readiness artifacts, while health must stay safe for frequent orchestrator or load-balancer probes.
+
+Stronger interview-quality version:
+- The smoke client should default to health only because liveness probes must be cheap, frequent, and dependency-light. Readiness is opt-in because it may inspect stateful serving prerequisites such as Qdrant collections and local retrieval-ready artifacts. When requested, readiness must run before query execution so predictable infrastructure failures are caught before cost-bearing retrieval, embedding, generation, and trace-writing work. A readiness failure should block query execution and report only a safe status-level error, while detailed diagnostics remain in controlled backend logs. The correct sequence is GET health, optional GET ready, then optional POST query.
+
+## Step 74 - Lexical /query Qdrant dependency boundary
+
+### Questions asked
+1. Why is it a production bug if lexical /query creates a Qdrant client even though lexical retrieval does not need Qdrant?
+2. Why should the query route decide whether to create Qdrant before calling orchestration instead of letting lower layers fail later?
+3. Why is qdrant_client: QdrantClient | None acceptable only if dense/hybrid modes explicitly reject None?
+4. What failure modes did the Step 74 tests intentionally simulate, and why are they useful?
+5. What is the correct operational interpretation of lexical readiness/query behavior after Step 74?
+
+### Correct answers / evaluation
+Pending: awaiting user answers.
+
+### User answer evaluation - Step 74 - 2026-05-15
+
+#### Overall verdict
+Not yet interview-pass. The intuition is mostly correct, especially around lexical mode using local retrieval-ready JSON artifacts and Qdrant downtime fallback. However, the answers are too vague for a production ML/RAG interview. The weakest parts are Q2 and Q4: dependency-boundary ownership must be precise, and a stress test must describe executable failure injection, not just the reason lexical mode should avoid Qdrant.
+
+#### What was correct
+- Correctly recognized that lexical retrieval can use local retrieval-ready JSON artifacts and does not need Qdrant.
+- Correctly recognized that Qdrant-backed dense/hybrid modes have different infrastructure requirements from lexical mode.
+- Correctly connected lexical mode to business continuity when Qdrant is unavailable.
+- Correctly understood that HTTP 503 communicates a service/dependency failure rather than normal query success.
+
+#### Areas to improve
+- Q1 needs consequences: unnecessary Qdrant creation can create false outages, latency, operational coupling, and misleading failures for a mode that should work locally.
+- Q2 must name the right boundaries: API route owns infrastructure lifecycle, retrieval service enforces defensive invariants, retrieval router selects mode. Do not say vaguely "all layers"; each layer has a specific responsibility.
+- Q3 must explain fail-fast behavior: 503 prevents embedding calls, retrieval attempts, LLM generation, trace side effects, and misleading answers when required vector-store state is missing.
+- Q4 is incomplete. You explained why lexical should not call vector DB, but the question asked how to prove it. A strong answer must mention monkeypatching/fake clients that raise if Qdrant or embeddings are called, then asserting lexical succeeds while dense/hybrid fail safely.
+- Q5 is acceptable but should mention degraded quality, cost control, reliability/SLA, and explicit degraded-mode behavior.
+
+#### Stronger interview-quality answer
+Lexical-only retrieval should not instantiate Qdrant because lexical mode is designed to operate from local retrieval-ready artifacts. If the API route creates a Qdrant client anyway, Qdrant downtime can cause a false outage for a path that should still work, adds avoidable latency, couples cheap fallback retrieval to vector-store infrastructure, and may trigger unnecessary operational noise.
+
+The boundary should be enforced at more than one layer, but with clear ownership. The API route should own infrastructure lifecycle and only create a Qdrant client for dense or hybrid modes. The retrieval service should defensively reject `qdrant_client=None` for dense/hybrid so callers cannot bypass the invariant. The router should choose the retrieval strategy, but it should not create infrastructure clients.
+
+HTTP 503 is appropriate when dense or hybrid mode is configured but the Qdrant collection is missing because the service dependency is unavailable or not initialized. It fails fast before embedding calls, retrieval, LLM generation, and trace side effects. This avoids wasted cost and avoids returning misleading low-evidence or hallucinated answers.
+
+To stress the boundary, I would monkeypatch Qdrant client creation to raise if called, use a fake embedding client that raises if embeddings are requested, run lexical `/query`, and assert the request succeeds with `qdrant_client=None`. Then I would run dense and hybrid modes with a fake Qdrant client whose `collection_exists` returns false and assert HTTP 503, no orchestration call, and no leaked internal details.
+
+The business impact is that lexical mode becomes a cheaper degraded fallback during vector-store incidents. The product can still answer some exact-match or keyword-style queries, while dense/hybrid provide stronger semantic retrieval when Qdrant is healthy. This improves reliability and cost control, but the system should communicate that retrieval quality may be lower in degraded lexical-only operation.
+
+#### Gate
+Do not move to Step 75 yet. Rewrite answers to Q2 and Q4 with concrete ownership and executable stress-test details.
+
+### Gate acceptance - Step 74 - 2026-05-15
+
+#### Rewritten answers accepted
+The rewritten Q2 and Q4 are now interview-quality.
+
+#### Why accepted
+- Q2 now clearly separates ownership:
+  - API route owns infrastructure lifecycle and creates Qdrant only for dense/hybrid.
+  - Retrieval service defensively rejects `qdrant_client=None` for dense/hybrid.
+  - Router selects retrieval strategy but does not create infrastructure clients.
+- Q4 now gives an executable stress-test design:
+  - Monkeypatch Qdrant client creation to raise if called.
+  - Use a fake embedding client that raises if embeddings are requested.
+  - Run lexical `/query` and assert success with `qdrant_client=None`.
+  - Run dense/hybrid with a fake missing collection and assert HTTP 503, no orchestration call, and no leaked internals.
+
+#### Gate
+Step 74 interview gate accepted. Proceed to Step 75 when ready.
+
+## Step 75 - Retrieval-mode dependency matrix documentation
+
+### Questions asked
+1. Why is a dependency matrix useful in a production RAG API instead of relying only on code behavior?
+2. Explain the difference between `/health`, `/ready`, and `/query` from a cost and failure-boundary perspective.
+3. In lexical mode, why should missing corpus evidence be treated differently from missing lexical artifacts?
+4. In hybrid mode, why does `/ready` need to check both Qdrant collection existence and local lexical artifacts?
+5. How would this matrix help during an incident where Qdrant is unavailable but the business still wants partial service?
+
+### Correct answer key
+1. A matrix makes operational dependencies explicit for engineers and operators. It prevents accidental coupling, clarifies expected failure modes, supports onboarding, and gives tests a stable documentation contract.
+2. `/health` is cheap liveness/config and should not touch dependencies. `/ready` checks required dependencies/artifacts for the active mode without model calls or real retrieval. `/query` is cost-bearing and may run retrieval, embeddings, LLM generation, and trace writing depending on mode and evidence sufficiency.
+3. Missing lexical artifacts means the system cannot serve lexical retrieval and should fail readiness. Missing corpus evidence for a specific user query means retrieval ran but found insufficient support, so the correct behavior is a safe refusal/insufficient-evidence response.
+4. Hybrid combines dense and lexical signals. If either Qdrant state or lexical artifacts are missing, the configured hybrid retrieval path is degraded or invalid, so readiness should fail before user queries.
+5. The matrix shows that lexical mode can be used as a cheaper degraded path when Qdrant is down, while dense/hybrid should fail fast. This supports clear incident communication, cost control, and explicit tradeoffs between availability and retrieval quality.
+
+### User answer evaluation - Step 75 - 2026-05-15
+
+#### Overall verdict
+Not yet interview-pass. Your intuition is directionally correct, especially around documentation, cost, dependency checks, hybrid requiring both dense and lexical dependencies, and lexical as degraded service during Qdrant incidents. However, the answers are still too imprecise for production RAG interview depth. The main weak areas are Q2 and Q3.
+
+#### What was correct
+- Q1 correctly identified maintainability, onboarding, debugging, and expected-failure documentation as reasons for a dependency matrix.
+- Q2 correctly identified `/health` as cheapest and fastest, `/ready` as dependency/artifact checks, and `/query` as the expensive path.
+- Q4 correctly identified hybrid as a combination of dense and lexical retrieval requiring both Qdrant and local lexical artifacts.
+- Q5 correctly identified lexical as a lower-cost degraded path during Qdrant incidents, with possible quality degradation.
+
+#### Areas to improve
+- Q1 should explicitly mention that code behavior alone is not enough for operators, incident responders, and future engineers. A matrix becomes an operational contract and can be protected by tests.
+- Q2 incorrectly says `/query` "checks" LLM config/retrieval/embeddings. Stronger: `/query` actually executes retrieval and may call embeddings, LLM generation, and trace writing. Also, `/health`, `/ready`, and `/query` are not always a strict mandatory order for every caller; rather, the recommended safe operational flow is health first, readiness second, query last.
+- Q3 is incomplete. Missing lexical artifacts means the system is not ready to serve lexical retrieval and should fail readiness. Missing corpus evidence means artifacts exist and retrieval ran, but the specific user query lacked enough evidence; that should be a safe refusal, not readiness failure.
+- Q4 should mention readiness fails before user queries because hybrid retrieval would be incomplete or degraded if either dense or lexical side is missing.
+- Q5 should include incident communication: switch to lexical mode intentionally, communicate degraded semantic quality, monitor refusal/answer quality, and avoid embedding/vector-store spend until Qdrant is restored.
+
+#### Stronger interview-quality answer
+A dependency matrix is useful because production RAG systems have multiple runtime dependencies and cost boundaries. Code behavior alone is not enough for operators, reviewers, and incident responders. The matrix makes expected dependencies, failure modes, and degraded-mode behavior explicit. It also gives us a documentation contract that can be protected with tests, reducing accidental coupling such as making lexical retrieval depend on Qdrant.
+
+`/health` is the cheapest liveness/config endpoint. It should not run retrieval, embeddings, LLM calls, Qdrant checks, or trace writing. `/ready` is a dependency/artifact readiness endpoint. It checks whether the active retrieval mode can be served, such as lexical artifacts for lexical/hybrid or Qdrant collection existence for dense/hybrid, but it should not execute user retrieval or model calls. `/query` is the cost-bearing path: it may run retrieval, embeddings for dense/hybrid retrieval, LLM generation when evidence is sufficient, and local trace writing. Operationally, health then readiness then query is the safe smoke-test sequence, but the endpoints have distinct contracts rather than being the same kind of check.
+
+In lexical mode, missing lexical artifacts means the system lacks the required local retrieval index/artifact and should fail readiness with `503`. Missing corpus evidence is different: the artifacts exist and retrieval runs, but the specific user query does not have enough supporting evidence. That should produce an insufficient-evidence safe refusal, not a readiness failure or server crash.
+
+In hybrid mode, `/ready` must check both Qdrant collection existence and local lexical artifacts because hybrid retrieval fuses dense and lexical signals. If either side is missing, the configured hybrid path is incomplete. Failing readiness early prevents user-facing queries from running with partially broken retrieval and avoids wasted embedding/LLM cost.
+
+During a Qdrant incident, the matrix tells operators that dense/hybrid depend on Qdrant and should fail fast, while lexical can be used as a lower-cost degraded fallback if local lexical artifacts are available. The business can keep partial service running, but should communicate reduced semantic retrieval quality, monitor refusals and answer quality, and switch back to dense/hybrid once Qdrant is restored.
+
+#### Gate
+Do not move to Step 76 yet. Rewrite Q2 and Q3 only. Be precise about endpoint contracts and the difference between missing artifacts versus missing evidence.
+
+### Gate acceptance - Step 75 - 2026-05-15
+
+#### Rewritten answers accepted
+The rewritten Q2 and Q3 are now interview-quality.
+
+#### Why accepted
+- Q2 now correctly separates endpoint contracts:
+  - `/health` is cheap liveness/config and does not touch retrieval, embeddings, LLMs, Qdrant, or traces.
+  - `/ready` checks active-mode dependencies/artifacts without user retrieval or model calls.
+  - `/query` is the cost-bearing path and may execute retrieval, embeddings for dense/hybrid, LLM generation when evidence is sufficient, and trace writing.
+  - health -> readiness -> query is a safe smoke-test sequence, not a universal mandatory order.
+- Q3 now clearly separates failure classes:
+  - Missing lexical artifacts means the system lacks required local retrieval state and should fail readiness with `503`.
+  - Missing corpus evidence means retrieval ran but the specific query lacks enough support, so the correct behavior is insufficient-evidence safe refusal.
+
+#### Gate
+Step 75 interview gate accepted. Proceed to Step 76 when ready.
