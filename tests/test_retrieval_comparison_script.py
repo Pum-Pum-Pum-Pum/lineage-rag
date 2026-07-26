@@ -154,6 +154,62 @@ def test_retrieval_comparison_script_closes_qdrant_client_when_search_fails(
     assert fake_client.closed is True
 
 
+def test_retrieval_comparison_fails_before_search_when_collection_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    settings = SimpleNamespace(
+        log_level="INFO",
+        qdrant_local_path=tmp_path / "qdrant",
+        qdrant_collection_name="lineage_chunks",
+        openai_embedding_model="test-embedding-model",
+    )
+    search_called = False
+
+    class MissingCollectionQdrantClient:
+        def __init__(self) -> None:
+            self.collection_exists_calls: list[str] = []
+            self.closed = False
+
+        def collection_exists(self, collection_name: str) -> bool:
+            self.collection_exists_calls.append(collection_name)
+            return False
+
+        def close(self) -> None:
+            self.closed = True
+
+    fake_client = MissingCollectionQdrantClient()
+
+    def unexpected_search(**kwargs):
+        nonlocal search_called
+        search_called = True
+        raise AssertionError("dense search should not run without the collection")
+
+    monkeypatch.setattr(run_retrieval_comparison, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        run_retrieval_comparison,
+        "load_retrieval_eval_cases",
+        lambda path: [_case()],
+    )
+    monkeypatch.setattr(
+        run_retrieval_comparison,
+        "create_persistent_qdrant_client",
+        lambda path: fake_client,
+    )
+    monkeypatch.setattr(run_retrieval_comparison, "search_query_text", unexpected_search)
+    monkeypatch.setattr(sys, "argv", ["run_retrieval_comparison.py"])
+
+    with pytest.raises(
+        RuntimeError,
+        match="Qdrant collection does not exist.*run_qdrant_indexing.py",
+    ):
+        run_retrieval_comparison.main()
+
+    assert search_called is False
+    assert fake_client.collection_exists_calls == ["lineage_chunks"]
+    assert fake_client.closed is True
+
+
 def _case() -> RetrievalEvalCase:
     return RetrievalEvalCase(
         case_id="branch_reports",

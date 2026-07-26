@@ -11,23 +11,23 @@ from app.retrieval.evaluation import (
     RetrievalEvalFilters,
 )
 from app.vectorstore.qdrant_search import QdrantSearchResult
-from scripts import run_hybrid_weight_experiments
+from scripts import run_retrieval_eval
 
 
-def test_hybrid_weight_experiments_script_help_runs() -> None:
+def test_retrieval_eval_script_help_runs() -> None:
     result = subprocess.run(
-        [sys.executable, "scripts/run_hybrid_weight_experiments.py", "--help"],
+        [sys.executable, "scripts/run_retrieval_eval.py", "--help"],
         capture_output=True,
         text=True,
         check=False,
     )
 
     assert result.returncode == 0
-    assert "--weights" in result.stdout
-    assert "--candidate-limit" in result.stdout
+    assert "--eval-file" in result.stdout
+    assert "--output-file" in result.stdout
 
 
-def test_hybrid_weight_experiments_closes_qdrant_client_on_success(
+def test_retrieval_eval_closes_qdrant_client_on_success(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -40,54 +40,39 @@ def test_hybrid_weight_experiments_closes_qdrant_client_on_success(
         captured["output_file"] = output_file
         return Path(output_file)
 
-    monkeypatch.setattr(run_hybrid_weight_experiments, "get_settings", lambda: settings)
+    monkeypatch.setattr(run_retrieval_eval, "get_settings", lambda: settings)
+    monkeypatch.setattr(run_retrieval_eval, "load_retrieval_eval_cases", lambda path: [_case()])
     monkeypatch.setattr(
-        run_hybrid_weight_experiments,
-        "load_retrieval_eval_cases",
-        lambda path: [_case()],
-    )
-    monkeypatch.setattr(
-        run_hybrid_weight_experiments,
+        run_retrieval_eval,
         "create_persistent_qdrant_client",
         lambda path: fake_client,
     )
     monkeypatch.setattr(
-        run_hybrid_weight_experiments,
+        run_retrieval_eval,
         "search_query_text",
-        lambda **kwargs: [_result("dense", 0.8)],
+        lambda **kwargs: [_result()],
     )
     monkeypatch.setattr(
-        run_hybrid_weight_experiments,
-        "search_lexical_artifacts",
-        lambda **kwargs: [_result("lexical", 3.0)],
-    )
-    monkeypatch.setattr(
-        run_hybrid_weight_experiments,
-        "write_hybrid_weight_experiment_report_to_json",
+        run_retrieval_eval,
+        "write_retrieval_eval_report_to_json",
         fake_write_report,
     )
     monkeypatch.setattr(
         sys,
         "argv",
-        [
-            "run_hybrid_weight_experiments.py",
-            "--weights",
-            "0.7:0.3",
-            "--output-file",
-            str(tmp_path / "report.json"),
-        ],
+        ["run_retrieval_eval.py", "--limit", "3", "--output-file", str(tmp_path / "report.json")],
     )
 
-    run_hybrid_weight_experiments.main()
+    run_retrieval_eval.main()
 
     report = captured["report"]
-    assert report.total_settings == 1
-    assert report.settings[0].setting.label == "dense_0.7_lexical_0.3"
+    assert report.total_cases == 1
+    assert report.passed_count == 1
     assert fake_client.collection_exists_calls == ["lineage_chunks"]
     assert fake_client.closed is True
 
 
-def test_hybrid_weight_experiments_closes_qdrant_client_when_search_fails(
+def test_retrieval_eval_closes_qdrant_client_when_search_fails(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -95,30 +80,26 @@ def test_hybrid_weight_experiments_closes_qdrant_client_when_search_fails(
     fake_client = _FakeQdrantClient()
 
     def fail_search(**kwargs):
-        raise RuntimeError("dense candidate retrieval failed")
+        raise RuntimeError("dense evaluation retrieval failed")
 
-    monkeypatch.setattr(run_hybrid_weight_experiments, "get_settings", lambda: settings)
+    monkeypatch.setattr(run_retrieval_eval, "get_settings", lambda: settings)
+    monkeypatch.setattr(run_retrieval_eval, "load_retrieval_eval_cases", lambda path: [_case()])
     monkeypatch.setattr(
-        run_hybrid_weight_experiments,
-        "load_retrieval_eval_cases",
-        lambda path: [_case()],
-    )
-    monkeypatch.setattr(
-        run_hybrid_weight_experiments,
+        run_retrieval_eval,
         "create_persistent_qdrant_client",
         lambda path: fake_client,
     )
-    monkeypatch.setattr(run_hybrid_weight_experiments, "search_query_text", fail_search)
-    monkeypatch.setattr(sys, "argv", ["run_hybrid_weight_experiments.py"])
+    monkeypatch.setattr(run_retrieval_eval, "search_query_text", fail_search)
+    monkeypatch.setattr(sys, "argv", ["run_retrieval_eval.py"])
 
-    with pytest.raises(RuntimeError, match="dense candidate retrieval failed"):
-        run_hybrid_weight_experiments.main()
+    with pytest.raises(RuntimeError, match="dense evaluation retrieval failed"):
+        run_retrieval_eval.main()
 
     assert fake_client.collection_exists_calls == ["lineage_chunks"]
     assert fake_client.closed is True
 
 
-def test_hybrid_weight_experiments_fail_before_search_when_collection_is_missing(
+def test_retrieval_eval_fails_before_search_when_collection_is_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -129,27 +110,23 @@ def test_hybrid_weight_experiments_fail_before_search_when_collection_is_missing
     def unexpected_search(**kwargs):
         nonlocal search_called
         search_called = True
-        raise AssertionError("candidate search should not run without the collection")
+        raise AssertionError("search should not run without the required collection")
 
-    monkeypatch.setattr(run_hybrid_weight_experiments, "get_settings", lambda: settings)
+    monkeypatch.setattr(run_retrieval_eval, "get_settings", lambda: settings)
+    monkeypatch.setattr(run_retrieval_eval, "load_retrieval_eval_cases", lambda path: [_case()])
     monkeypatch.setattr(
-        run_hybrid_weight_experiments,
-        "load_retrieval_eval_cases",
-        lambda path: [_case()],
-    )
-    monkeypatch.setattr(
-        run_hybrid_weight_experiments,
+        run_retrieval_eval,
         "create_persistent_qdrant_client",
         lambda path: fake_client,
     )
-    monkeypatch.setattr(run_hybrid_weight_experiments, "search_query_text", unexpected_search)
-    monkeypatch.setattr(sys, "argv", ["run_hybrid_weight_experiments.py"])
+    monkeypatch.setattr(run_retrieval_eval, "search_query_text", unexpected_search)
+    monkeypatch.setattr(sys, "argv", ["run_retrieval_eval.py"])
 
     with pytest.raises(
         RuntimeError,
         match="Qdrant collection does not exist.*run_qdrant_indexing.py",
     ):
-        run_hybrid_weight_experiments.main()
+        run_retrieval_eval.main()
 
     assert search_called is False
     assert fake_client.collection_exists_calls == ["lineage_chunks"]
@@ -183,18 +160,19 @@ def _case() -> RetrievalEvalCase:
     return RetrievalEvalCase(
         case_id="branch_reports",
         query="branch reports",
-        filters=RetrievalEvalFilters(),
+        filters=RetrievalEvalFilters(release_label="R24"),
         expectation=RetrievalEvalExpectation(
             expected_to_pass=True,
             min_results=1,
+            expected_release_label="R24",
             expected_text_contains_any=["branch report"],
         ),
     )
 
 
-def _result(point_id: str, score: float) -> QdrantSearchResult:
+def _result() -> QdrantSearchResult:
     return QdrantSearchResult(
-        point_id=point_id,
-        score=score,
-        payload={"unit_id": point_id, "text": "branch report evidence"},
+        point_id="dense-result",
+        score=0.8,
+        payload={"release_label": "R24", "text": "branch report evidence"},
     )

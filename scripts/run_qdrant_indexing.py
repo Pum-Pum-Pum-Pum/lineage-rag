@@ -25,25 +25,27 @@ def main() -> None:
     )
     client = create_persistent_qdrant_client(settings.qdrant_local_path)
 
-    logger.info("Embedding cache directory: %s", embedding_cache_dir)
-    logger.info("Qdrant local path: %s", settings.qdrant_local_path)
-    logger.info("Qdrant collection: %s", settings.qdrant_collection_name)
-    logger.info("Qdrant vector size: %s", settings.qdrant_vector_size)
+    try:
+        logger.info("Embedding cache directory: %s", embedding_cache_dir)
+        logger.info("Qdrant local path: %s", settings.qdrant_local_path)
+        logger.info("Qdrant collection: %s", settings.qdrant_collection_name)
+        logger.info("Qdrant vector size: %s", settings.qdrant_vector_size)
 
-    summary = index_embedding_cache_directory(
-        client=client,
-        collection_config=collection_config,
-        cache_directory=embedding_cache_dir,
-    )
+        summary = index_embedding_cache_directory(
+            client=client,
+            collection_config=collection_config,
+            cache_directory=embedding_cache_dir,
+        )
 
-    logger.info(
-        "Qdrant indexing complete | collection=%s | attempted=%s | upserted=%s | skipped=%s",
-        summary.collection_name,
-        summary.attempted_records,
-        summary.upserted_points,
-        summary.skipped_records,
-    )
-    client.close()
+        logger.info(
+            "Qdrant indexing complete | collection=%s | attempted=%s | upserted=%s | skipped=%s",
+            summary.collection_name,
+            summary.attempted_records,
+            summary.upserted_points,
+            summary.skipped_records,
+        )
+    finally:
+        client.close()
 
 
 if __name__ == "__main__":

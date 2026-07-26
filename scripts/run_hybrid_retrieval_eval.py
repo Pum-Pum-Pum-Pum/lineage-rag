@@ -72,69 +72,70 @@ def main() -> None:
 
     cases = load_retrieval_eval_cases(args.eval_file)
     client = create_persistent_qdrant_client(settings.qdrant_local_path)
-    if not client.collection_exists(settings.qdrant_collection_name):
-        client.close()
-        raise RuntimeError(
-            "Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first."
-        )
+    try:
+        if not client.collection_exists(settings.qdrant_collection_name):
+            raise RuntimeError(
+                "Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first."
+            )
 
-    case_reports: list[HybridRetrievalEvalCaseReport] = []
-    for case in cases:
-        dense_results = search_query_text(
-            qdrant_client=client,
-            collection_name=settings.qdrant_collection_name,
-            query_text=case.query,
-            embedding_model=settings.openai_embedding_model,
-            limit=args.candidate_limit,
-            document_family=case.filters.document_family,
-            release_label=case.filters.release_label,
-            source_kind=case.filters.source_kind,
-        )
-        lexical_results = search_lexical_artifacts(
-            artifact_directory=args.lexical_artifact_dir,
-            query_text=case.query,
-            limit=args.candidate_limit,
-            document_family=case.filters.document_family,
-            release_label=case.filters.release_label,
-            source_kind=case.filters.source_kind,
-        )
-        hybrid_results = fuse_dense_and_lexical_results(
-            dense_results=dense_results,
-            lexical_results=lexical_results,
-            limit=args.limit,
-            dense_weight=args.dense_weight,
-            lexical_weight=args.lexical_weight,
-        )
+        case_reports: list[HybridRetrievalEvalCaseReport] = []
+        for case in cases:
+            dense_results = search_query_text(
+                qdrant_client=client,
+                collection_name=settings.qdrant_collection_name,
+                query_text=case.query,
+                embedding_model=settings.openai_embedding_model,
+                limit=args.candidate_limit,
+                document_family=case.filters.document_family,
+                release_label=case.filters.release_label,
+                source_kind=case.filters.source_kind,
+            )
+            lexical_results = search_lexical_artifacts(
+                artifact_directory=args.lexical_artifact_dir,
+                query_text=case.query,
+                limit=args.candidate_limit,
+                document_family=case.filters.document_family,
+                release_label=case.filters.release_label,
+                source_kind=case.filters.source_kind,
+            )
+            hybrid_results = fuse_dense_and_lexical_results(
+                dense_results=dense_results,
+                lexical_results=lexical_results,
+                limit=args.limit,
+                dense_weight=args.dense_weight,
+                lexical_weight=args.lexical_weight,
+            )
 
-        case_report = build_hybrid_retrieval_eval_case_report(
-            case=case,
-            dense_results=dense_results[: args.limit],
-            lexical_results=lexical_results[: args.limit],
-            hybrid_results=hybrid_results,
-        )
-        case_reports.append(case_report)
+            case_report = build_hybrid_retrieval_eval_case_report(
+                case=case,
+                dense_results=dense_results[: args.limit],
+                lexical_results=lexical_results[: args.limit],
+                hybrid_results=hybrid_results,
+            )
+            case_reports.append(case_report)
+            logger.info(
+                "Case %s | outcome=%s | dense=%s | lexical=%s | hybrid=%s | hybrid_results=%s",
+                case.case_id,
+                case_report.hybrid_outcome,
+                case_report.dense_evaluation.passed,
+                case_report.lexical_evaluation.passed,
+                case_report.hybrid_evaluation.passed,
+                case_report.hybrid_evaluation.result_count,
+            )
+            _log_top_result(logger, case.case_id, hybrid_results)
+
+        report = build_hybrid_retrieval_eval_report(case_reports)
+        output_path = write_hybrid_retrieval_eval_report_to_json(report, args.output_file)
         logger.info(
-            "Case %s | outcome=%s | dense=%s | lexical=%s | hybrid=%s | hybrid_results=%s",
-            case.case_id,
-            case_report.hybrid_outcome,
-            case_report.dense_evaluation.passed,
-            case_report.lexical_evaluation.passed,
-            case_report.hybrid_evaluation.passed,
-            case_report.hybrid_evaluation.result_count,
+            "Hybrid retrieval evaluation complete | dense=%s | lexical=%s | hybrid=%s | total=%s",
+            report.dense_passed_count,
+            report.lexical_passed_count,
+            report.hybrid_passed_count,
+            report.total_cases,
         )
-        _log_top_result(logger, case.case_id, hybrid_results)
-
-    report = build_hybrid_retrieval_eval_report(case_reports)
-    output_path = write_hybrid_retrieval_eval_report_to_json(report, args.output_file)
-    logger.info(
-        "Hybrid retrieval evaluation complete | dense=%s | lexical=%s | hybrid=%s | total=%s",
-        report.dense_passed_count,
-        report.lexical_passed_count,
-        report.hybrid_passed_count,
-        report.total_cases,
-    )
-    logger.info("Wrote hybrid retrieval evaluation report: %s", output_path)
-    client.close()
+        logger.info("Wrote hybrid retrieval evaluation report: %s", output_path)
+    finally:
+        client.close()
 
 
 def _log_top_result(logger, case_id: str, results: list[object]) -> None:

@@ -1,0 +1,22 @@
+[project]
+name = "culling-blade-lineage-rag"
+version = "0.1.0"
+description = "Production-minded RAG system for functional-specification release lineage."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.140,<1",
+    "httpx>=0.28,<1",
+    "openai>=2.48,<3",
+    "pydantic>=2.13,<3",
+    "pydantic-settings>=2.14,<3",
+    "python-docx>=1.2,<2",
+    "qdrant-client>=1.18,<2",
+    "streamlit>=1.60,<2",
+    "uvicorn>=0.51,<1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1,<10",
+]

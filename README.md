@@ -16,20 +16,23 @@ The API calls the shared `run_grounded_answer_query(...)` orchestration service.
 
 ## Setup
 
-Install dependencies:
+Install the locked runtime and development dependencies:
 
 ```bash
-pip install -r requirements.txt
+uv sync --locked
 ```
 
-If you use a virtual environment, activate it before running the commands below.
+`uv` creates and manages the local `.venv` automatically. The environment is
+disposable and ignored by Git; `pyproject.toml` declares direct dependencies and
+`uv.lock` stores the exact cross-platform resolution committed for reproducible
+development, CI, and deployment.
 
 ## Run the FastAPI backend
 
 Start the local API server:
 
 ```bash
-python -m uvicorn app.api.main:app --reload
+uv run --locked uvicorn app.api.main:app --reload
 ```
 
 Default local URL:
@@ -44,12 +47,32 @@ Interactive OpenAPI documentation:
 http://127.0.0.1:8000/docs
 ```
 
+## Run the Streamlit UI
+
+Keep the FastAPI backend running, then start the UI in a second terminal:
+
+```bash
+uv run --locked streamlit run app/ui/streamlit_app.py
+```
+
+The UI defaults to `http://127.0.0.1:8000`. Override it from the sidebar or set:
+
+```bash
+RAG_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Use **Check backend** before querying. Every submitted query performs a readiness
+check before `POST /query`; a failed readiness check blocks cost-bearing retrieval
+and generation. The UI renders grounded answers or safe refusals, evidence
+sufficiency, citations, trace IDs, and optional model usage/cost. It does not expose
+the local trace output path.
+
 ## Smoke test the API
 
 Start with the health-only smoke test:
 
 ```bash
-python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000
+uv run --locked python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000
 ```
 
 Expected interpretation:
@@ -64,7 +87,7 @@ Use this first when you only want a cheap liveness/config check.
 Health plus readiness smoke test:
 
 ```bash
-python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --check-ready
+uv run --locked python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --check-ready
 ```
 
 Expected interpretation:
@@ -81,7 +104,7 @@ Expected interpretation:
 Health plus readiness plus query smoke test:
 
 ```bash
-python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --check-ready --query "What changed in branch reports?" --limit 5
+uv run --locked python scripts/run_api_smoke_test.py --base-url http://127.0.0.1:8000 --check-ready --query "What changed in branch reports?" --limit 5
 ```
 
 Expected interpretation:
@@ -95,7 +118,7 @@ Expected interpretation:
 With filters:
 
 ```bash
-python scripts/run_api_smoke_test.py ^
+uv run --locked python scripts/run_api_smoke_test.py ^
   --base-url http://127.0.0.1:8000 ^
   --check-ready ^
   --query "What changed in branch reports?" ^
@@ -109,7 +132,7 @@ PowerShell users can replace `^` line continuations with backticks.
 ### Smoke-test failure interpretation
 
 - If health-only smoke testing fails, debug backend startup, port, routing, or configuration first.
-- If `/query` returns `503` in dense or hybrid mode, the required Qdrant collection is unavailable; run indexing first with `python scripts/run_qdrant_indexing.py`.
+- If `/query` returns `503` in dense or hybrid mode, the required Qdrant collection is unavailable; run indexing first with `uv run --locked python scripts/run_qdrant_indexing.py`.
 - If `/query` returns an insufficient-evidence response, treat that as a safe refusal signal, not a backend crash.
 - If the smoke-test client reports an HTTP failure, it intentionally avoids printing raw server response bodies because they may contain secrets, stack traces, local file paths, or internal configuration values.
 - For answered queries, inspect `data/exports/answer_runs/` to reproduce which retrieved evidence, sufficiency decision, prompt version, citations, and usage metadata produced the response.
@@ -206,15 +229,37 @@ This matrix is an operational contract. Lexical mode is the cheapest degraded re
 Targeted API tests:
 
 ```bash
-python -m pytest tests/test_health_api.py tests/test_readiness_api.py tests/test_query_api.py tests/test_api_smoke_script.py -q
+uv run --locked pytest tests/test_health_api.py tests/test_readiness_api.py tests/test_query_api.py tests/test_api_smoke_script.py -q
 ```
 
 Full regression suite:
 
 ```bash
-python -m pytest -q
+uv run --locked pytest -q
 ```
 
-## Current limitation
+Check dependency reproducibility without modifying the lockfile:
 
-This project currently prioritizes a reliable FastAPI backend contract. Streamlit UI is deferred until the backend contract is stable and a UI adds clear demo value beyond FastAPI's built-in OpenAPI docs.
+```bash
+uv lock --check
+```
+
+Install runtime dependencies only for deployment:
+
+```bash
+uv sync --locked --no-dev
+```
+
+If a deployment platform requires a pip-compatible file, generate it from the
+committed lock rather than maintaining a second dependency source manually:
+
+```bash
+uv export --locked --no-dev --format requirements-txt --output-file requirements.txt
+```
+
+## UI integration status
+
+The Streamlit interface is available in `app/ui/streamlit_app.py` and uses the typed
+client in `app/ui/api_client.py` for `/health`, `/ready`, and `/query`. It maps
+network, timeout, HTTP, malformed JSON, and schema-validation failures to safe
+presentation-layer errors without exposing backend response bodies.
