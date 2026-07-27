@@ -989,7 +989,7 @@ The remaining work should proceed in this order, one practical step at a time:
 2. **Completed:** CI automation using locked `uv` commands.
 3. **Completed:** Conversation, message, and summary models plus a
    `ConversationStore` interface and local SQLite implementation.
-4. Implement token-aware context budgeting and rolling summarization.
+4. **Completed:** Token-aware context budgeting and rolling summarization.
 5. Extend the FastAPI contract for conversation creation, history retrieval,
    and multi-turn message submission.
 6. Upgrade the Streamlit page into a multi-turn chat UI with conversation

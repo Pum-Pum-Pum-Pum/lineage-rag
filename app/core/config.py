@@ -33,6 +33,31 @@ class Settings(BaseSettings):
         default=ROOT_DIR / "data" / "conversations.sqlite3",
         alias="CONVERSATION_DB_PATH",
     )
+    conversation_max_context_tokens: int = Field(
+        default=32_000,
+        alias="CONVERSATION_MAX_CONTEXT_TOKENS",
+        gt=0,
+    )
+    conversation_reserved_system_tokens: int = Field(
+        default=2_000,
+        alias="CONVERSATION_RESERVED_SYSTEM_TOKENS",
+        ge=0,
+    )
+    conversation_reserved_evidence_tokens: int = Field(
+        default=12_000,
+        alias="CONVERSATION_RESERVED_EVIDENCE_TOKENS",
+        ge=0,
+    )
+    conversation_reserved_answer_tokens: int = Field(
+        default=4_000,
+        alias="CONVERSATION_RESERVED_ANSWER_TOKENS",
+        ge=0,
+    )
+    conversation_summary_target_tokens: int = Field(
+        default=1_000,
+        alias="CONVERSATION_SUMMARY_TARGET_TOKENS",
+        gt=4,
+    )
 
     artifact_version: str = "v1"
     index_version: str = "fsrag_v1"

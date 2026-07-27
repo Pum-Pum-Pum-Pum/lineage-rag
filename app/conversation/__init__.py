@@ -1,5 +1,15 @@
 """Conversation-scoped memory contracts and persistence adapters."""
 
+from app.conversation.context import (
+    ApproximateTokenCounter,
+    ContextBudget,
+    ContextBudgetExceededError,
+    ConversationContext,
+    ConversationSummarizer,
+    InvalidSummaryError,
+    RollingConversationContextBuilder,
+    TokenCounter,
+)
 from app.conversation.models import (
     Conversation,
     ConversationMessage,
@@ -13,15 +23,25 @@ from app.conversation.store import (
     SqliteConversationStore,
     StoreClosedError,
 )
+from app.conversation.summarizer import OpenAIConversationSummarizer
 
 __all__ = [
+    "ApproximateTokenCounter",
     "Conversation",
     "ConversationArchivedError",
+    "ConversationContext",
     "ConversationMessage",
     "ConversationNotFoundError",
+    "ConversationSummarizer",
     "ConversationStore",
     "ConversationSummary",
+    "ContextBudget",
+    "ContextBudgetExceededError",
+    "InvalidSummaryError",
     "MessageRole",
+    "OpenAIConversationSummarizer",
+    "RollingConversationContextBuilder",
     "SqliteConversationStore",
     "StoreClosedError",
+    "TokenCounter",
 ]

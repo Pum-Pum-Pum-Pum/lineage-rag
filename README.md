@@ -21,17 +21,33 @@ SQLite adapter under `app/conversation/`. The `ConversationStore` protocol keeps
 persistence separate from the RAG pipeline so a future Oracle implementation can
 replace SQLite without changing conversation orchestration.
 
-The current persistence foundation supports:
+The conversation-memory foundation supports:
 
 - independent conversations and ordered user/assistant messages
 - optional trace IDs on assistant messages
 - versioned, forward-only summary checkpoints
 - archived conversations that remain readable but cannot receive new messages
 - configurable local storage through `CONVERSATION_DB_PATH`
+- token-triggered rolling summaries that retain a recent verbatim suffix
+- explicit context reserves for system instructions, retrieved evidence, and
+  answer output
+- configurable budgets through `CONVERSATION_MAX_CONTEXT_TOKENS`,
+  `CONVERSATION_RESERVED_SYSTEM_TOKENS`,
+  `CONVERSATION_RESERVED_EVIDENCE_TOKENS`,
+  `CONVERSATION_RESERVED_ANSWER_TOKENS`, and
+  `CONVERSATION_SUMMARY_TARGET_TOKENS`
+- explicit failure when mandatory recent context or generated summaries exceed
+  their allocation instead of silent truncation
 
-This step does not yet send history to the model or generate summaries. Context
-budgeting and rolling-summary behavior are implemented in the next stage, then
-the conversation API and Streamlit UI will consume these contracts.
+`ApproximateTokenCounter` provides a deterministic UTF-8-aware preflight
+estimate without adding a tokenizer dependency. The context builder accepts a
+`TokenCounter` adapter so a model-specific tokenizer can replace it when exact
+model accounting is required. Conversation summaries preserve chat intent and
+constraints only; functional-spec claims must still be grounded in newly
+retrieved evidence and citations.
+
+The next stage connects these contracts to the conversation API and then the
+Streamlit chat interface.
 
 ## Setup
 
