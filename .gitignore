@@ -57,10 +57,11 @@ data/eval/generated/*
 qdrant_storage/
 data/qdrant_local/
 *.sqlite
+*.sqlite3
 *.db
 
-interview-questions.md
 .env.example
 .clinerules
-project_plan.md
+Culling Blade Lineage- Gen AI RAG System_Prompt_for_GPT.txt
+interview-questions.md
 Steps_followed.md

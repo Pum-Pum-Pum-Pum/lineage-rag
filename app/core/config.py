@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     cache_dir: Path = ROOT_DIR / "data" / "cache"
     eval_dir: Path = ROOT_DIR / "data" / "eval"
     exports_dir: Path = ROOT_DIR / "data" / "exports"
+    conversation_db_path: Path = Field(
+        default=ROOT_DIR / "data" / "conversations.sqlite3",
+        alias="CONVERSATION_DB_PATH",
+    )
 
     artifact_version: str = "v1"
     index_version: str = "fsrag_v1"

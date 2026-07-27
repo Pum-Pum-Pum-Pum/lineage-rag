@@ -14,6 +14,25 @@ The project currently exposes a local FastAPI backend with:
 
 The API calls the shared `run_grounded_answer_query(...)` orchestration service. The API layer should validate requests and format responses; it should not duplicate retrieval, sufficiency, generation, or trace-writing logic.
 
+## Conversation-memory foundation
+
+The project now has conversation-scoped domain records and a local durable
+SQLite adapter under `app/conversation/`. The `ConversationStore` protocol keeps
+persistence separate from the RAG pipeline so a future Oracle implementation can
+replace SQLite without changing conversation orchestration.
+
+The current persistence foundation supports:
+
+- independent conversations and ordered user/assistant messages
+- optional trace IDs on assistant messages
+- versioned, forward-only summary checkpoints
+- archived conversations that remain readable but cannot receive new messages
+- configurable local storage through `CONVERSATION_DB_PATH`
+
+This step does not yet send history to the model or generate summaries. Context
+budgeting and rolling-summary behavior are implemented in the next stage, then
+the conversation API and Streamlit UI will consume these contracts.
+
 ## Setup
 
 Install the locked runtime and development dependencies:
@@ -237,6 +256,22 @@ Full regression suite:
 ```bash
 uv run --locked pytest -q
 ```
+
+## Continuous integration
+
+GitHub Actions runs the full Python 3.12 regression suite for every push and
+pull request. The workflow checks that `uv.lock` is current, installs the locked
+development environment, and runs tests without requiring application secrets
+or live external services:
+
+```bash
+uv lock --check
+uv sync --locked --dev
+uv run --locked pytest -q
+```
+
+The uv installer action and uv executable version are pinned in
+`.github/workflows/ci.yml`. Dependency caching is keyed from `uv.lock`.
 
 Check dependency reproducibility without modifying the lockfile:
 
