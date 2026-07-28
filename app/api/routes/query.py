@@ -25,6 +25,16 @@ logger = get_logger("query_api")
 def query_answer(request: QueryRequest) -> QueryResponse:
     """Run a grounded answer query through the shared orchestration service."""
 
+    return execute_query_request(request)
+
+
+def execute_query_request(
+    request: QueryRequest,
+    *,
+    conversation_context: str | None = None,
+) -> QueryResponse:
+    """Execute the query contract for single-turn or conversation callers."""
+
     settings = get_settings()
     retrieval_config = build_retrieval_runtime_config(settings)
     qdrant_required = _requires_qdrant_collection(retrieval_config.retrieval_mode)
@@ -68,6 +78,7 @@ def query_answer(request: QueryRequest) -> QueryResponse:
             document_family=request.document_family,
             release_label=request.release_label,
             source_kind=request.source_kind,
+            conversation_context=conversation_context,
         )
         return _build_query_response(orchestration_result)
     except HTTPException:

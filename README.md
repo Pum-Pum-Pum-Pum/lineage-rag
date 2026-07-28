@@ -11,6 +11,11 @@ The project currently exposes a local FastAPI backend with:
 - `POST /query` — grounded answer query endpoint
 - local answer trace artifacts under `data/exports/answer_runs/`
 - config-driven retrieval mode: `dense`, `lexical`, or `hybrid`
+- `POST /conversations` and `GET /conversations` for chat lifecycle
+- `GET /conversations/{conversation_id}` for durable history
+- `POST /conversations/{conversation_id}/messages` for grounded multi-turn
+  submission
+- `POST /conversations/{conversation_id}/archive` for read-only archival
 
 The API calls the shared `run_grounded_answer_query(...)` orchestration service. The API layer should validate requests and format responses; it should not duplicate retrieval, sufficiency, generation, or trace-writing logic.
 
@@ -46,8 +51,8 @@ model accounting is required. Conversation summaries preserve chat intent and
 constraints only; functional-spec claims must still be grounded in newly
 retrieved evidence and citations.
 
-The next stage connects these contracts to the conversation API and then the
-Streamlit chat interface.
+The conversation API uses these contracts now. The next stage upgrades the
+Streamlit interface to consume the multi-turn endpoints.
 
 ## Setup
 
@@ -238,6 +243,49 @@ Filtered request example:
 }
 ```
 
+### Conversation endpoints
+
+Create a conversation:
+
+```http
+POST /conversations
+Content-Type: application/json
+
+{"title": "R24 branch-report investigation"}
+```
+
+List active conversations with `GET /conversations`; add
+`?include_archived=true` to include archived history. Retrieve messages and the
+current rolling-summary checkpoint with
+`GET /conversations/{conversation_id}`.
+
+Submit a grounded turn:
+
+```http
+POST /conversations/{conversation_id}/messages
+Content-Type: application/json
+
+{
+  "content": "What changed in R24?",
+  "limit": 5,
+  "release_label": "R24"
+}
+```
+
+The endpoint persists the user message, builds bounded conversation context,
+runs the same grounded orchestration used by `POST /query`, and persists the
+assistant answer with its trace ID. Conversation memory may help interpret
+follow-up intent, but factual claims still require newly retrieved evidence and
+citations.
+
+If retrieval or generation fails after accepting the message, the durable user
+message remains and no assistant message is invented. This visible partial turn
+supports audit and retry handling. Token-budget overflow returns `413` before
+the grounded query; archived conversations return `409`; unknown conversations
+return `404`. Archive with
+`POST /conversations/{conversation_id}/archive`; archived history remains
+readable but cannot receive new messages.
+
 ## Important operational notes
 
 - Dense and hybrid retrieval require a Qdrant collection.
@@ -248,6 +296,11 @@ Filtered request example:
 - `scripts/run_api_smoke_test.py --check-ready --query ...` stops before `/query` when `/ready` fails.
 - Unexpected API errors return safe generic messages instead of raw exception details.
 - Answer traces are written locally for debugging and reproducibility.
+- Conversation summaries are context, not evidence, and never replace fresh
+  retrieval or citation validation.
+- A failed conversation turn may contain a persisted user message without an
+  assistant message; clients should render this as retryable rather than assume
+  strict user/assistant pairing.
 
 ### Retrieval-mode dependency matrix
 

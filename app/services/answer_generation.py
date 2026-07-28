@@ -23,6 +23,7 @@ def generate_grounded_answer(
     sufficiency: EvidenceSufficiencyDecision,
     llm_client: Any | None = None,
     model: str | None = None,
+    conversation_context: str | None = None,
 ) -> GroundedAnswerResponse:
     """Generate a grounded answer or safe refusal from retrieved evidence."""
 
@@ -30,6 +31,7 @@ def generate_grounded_answer(
         query=query,
         retrieved_results=retrieved_results,
         sufficiency=sufficiency,
+        conversation_context=conversation_context,
     )
 
     if not sufficiency.is_sufficient:

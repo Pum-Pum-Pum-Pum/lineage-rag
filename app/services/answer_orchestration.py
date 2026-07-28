@@ -48,6 +48,7 @@ def run_grounded_answer_query(
     release_label: str | None = None,
     source_kind: str | None = None,
     request_id: str | None = None,
+    conversation_context: str | None = None,
 ) -> AnswerOrchestrationResult:
     """Run the reusable retrieval -> sufficiency -> answer -> trace flow.
 
@@ -79,12 +80,17 @@ def run_grounded_answer_query(
         min_top_score=min_top_score,
     )
 
+    answer_kwargs: dict[str, Any] = {
+        "query": query_text,
+        "retrieved_results": retrieval_results,
+        "sufficiency": sufficiency,
+        "llm_client": llm_client,
+        "model": llm_model,
+    }
+    if conversation_context is not None:
+        answer_kwargs["conversation_context"] = conversation_context
     answer_response = generate_grounded_answer(
-        query=query_text,
-        retrieved_results=retrieval_results,
-        sufficiency=sufficiency,
-        llm_client=llm_client,
-        model=llm_model,
+        **answer_kwargs,
     )
 
     trace = build_answer_trace(

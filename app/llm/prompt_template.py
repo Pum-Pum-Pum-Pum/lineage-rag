@@ -61,9 +61,17 @@ def build_grounded_prompt(
         max_citations=max_citations,
     )
     evidence_block = build_evidence_block(citations)
+    conversation_context = (
+        request.conversation_context
+        if request.conversation_context is not None
+        else "No prior conversation memory was provided."
+    )
 
     user_prompt = f"""User question:
 {request.query}
+
+Conversation memory (context only; not documentary evidence):
+{conversation_context}
 
 Evidence sufficiency:
 - is_sufficient: {request.sufficiency.is_sufficient}
@@ -74,7 +82,8 @@ Evidence:
 {evidence_block}
 
 Task:
-Answer the user question using only the evidence above.
+Use conversation memory only to interpret the user's intent or references.
+Answer factual functional-spec claims using only the evidence above.
 If the evidence is insufficient, say that the indexed evidence is insufficient and do not invent details.
 Include citations like [C1], [C2] next to supported claims.
 """

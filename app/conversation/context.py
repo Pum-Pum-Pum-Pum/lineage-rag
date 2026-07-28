@@ -249,3 +249,24 @@ class RollingConversationContextBuilder:
             self._token_counter.count_text(summary_text)
             + SUMMARY_OVERHEAD_TOKENS
         )
+
+
+def render_conversation_context(context: ConversationContext) -> str:
+    """Render bounded memory as clearly marked, non-evidentiary prompt data."""
+
+    summary = context.summary_text or "(none)"
+    messages = "\n".join(
+        (
+            f'<message sequence="{message.sequence_number}" '
+            f'role="{message.role.value}">\n'
+            f"{message.content}\n"
+            "</message>"
+        )
+        for message in context.recent_messages
+    )
+    return (
+        "<conversation_memory>\n"
+        f"<rolling_summary>\n{summary}\n</rolling_summary>\n"
+        f"<recent_messages>\n{messages or '(none)'}\n</recent_messages>\n"
+        "</conversation_memory>"
+    )

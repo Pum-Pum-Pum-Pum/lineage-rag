@@ -60,3 +60,23 @@ def test_build_grounded_prompt_contains_rules_query_and_evidence() -> None:
     assert "[C1]" in prompt.user_prompt
     assert "multiple Teller reports" in prompt.user_prompt
     assert len(prompt.citations) == 1
+
+
+def test_build_grounded_prompt_marks_conversation_memory_as_non_evidence() -> None:
+    request = GroundedAnswerRequest(
+        query="What about that release?",
+        retrieved_results=[_result()],
+        sufficiency=EvidenceSufficiencyDecision(
+            is_sufficient=True,
+            reason="Retrieved evidence passed baseline sufficiency checks.",
+            result_count=1,
+            top_score=0.75,
+        ),
+        conversation_context="<conversation_memory>R24</conversation_memory>",
+    )
+
+    prompt = build_grounded_prompt(request)
+
+    assert "<conversation_memory>R24</conversation_memory>" in prompt.user_prompt
+    assert "context only; not documentary evidence" in prompt.user_prompt
+    assert "using only the evidence above" in prompt.user_prompt

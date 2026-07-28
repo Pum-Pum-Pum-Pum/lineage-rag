@@ -9,6 +9,7 @@ from app.conversation.context import (
     InvalidSummaryError,
     RollingConversationContextBuilder,
     TokenCounter,
+    render_conversation_context,
 )
 from app.conversation.models import (
     Conversation,
@@ -44,4 +45,5 @@ __all__ = [
     "SqliteConversationStore",
     "StoreClosedError",
     "TokenCounter",
+    "render_conversation_context",
 ]

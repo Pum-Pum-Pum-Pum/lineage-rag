@@ -990,7 +990,7 @@ The remaining work should proceed in this order, one practical step at a time:
 3. **Completed:** Conversation, message, and summary models plus a
    `ConversationStore` interface and local SQLite implementation.
 4. **Completed:** Token-aware context budgeting and rolling summarization.
-5. Extend the FastAPI contract for conversation creation, history retrieval,
+5. **Completed:** FastAPI conversation creation, history retrieval, archival,
    and multi-turn message submission.
 6. Upgrade the Streamlit page into a multi-turn chat UI with conversation
    controls, citations, readiness state, and safe error rendering.

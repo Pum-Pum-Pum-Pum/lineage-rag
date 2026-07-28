@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from app.api.routes.conversations import router as conversations_router
 from app.api.routes.health import router as health_router
 from app.api.routes.query import router as query_router
 from app.api.routes.readiness import router as readiness_router
@@ -16,6 +17,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(readiness_router)
     app.include_router(query_router)
+    app.include_router(conversations_router)
     return app
 
 

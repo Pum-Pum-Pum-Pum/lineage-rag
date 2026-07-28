@@ -63,3 +63,18 @@ def test_readme_documents_retrieval_mode_dependency_matrix() -> None:
     assert "both Qdrant dense search and local lexical artifacts" in readme
     assert "must fail fast when vector-store state is unavailable" in readme
     assert "avoids wasted model spend and misleading answers" in readme
+
+
+def test_readme_documents_conversation_api_and_partial_turn_contract() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "POST /conversations" in readme
+    assert "GET /conversations/{conversation_id}" in readme
+    assert "POST /conversations/{conversation_id}/messages" in readme
+    assert "POST /conversations/{conversation_id}/archive" in readme
+    assert "Conversation summaries are context, not evidence" in readme
+    assert "failed conversation turn may contain a persisted user message" in readme
+    assert "clients should render this as retryable" in readme
+    assert "Token-budget overflow returns `413`" in readme
+    assert "archived conversations return `409`" in readme
+    assert "unknown conversations" in readme

@@ -22,6 +22,7 @@ class GroundedAnswerRequest:
     query: str
     retrieved_results: list[QdrantSearchResult]
     sufficiency: EvidenceSufficiencyDecision
+    conversation_context: str | None = None
 
 
 @dataclass(frozen=True)

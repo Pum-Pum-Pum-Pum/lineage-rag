@@ -30,7 +30,7 @@ class OpenAIConversationSummarizer:
     ) -> None:
         settings = get_settings()
         self._model = model or settings.openai_chat_model
-        self._client = client or get_llm_client()
+        self._client = client
 
     def summarize(
         self,
@@ -44,7 +44,8 @@ class OpenAIConversationSummarizer:
         if max_tokens <= 0:
             raise ValueError("max_tokens must be greater than 0")
 
-        response = self._client.chat.completions.create(
+        client = self._client or get_llm_client()
+        response = client.chat.completions.create(
             model=self._model,
             messages=[
                 {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
