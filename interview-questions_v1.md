@@ -2961,3 +2961,988 @@ The rewritten Q2 and Q3 are now interview-quality.
 
 #### Gate
 Step 75 interview gate accepted. Proceed to Step 76 when ready.
+
+
+<!-- Active interview history archived through Step 93 on 2026-07-29 -->
+
+## Step 76 - Readiness retrieval-mode dependency boundary tests
+
+### Questions asked
+1. Why should dense readiness pass even when `.retrieval_ready.json` lexical artifacts are missing?
+2. Why should hybrid readiness fail if either Qdrant or lexical artifacts are missing?
+3. Why is it useful for hybrid readiness to still check Qdrant even when lexical artifacts are already missing?
+4. What kind of production incident would be hidden if lexical readiness accidentally created a Qdrant client?
+5. Why did Step 76 add tests instead of changing production readiness code?
+
+### Correct answer key
+1. Dense retrieval depends on vector-store state and embeddings, not local lexical artifacts. Requiring lexical artifacts in dense mode would create unnecessary coupling and false readiness failures.
+2. Hybrid fuses dense and lexical evidence. If either Qdrant or local lexical artifacts are missing, the configured hybrid retrieval path is incomplete and should fail readiness before user queries.
+3. Reporting both dependency states helps operators diagnose all missing prerequisites in one readiness response instead of fixing one dependency only to discover another later.
+4. It would hide the fact that lexical mode is supposed to be a degraded local fallback. Qdrant downtime could incorrectly make lexical readiness fail, causing false outages and unnecessary incident escalation.
+5. The production route already implemented the correct dependency boundary. The risk was regression or undocumented assumptions, so tests were the right minimal change to lock the contract down.
+
+### User answer evaluation - Step 76 - 2026-05-20
+
+#### Overall verdict
+Not yet interview-pass. Q1 and Q2 are directionally correct. Q3 is incorrect, Q4 misses the main production incident, and Q5 does not answer the "why" question. You are recognizing dependencies, but you must be sharper about readiness diagnostics and degraded-mode reliability.
+
+#### What was correct
+- Q1 correctly says dense retrieval depends on Qdrant/vector search and not `.retrieval_ready.json` lexical artifacts.
+- Q2 correctly says hybrid combines dense and lexical dependencies, so either missing side should make hybrid readiness fail.
+- Q5 correctly lists the behaviors Step 76 tested.
+
+#### Areas to improve
+- Q1 should avoid saying dense readiness "gets embeddings". Readiness should not call embedding APIs. Dense readiness checks configuration and Qdrant collection existence only.
+- Q3 is wrong. Lexical artifacts are not "searched in vector DB". Lexical artifacts are local JSON artifacts used for lexical search. Hybrid readiness checks Qdrant even when artifacts are missing so the readiness response reports all dependency states in one call.
+- Q4 is incomplete. The biggest incident is false outage/degraded-mode failure: lexical mode should survive Qdrant downtime. If lexical readiness creates Qdrant, Qdrant downtime could incorrectly mark lexical mode not ready. Cost overhead is secondary.
+- Q5 lists test cases but does not explain why tests were chosen instead of production code changes. The reason is that production code already had correct behavior; the risk was regression, so tests were the minimal and correct change.
+
+#### Stronger interview-quality answer
+Dense readiness should pass without `.retrieval_ready.json` files because dense retrieval relies on vector-store state, not lexical artifacts. `/ready` should check that dense mode has valid runtime/model configuration and that the required Qdrant collection exists. It should not run embedding calls or retrieval during readiness.
+
+Hybrid readiness should fail if either Qdrant or lexical artifacts are missing because hybrid retrieval fuses dense and lexical evidence. If Qdrant is missing, the dense side cannot run. If lexical artifacts are missing, the lexical side cannot run. The configured hybrid path is incomplete, so readiness should fail before user queries.
+
+Hybrid readiness should still check Qdrant even when lexical artifacts are already missing because operators need complete dependency diagnostics in one response. Otherwise they might fix lexical artifacts, rerun readiness, and only then discover Qdrant is also missing. Reporting both states reduces incident time and avoids sequential debugging.
+
+If lexical readiness accidentally created a Qdrant client, Qdrant downtime could cause lexical mode to fail readiness even though lexical mode should be a local degraded fallback. That would create a false outage, unnecessary escalation, and possibly prevent partial service. Extra overhead is a concern, but reliability and false dependency coupling are the main risks.
+
+Step 76 added tests instead of production code changes because the readiness implementation already enforced the correct dependency boundaries. The missing piece was regression protection. Tests lock down the contract so future changes cannot accidentally make dense depend on lexical artifacts, lexical depend on Qdrant, or hybrid hide one of its dependency states.
+
+#### Gate
+Do not move to Step 77 yet. Rewrite Q3, Q4, and Q5 only. Be precise: local lexical artifacts are not vector DB data; tests were added because production behavior was already correct and needed regression protection.
+
+### Gate acceptance - Step 76 - 2026-05-20
+
+#### Rewritten answers accepted
+The rewritten Q3, Q4, and Q5 are accepted.
+
+#### Why accepted
+- Q3 now recognizes that hybrid readiness should report both lexical-artifact and Qdrant dependency states in one response because hybrid depends on both dense and lexical retrieval paths.
+- Q4 now recognizes that lexical mode uses local JSON artifacts and should remain independent of Qdrant. If lexical readiness touched Qdrant, Qdrant downtime could cause a false readiness failure for the degraded lexical path.
+- Q5 now recognizes that production readiness code already existed and Step 76 added regression protection as an extra guardrail.
+
+#### Wording correction
+Use "Qdrant collection check" or "Qdrant client lifecycle" instead of "Qdrant creation". Readiness may create a client to check collection existence, but it should not create a collection.
+
+#### Gate
+Step 76 interview gate accepted. Proceed to Step 77 when ready.
+
+## Step 77 - Query Qdrant dependency failure returns safe 503
+
+### Questions asked
+1. Why should a Qdrant client creation failure in dense/hybrid `/query` return `503` instead of `500`?
+2. Why must query orchestration not run after the required Qdrant dependency check fails?
+3. Why do we preserve an explicit `503` message for a missing collection but use a generic safe `503` for unexpected Qdrant exceptions?
+4. What sensitive information might leak if raw Qdrant exceptions were returned to API clients?
+5. Why is closing the Qdrant client still important when the collection check raises?
+
+### Correct answer key
+1. Dense/hybrid require Qdrant as an external dependency. If that dependency is unavailable or cannot be checked, the service is temporarily unable to serve that mode, which is a `503 Service Unavailable`, not an internal application bug.
+2. Once the required vector-store dependency is known to be unavailable, running retrieval/orchestration could waste embedding or LLM cost, write misleading traces, or produce low-quality/hallucinated answers.
+3. A missing collection is an expected operational failure with a clear fix: run indexing. Unexpected Qdrant exceptions may contain internals, local paths, or secrets, so clients should receive a safe generic dependency-failure message while logs keep details for operators.
+4. Raw exceptions may expose local filesystem paths, collection names, host/port details, stack traces, credentials, API keys, or deployment configuration.
+5. Client cleanup prevents resource leaks, file locks, stale handles, or degraded behavior in later requests, especially for persistent/local vector-store clients.
+
+## Step 78 - Answer smoke script lexical Qdrant independence
+
+### Questions asked
+1. Why should the answer smoke script avoid creating a Qdrant client in lexical mode?
+2. Why is it still correct for dense and hybrid smoke tests to create a Qdrant client and check collection existence before orchestration?
+3. Why should lexical mode pass `qdrant_client=None` into shared answer orchestration instead of passing a fake or unused Qdrant client?
+4. What production or local-development problem could happen if lexical smoke testing still touched Qdrant?
+5. Why does the new regression test make Qdrant client creation raise instead of only asserting the final orchestration arguments?
+
+### Correct answer key
+1. Lexical retrieval uses local `.retrieval_ready.json` artifacts and does not need vector-store state. Creating Qdrant in lexical mode adds an unnecessary dependency and violates the retrieval-mode dependency matrix.
+2. Dense retrieval depends on vector search, and hybrid retrieval depends on both dense and lexical paths. If the Qdrant collection is missing, those modes should fail before retrieval/orchestration starts.
+3. Passing `None` makes the dependency contract explicit: lexical mode has no Qdrant dependency. The downstream retrieval service already rejects `None` for dense/hybrid and allows it for lexical, so this is cleaner than passing an unused client.
+4. Qdrant could be down, locked, corrupted, missing, or expensive to initialize. If lexical smoke testing touched it, a local degraded-mode test could fail even though lexical retrieval should still work from local artifacts.
+5. Making Qdrant construction raise turns accidental coupling into an immediate test failure. Final-argument assertions prove what was passed to orchestration, but the raising fake proves the script did not touch the dependency at all.
+
+### User answer evaluation - Step 78 - 2026-06-11
+
+#### Overall verdict
+Partially accepted, but not interview-pass yet. Q1, Q3, and Q4 are directionally correct. Q2 is too vague and slightly imprecise. Q5 was not answered yet.
+
+#### What was correct
+- Q1 correctly identifies that lexical retrieval uses existing local JSON artifacts, so Qdrant is unnecessary.
+- Q3 correctly says `qdrant_client=None` represents the absence of a Qdrant dependency in lexical mode.
+- Q4 correctly identifies the degraded-mode failure risk: lexical could fail unnecessarily if Qdrant is unavailable.
+
+#### Areas to improve
+- Q1 should name the artifact type precisely: lexical retrieval uses local `.retrieval_ready.json` artifacts, not just any JSON files.
+- Q2 should say dense and hybrid depend on an existing Qdrant collection for vector search. The smoke test should check collection existence before orchestration so it fails fast and avoids wasted embedding/LLM work. Avoid saying "Qdrant creation"; the script creates a client, not the collection.
+- Q4 should mention local file locks, corrupted/missing local Qdrant state, downtime, or unnecessary dependency coupling as concrete failure modes.
+- Q5 still needs an answer.
+
+#### Stronger interview-quality answer
+Lexical answer smoke testing should avoid creating a Qdrant client because lexical retrieval reads local `.retrieval_ready.json` artifacts and does not perform vector search. Touching Qdrant would add an unnecessary dependency and could make the degraded lexical path fail for reasons unrelated to lexical retrieval.
+
+Dense and hybrid smoke tests should still check Qdrant because dense retrieval needs vector search, and hybrid retrieval includes the dense side. If the required collection is missing, the smoke test should fail before orchestration so it avoids wasted embedding or LLM calls and gives the operator a clear indexing prerequisite.
+
+`qdrant_client=None` is the right lexical contract because it makes the dependency boundary explicit. Lexical mode has no Qdrant dependency, while the shared retrieval service still rejects `None` for dense and hybrid modes.
+
+If lexical smoke tests touched Qdrant, a missing, locked, corrupted, or unavailable local Qdrant store could make lexical testing fail even though local lexical artifacts are sufficient. That would create a false failure and weaken degraded-mode reliability.
+
+A test that raises on Qdrant creation is stronger because it proves the unwanted dependency was never touched. Checking final orchestration arguments only proves what was eventually passed downstream; the script could still have created Qdrant earlier and then passed `None`, hiding the accidental side effect.
+
+#### Gate
+Do not move to Step 79 yet. Rewrite Q2 and answer Q5. Use the phrase "Qdrant collection check" or "Qdrant client creation", not "Qdrant creation".
+
+### Gate acceptance - Step 78 - 2026-06-11
+
+#### Rewritten answers accepted
+The rewritten Q2 and Q5 are accepted.
+
+#### Why accepted
+- Q2 now correctly explains that dense retrieval needs vector search and hybrid includes the dense side, so the smoke test should check the required Qdrant collection before orchestration.
+- Q5 now correctly explains why a raising fake is stronger than checking final orchestration arguments: it proves the unwanted dependency was never touched, rather than only proving the final value passed downstream.
+
+#### Wording correction
+Use "Qdrant client creation" instead of "Qdrant creation" when describing this test. The script creates a client and checks an existing collection; it does not create the Qdrant collection.
+
+#### Gate
+Step 78 interview gate accepted. Proceed to Step 79 when ready.
+
+## Step 79 - Query-search script lexical Qdrant independence
+
+### Questions asked
+1. Why did `scripts/run_qdrant_query_search.py` need the same lexical Qdrant-independence fix as the answer smoke script?
+2. What is the difference between the query-search script and the answer-smoke script in terms of cost-bearing behavior?
+3. Why should dense and hybrid query-search runs fail before `retrieve_query_evidence(...)` if the Qdrant collection is missing?
+4. Why did the Step 79 test include both a hybrid case and a lexical case?
+5. What failure would be hidden if the lexical test only asserted `qdrant_client is None` after retrieval was called?
+
+### Correct answer key
+1. Both scripts route through the configured retrieval mode. Lexical mode uses local `.retrieval_ready.json` artifacts, so creating a Qdrant client in either script would violate the same dependency matrix.
+2. The query-search script runs retrieval and sufficiency only; it does not generate an answer or call the chat LLM. Dense/hybrid query search can still call the embedding API for dense retrieval, while lexical query search should avoid both Qdrant and embedding calls.
+3. Dense retrieval requires vector-store search, and hybrid includes the dense side. If the required Qdrant collection is missing, the script should fail fast before retrieval so it avoids embedding work and returns a clear indexing prerequisite.
+4. The hybrid case proves the required dependency path still works: create client, check collection, pass client, close client. The lexical case proves the degraded local path does not touch Qdrant at all.
+5. The script could still create or touch a Qdrant client before eventually passing `None` into retrieval. A raising fake catches that unwanted side effect immediately, while final-argument assertions only inspect the downstream call.
+
+### User answer evaluation - Step 79 - 2026-06-12
+
+#### Overall verdict
+Accepted. This is interview-pass.
+
+#### What was correct
+- Q1 correctly connects the query-search script and answer-smoke script to the same retrieval-mode dependency matrix.
+- Q2 correctly separates retrieval/sufficiency cost from answer-generation cost. You also correctly noted that dense/hybrid query search can still call embeddings, while lexical should avoid both Qdrant and embeddings.
+- Q3 correctly explains fail-fast behavior before `retrieve_query_evidence(...)` when dense/hybrid Qdrant collection state is missing.
+- Q4 correctly explains why both hybrid and lexical tests were needed: one preserves the required dependency path, the other protects the degraded local path.
+- Q5 correctly explains why a raising fake catches side effects that final-argument assertions could miss.
+
+#### Sharpening note
+For Q3, add one production phrase: failing before retrieval also gives the operator a clear indexing prerequisite. The strongest version is: "Fail before retrieval so we avoid embedding work and return a clear signal to run indexing."
+
+#### Gate
+Step 79 interview gate accepted. Proceed to Step 80 when ready.
+
+## Step 80 - Retrieval comparison script Qdrant client cleanup
+
+### Questions asked
+1. Why is `run_retrieval_comparison.py` still allowed to require Qdrant, unlike lexical-only scripts?
+2. Why is `try/finally` the right pattern for closing the Qdrant client in this script?
+3. What local-development problem can happen if a persistent local Qdrant client is not closed after an exception?
+4. Why should the script still raise the original dense retrieval error instead of swallowing it after cleanup?
+5. Why did Step 80 add both a success-path cleanup test and a failure-path cleanup test?
+
+### Correct answer key
+1. The script explicitly compares dense vector retrieval against lexical artifact retrieval. Dense retrieval requires Qdrant, so this script has a legitimate vector-store dependency.
+2. `try/finally` guarantees cleanup after normal completion and after exceptions from collection checks, dense retrieval, lexical retrieval, comparison building, or report writing.
+3. An unclosed persistent local Qdrant client can leave file handles or locks behind, causing later indexing, querying, or evaluation runs to fail or behave inconsistently.
+4. Cleanup should not hide the real failure. The caller/operator still needs the original error to diagnose retrieval, embedding, artifact, or report-writing problems.
+5. The success-path test proves normal behavior still closes the client. The failure-path test proves cleanup is not only a happy-path property and still happens when retrieval fails mid-run.
+
+### User answer evaluation - Step 80 - 2026-07-22
+
+#### Overall verdict
+Not yet interview-pass. Q1 is directionally correct but unclear. Q2 is incorrect because `finally` performs cleanup; it does not switch retrieval to a lexical fallback. Q3, Q4, and Q5 were not answered.
+
+#### What was correct
+- Q1 recognizes that dense retrieval performs vector search through Qdrant, whereas a lexical-only script can use local lexical artifacts without Qdrant.
+- Q2 recognizes that `finally` runs when work in the `try` block fails, but its purpose needs correction.
+
+#### Areas to improve
+- Q1 must state why this particular script legitimately needs Qdrant: it compares dense Qdrant retrieval with lexical retrieval.
+- Q2 must separate resource cleanup from fallback behavior. `finally` closes the client after success or failure; it does not run lexical retrieval as a recovery path.
+- Q3 should identify file handles, local storage locks, stale resources, and failures or inconsistent behavior in later indexing/query/evaluation runs.
+- Q4 should explain that cleanup and error reporting are separate responsibilities. The original exception must remain visible so operators can diagnose the actual failure.
+- Q5 should distinguish the guarantees: the success test protects normal cleanup and behavior, while the failure test proves exception-safe cleanup.
+
+#### Gate
+Do not proceed to Step 81. Rewrite Q2 and answer Q3-Q5. Q1 is accepted with the wording correction provided in chat.
+
+### Follow-up evaluation - Step 80 - 2026-07-22
+
+#### Accepted answers
+- Q3 accepted: an unclosed persistent Qdrant client can retain stale resources, inconsistent local state, file handles, or database locks, which can make later runs fail or hang.
+- Q4 accepted: cleanup must release resources while preserving the original exception so operators can diagnose and fix the actual failure. Prefer "original exception/error" over "failed log" because logging alone is not the failure signal propagated to the caller.
+- Q5 accepted with correction: the success-path test proves normal comparison behavior and cleanup; the failure-path test proves exception-safe client cleanup. The failure test does not "cleanse logging or hangs"—it verifies that `close()` runs so stale handles and locks are less likely to affect later runs.
+
+#### Remaining gate requirement
+Q2 was not rewritten. Explain in your own words why `try/finally` is the correct client-cleanup pattern and explicitly state that `finally` does not provide a lexical fallback.
+
+### Second follow-up evaluation - Step 80 - 2026-07-22
+
+#### Q2 verdict
+Not yet accepted. Saying `finally` removes "unwanted debris" recognizes cleanup generally, but does not identify the Qdrant client, explain that `finally` runs after both success and exceptions, or correct the earlier lexical-fallback misconception.
+
+#### Required correction
+State all three points: the comparison work belongs in `try`; `finally` always closes the Qdrant client after success or failure; and `finally` performs cleanup only—it does not switch to lexical retrieval when dense retrieval fails.
+
+### Third follow-up evaluation - Step 80 - 2026-07-22
+
+#### Q2 verdict
+Mechanically correct but incomplete. The answer correctly places comparison work in `try` and states that `finally` closes the Qdrant client after success or exceptions. It does not explicitly correct the earlier misconception that `finally` can switch to lexical retrieval.
+
+#### Final required clause
+Confirm that `finally` performs resource cleanup only and does not implement a lexical fallback or recover the failed comparison.
+
+### Gate acceptance - Step 80 - 2026-07-26
+
+#### Final answer accepted
+The final clarification is accepted. `finally` performs resource cleanup only: it closes the Qdrant client after success or failure. It does not switch to lexical retrieval, retry dense retrieval, or recover the failed comparison.
+
+#### Why accepted
+- The answer now separates cleanup from fallback behavior.
+- Together with the earlier response, it correctly explains the `try/finally` lifecycle guarantee.
+- Q1-Q5 now meet the Step 80 interview gate after the recorded wording corrections.
+
+#### Gate
+Step 80 interview gate accepted. Proceed to Step 81 when ready.
+
+## Step 81 - Hybrid retrieval evaluation Qdrant client cleanup
+
+### Questions asked
+1. Why does hybrid retrieval evaluation legitimately require Qdrant even though one of its retrieval branches is lexical?
+2. Which operations are protected by the new `try/finally` lifecycle boundary, and why should report writing remain inside that boundary?
+3. Why is removing the manual `client.close()` from only the missing-collection branch an improvement rather than a loss of cleanup?
+4. Why should a dense retrieval exception still propagate after the Qdrant client is closed?
+5. What different guarantees do the success-path and failure-path regression tests provide?
+
+### Correct answer key
+1. Hybrid evaluation measures dense, lexical, and fused retrieval. Its dense branch requires vector search against the Qdrant collection, so the overall evaluation has a legitimate Qdrant dependency even though lexical retrieval itself does not.
+2. The boundary covers collection checking, dense retrieval, lexical retrieval, fusion, case evaluation, aggregate report building, and report writing. Report writing remains inside because filesystem or serialization failures must also trigger Qdrant cleanup.
+3. The manual close protected only one known failure branch. A single `finally` provides one centralized cleanup guarantee for normal completion and every exception that occurs after client creation, reducing duplicated and easy-to-miss cleanup logic.
+4. Closing the client releases resources but does not resolve the retrieval failure. Propagating the original exception preserves the real diagnostic signal and prevents a failed or incomplete evaluation from appearing successful.
+5. The success-path test proves normal evaluation behavior still works and closes the client. The failure-path test proves cleanup is exception-safe and that the original dense retrieval error is not swallowed.
+
+### User answer evaluation - Step 81 - 2026-07-26
+
+#### Overall verdict
+Accepted. This is interview-pass.
+
+#### What was correct
+- Q1 correctly recognizes that hybrid evaluation combines dense Qdrant retrieval with lexical retrieval, so the overall evaluation legitimately requires Qdrant.
+- Q2 correctly identifies that the lifecycle boundary covers the collection check, both retrieval branches, fusion, case evaluation, report building, and report writing. It also correctly explains that report failures must trigger cleanup.
+- Q3 correctly explains that a manual close in one known branch is incomplete because many later operations can fail. Centralized `finally` cleanup covers those unknown failure paths.
+- Q4 correctly separates resource cleanup from fixing the underlying dense retrieval failure.
+- Q5 correctly distinguishes normal-path cleanup from exception-safe cleanup and preservation of the original failure.
+
+#### Sharpening notes
+- For Q1, say explicitly that Qdrant is required by the dense vector-search branch; lexical retrieval itself remains Qdrant-independent.
+- For Q4 and Q5, use "propagate the original exception" rather than only "log the error." Logging is useful, but propagation is what prevents the failed evaluation from appearing successful to the caller or automation.
+- Avoid the phrase "safe exception." The important guarantees are that cleanup runs and the original exception is not swallowed or replaced.
+
+#### Stronger interview-quality answer
+Hybrid evaluation requires Qdrant because it evaluates dense retrieval, lexical retrieval, and their fused hybrid result. The dense branch performs vector search against an existing Qdrant collection, while the lexical branch remains independent and reads local lexical artifacts.
+
+The `try/finally` boundary covers the collection check, dense and lexical retrieval, fusion, case evaluation, aggregate report construction, and report writing. Report writing stays inside because serialization or filesystem failures must also close the already-open persistent Qdrant client.
+
+Removing the branch-specific manual close improves the design because it replaces cleanup for one known error with one centralized guarantee. The `finally` block runs after success and after any exception raised anywhere in the protected workflow.
+
+A dense retrieval exception must propagate because closing the client only releases resources; it does not repair the failed retrieval. Preserving the original exception gives operators and automation the real diagnostic signal and prevents an incomplete evaluation from appearing successful.
+
+The success-path test proves the normal evaluation and reporting flow still works and closes the client. The failure-path test proves cleanup is exception-safe and that the original dense retrieval exception still propagates.
+
+#### Gate
+Step 81 interview gate accepted. Proceed to Step 82 when ready.
+
+## Step 82 - Hybrid weight experiment Qdrant client cleanup
+
+### Questions asked
+1. Why does a hybrid weight experiment require Qdrant even though it reuses the same dense candidates across multiple weight settings?
+2. Why should candidate retrieval happen once per evaluation case rather than once per weight setting?
+3. Which failures after candidate retrieval still need to trigger Qdrant client cleanup?
+4. Why must an experiment report not be treated as successful when only some cases or weight settings were evaluated before an exception?
+5. What two independent properties does the failure-path regression test verify?
+
+### Correct answer key
+1. Each experiment still needs dense vector candidates before it can test fusion weights. Reusing those candidates reduces repeated work, but their initial retrieval still requires the Qdrant collection and embedding-backed dense search.
+2. Fusion weights change how existing dense and lexical scores are combined; they do not change the base retrieval queries. Retrieving once avoids repeated embedding calls, vector searches, latency, and cost while making weight comparisons fair because every setting uses identical candidates.
+3. Lexical retrieval, weight parsing/evaluation, hybrid fusion, result ranking, logging, serialization, filesystem creation, and report writing can all fail after the client opens. Any such failure must still execute `finally` and close the client.
+4. A partial report can produce misleading model-selection decisions because settings may not have been evaluated on identical cases. The exception should propagate, and automation must see the run as failed rather than consuming incomplete metrics.
+5. It proves exception-safe resource cleanup and error transparency: the Qdrant client closes even when dense candidate retrieval fails, while the original exception is preserved and propagated.
+
+### User answer evaluation - Step 82 - 2026-07-26
+
+#### Overall verdict
+Accepted. This is interview-pass.
+
+#### What was correct
+- Q1 correctly identifies that the initial dense candidate retrieval still requires Qdrant and embeddings, while candidate reuse avoids repeating that work for every weight setting.
+- Q2 correctly connects candidate reuse to both efficiency and experimental fairness: identical candidate pools isolate fusion weights as the variable under test.
+- Q3 correctly states that failures during retrieval, ranking, reporting, or file I/O must still reach `finally` and close the client.
+- Q4 correctly identifies partial reports as misleading evaluation artifacts and explains why exceptions must propagate to automation.
+- Q5 correctly identifies both independent guarantees: exception-safe client cleanup and preservation of the original failure.
+
+#### Sharpening note
+For Q3, explicitly include hybrid fusion and weight-setting evaluation among the protected failure points. The answer already captures the broader principle correctly.
+
+#### Gate
+Step 82 interview gate accepted. Proceed to Step 83 when ready.
+
+## Step 83 - Dense retrieval evaluation Qdrant client cleanup
+
+### Questions asked
+1. Why is `run_retrieval_eval.py` legitimately Qdrant-dependent rather than retrieval-mode conditional?
+2. Why must result evaluation and serialization remain inside the same `try/finally` boundary as dense search?
+3. If the fifth evaluation case raises, what should happen to the first four in-memory results, the output report, the exception, and the Qdrant client?
+4. Why does client cleanup not remove the need for an explicit Qdrant collection-existence check?
+5. What does the failure-path test prove that a success-path cleanup test cannot prove?
+
+### Correct answer key
+1. This script is specifically the dense retrieval baseline evaluator. It always calls embedding-backed vector search against Qdrant; it is not a general lexical/dense/hybrid router.
+2. Evaluation, result serialization, aggregate report construction, and JSON writing can fail after the client opens. Keeping them inside the boundary guarantees that every post-creation exception still closes the persistent client.
+3. The partial in-memory results should not be published as a successful complete report. The fifth-case exception should propagate unchanged, and `finally` should close the Qdrant client. Any deliberately supported partial-report behavior would require an explicit, separately designed contract.
+4. Cleanup answers what happens after a client is opened; collection validation answers whether the required indexed dependency is ready before work begins. Without an explicit check, the script may fail later with a less actionable backend error or start avoidable embedding work.
+5. It proves exception safety: when dense search raises, cleanup still runs and the original exception is preserved. A success-path test only proves cleanup after normal completion.
+
+### User answer evaluation - Step 83 - 2026-07-26
+
+#### Overall verdict
+Accepted. This is interview-pass.
+
+#### What was correct
+- Q1 correctly distinguishes the dedicated dense evaluator from retrieval-mode routing.
+- Q2 correctly explains why all post-client-creation work belongs inside the lifecycle boundary.
+- Q3 correctly rejects publishing partial results as a complete report, preserves the exception, and guarantees cleanup.
+- Q4 correctly separates pre-flight dependency validation from resource cleanup and identifies wasted embedding work and vague backend failures.
+- Q5 correctly identifies exception safety as the guarantee unique to the failure-path test.
+
+#### Gate
+Step 83 interview gate accepted. The user requested that the remaining Qdrant lifecycle fixes be completed as one consolidated sweep rather than one file per step.
+
+## Step 84 - Consolidated persistent Qdrant client lifecycle sweep
+
+### Questions asked
+1. Why should `run_qdrant_indexing.py` close its Qdrant client even when an upsert or collection-creation operation raises?
+2. Why is an early `return` inside the check script's `try` block still safe with `finally`?
+3. Why were API routes and previously hardened retrieval scripts audited but not edited again?
+4. Why should direct Qdrant clients created inside unit tests not automatically be treated as production lifecycle defects?
+5. What does the combination of call-site inventory, targeted failure tests, broader tests, and the full suite prove—and what does it still not prove?
+
+### Correct answer key
+1. Indexing failures can occur after the persistent client opens and may leave local handles or locks behind. `finally` releases the client while preserving the original indexing exception for diagnosis and recovery.
+2. Python executes `finally` before completing a `return` from the associated `try`. The missing-collection path therefore remains a normal early return but still closes the client.
+3. They already implemented the required invariant. Re-editing compliant code would add churn and regression risk without improving behavior; the audit verifies coverage while tests protect the existing paths.
+4. Test-created clients are scoped fixtures or local test resources rather than long-running production call sites. They should still be closed when persistent resources are used, but in-memory or deliberately reopened test clients require case-specific handling rather than a blanket production rewrite.
+5. Together they provide strong evidence that all currently discovered production factory call sites use cleanup and that tested success/failure behavior remains correct across the repository. They do not mathematically prove the absence of dynamically created clients, future regressions outside the tests, process-kill safety, operating-system crashes, or failures inside `client.close()` itself.
+
+### User answer evaluation - Step 84 - 2026-07-26
+
+#### Overall verdict
+Accepted. This is interview-pass.
+
+#### What was correct
+- Q1 correctly explains that `finally` releases persistent Qdrant locks and handles while preserving the original indexing failure.
+- Q2 correctly states Python's control-flow guarantee that `finally` runs before an early `return` completes.
+- Q3 correctly applies minimal-change discipline: audit compliant paths and avoid unnecessary edits that add regression risk.
+- Q4 correctly rejects a blanket rewrite of test resources and recognizes that fixture lifecycle depends on whether the client is persistent, in-memory, deliberately reopened, or otherwise scoped.
+- Q5 correctly limits the claim to currently audited production call sites and recognizes that ordinary tests cannot guarantee cleanup after process termination or operating-system crashes.
+
+#### Sharpening note
+The strongest Q5 answer also mentions that the sweep cannot prove future call sites will remain compliant, detect every dynamically created client, or guarantee behavior if `client.close()` itself raises.
+
+#### Gate
+Step 84 interview gate accepted. The consolidated persistent Qdrant lifecycle sweep is complete.
+
+## Step 85 - Dense retrieval evaluation fail-fast collection check
+
+### Questions asked
+1. Why should the evaluator check collection existence before calling `search_query_text(...)`?
+2. What cost or side effect might occur if dense search starts before discovering that the collection is missing?
+3. Why is the collection check placed inside, rather than before, the `try/finally` boundary?
+4. Why does the missing-collection test make the search fake raise if it is called?
+5. What is the difference between an actionable dependency error and a raw backend search error in production operations?
+
+### Correct answer key
+1. The evaluator has a hard dependency on indexed vector data. A pre-flight check fails at the actual missing prerequisite and provides a clear instruction before retrieval begins.
+2. Dense search may generate a query embedding first, causing avoidable API cost and latency. It may also emit misleading traces or fail later with a less clear Qdrant error.
+3. `collection_exists(...)` itself can return false or raise after the client has opened. Keeping it inside ensures `finally` closes the client on both outcomes.
+4. The raising fake proves search was never touched, not merely that the script eventually raised the expected error. It catches accidental embedding/search work before validation.
+5. An actionable dependency error identifies the unavailable prerequisite and recovery action, such as running indexing. A raw backend error may expose implementation details, vary by backend version, and force operators to infer the real cause.
+
+### User answer evaluation - Step 85 - 2026-07-26
+
+#### Overall verdict
+Accepted. This is interview-pass.
+
+#### What was correct
+- Q1 correctly frames the collection check as early validation of required indexed vector data.
+- Q2 correctly identifies embedding cost, latency, misleading traces, and unclear downstream errors as avoidable consequences.
+- Q3 correctly explains that the collection check itself belongs inside the lifecycle boundary because it can fail after client creation.
+- Q4 correctly identifies the raising fake as proof that retrieval and embedding work were never touched.
+- Q5 correctly distinguishes a recovery-oriented prerequisite error from a raw backend diagnostic that forces operator inference.
+
+#### Gate
+Step 85 interview gate accepted. Proceed to Step 86 when ready.
+
+## Step 86 - Evaluation script missing-collection regression coverage
+
+### Questions asked
+1. Why was Step 86 a test-only change rather than a production-code change?
+2. Why is asserting only the final missing-collection error insufficient to prove fail-fast behavior?
+3. What does a raising search fake prove that a mock call-argument assertion may not prove as directly?
+4. Why should retrieval comparison and hybrid evaluation fail completely when Qdrant is missing even though their lexical branch could still run?
+5. What consistency benefit comes from using the same actionable indexing prerequisite across all dense/hybrid evaluation CLIs?
+
+### Correct answer key
+1. The production scripts already checked collection existence before retrieval and closed clients in `finally`. The uncovered risk was regression, so tests were the minimal change that protected the existing contract without unnecessary churn.
+2. A script could perform an embedding call or partial retrieval work and then raise the same final error. Error-text validation alone does not establish execution order or absence of cost-bearing side effects.
+3. The fake turns any accidental search invocation into an immediate failure, proving the dependency was not touched. Call assertions can also work, but a raising fake directly enforces the forbidden-operation boundary throughout execution.
+4. These scripts are defined to compare or evaluate dense and hybrid behavior, not provide a degraded lexical-only result. Running only lexical would change the experiment, make reports incomparable, and could misleadingly label an incomplete evaluation as valid.
+5. A consistent error gives operators and automation one recognizable failure class and one recovery action: run indexing. It reduces diagnostic ambiguity and simplifies runbooks and CI handling.
+
+### User answer evaluation - Step 86 - 2026-07-26
+
+#### Overall verdict
+Accepted. This is interview-pass.
+
+#### What was correct
+- Q1 correctly applies minimal-change discipline and identifies regression protection as the missing requirement.
+- Q2 correctly separates final output validation from proof that no earlier cost-bearing or partial work occurred.
+- Q3 correctly explains how a raising fake enforces the forbidden-operation boundary.
+- Q4 correctly rejects a silent lexical fallback because it would alter the experiment and legitimize incomplete data.
+- Q5 correctly connects standardized errors to both automated handling and operator recovery.
+
+#### Gate
+Step 86 interview gate accepted. Proceed to Step 87 when ready.
+
+## Step 87 - Typed UI API client boundary
+
+### Questions asked
+1. Why should the Streamlit page call a dedicated API client instead of using `httpx` directly throughout the UI code?
+2. Why does the client validate successful JSON against the existing Pydantic response models?
+3. Why should timeout, connection, HTTP, and invalid-response failures have different internal error codes but safe generic user messages?
+4. Why does an injected `httpx.Client` remain caller-owned while a client created internally is closed by `RagApiClient`?
+5. What backend contract drift will the malformed/schema-invalid response tests detect before the visual UI is built?
+
+### Correct answer key
+1. A dedicated boundary centralizes URLs, timeouts, serialization, validation, and error policy. The UI remains presentation-focused, while HTTP behavior is independently testable and reusable by other frontends.
+2. HTTP 200 does not guarantee a usable contract. Pydantic catches missing fields, wrong types, and incompatible shapes before presentation code accesses them, turning silent UI corruption into an explicit invalid-response failure.
+3. Internal codes let the UI choose appropriate behavior, telemetry, and retry guidance. User messages should remain safe and stable because raw response bodies or network exceptions may contain hosts, paths, dependency state, or other implementation details.
+4. Resource ownership should follow construction ownership. The wrapper must close resources it creates, but closing a caller-supplied client could break other components that intentionally share that client.
+5. They detect non-JSON success bodies and successful JSON that no longer matches required health/readiness/query fields. This protects the UI from backend version drift even when HTTP status remains 200.
+
+### User answer evaluation - Step 87 - 2026-07-26
+
+#### Overall verdict
+Accepted with wording corrections. This is interview-pass.
+
+#### What was correct
+- Q1 correctly identifies centralization of URL, timeout, validation, and independently testable HTTP behavior.
+- Q2 correctly rejects HTTP 200 as sufficient proof and identifies missing fields, wrong types, and invalid response shapes.
+- Q3 correctly connects internal codes to retry/warning/failure behavior and safe messages to sensitive-detail protection.
+- Q4 contains the correct ownership principle: the wrapper closes resources it creates and must not close a caller-owned client that may be shared elsewhere.
+- Q5 correctly identifies malformed JSON and schema/type mismatches that can occur even with HTTP 200.
+
+#### Areas to sharpen
+- Q1 should say the dedicated client centralizes `httpx` behavior; it does not represent behavior separate from `httpx`.
+- Q2 should say contract validation prevents invalid data from reaching the UI, rather than "validation corruption."
+- Q4 should omit "pragma case." The precise rule is construction ownership: the component that constructs the resource owns its lifecycle unless the contract explicitly transfers ownership.
+- Q5 protects the UI from backend contract drift; it does not prevent the backend error itself.
+
+#### Stronger interview-quality answer
+A dedicated API client centralizes base URLs, timeouts, request serialization, response validation, and error policy. Streamlit remains a thin presentation layer, while the underlying `httpx` behavior can be tested independently and reused by other frontends.
+
+Pydantic validation is required because HTTP 200 only means the request succeeded at the protocol level. The body may still omit required fields, contain incorrect types, or use an incompatible schema. Validation catches that drift before invalid data reaches UI rendering code.
+
+Distinct internal codes allow the UI and telemetry to distinguish timeout, unavailability, readiness, HTTP, and contract failures. User-facing messages remain generic because raw response bodies and network exceptions may expose hosts, paths, dependency state, or configuration.
+
+Resource lifecycle follows construction ownership. `RagApiClient` closes an HTTP client it creates internally. A client injected by the caller remains caller-owned because it may be shared with other components, and closing it inside the wrapper could break them.
+
+Malformed and schema-invalid tests detect non-JSON success bodies, missing fields, incorrect types, and incompatible response shapes. They protect the UI from backend contract drift even when the server still returns HTTP 200.
+
+#### Gate
+Step 87 interview gate accepted. Proceed to Step 88 when ready.
+
+## Step 88 - Streamlit grounded-query interface
+
+### Questions asked
+1. Why should every UI query perform readiness validation even if the user already clicked **Check backend**?
+2. Why is insufficient evidence rendered as a valid refusal result, while backend unavailability is rendered as an operational error?
+3. Why should the UI omit blank optional filters rather than send empty strings to the API?
+4. Why does the UI display the trace ID but not the local trace output path?
+5. What does live browser QA prove that unit tests of `_build_query_request(...)` and `_run_ready_query(...)` cannot prove?
+
+### Correct answer key
+1. Readiness is time-sensitive and may change after the earlier manual check. Rechecking at submission prevents stale UI state from starting cost-bearing retrieval/generation after a dependency has failed.
+2. Insufficient evidence is an expected grounded-RAG outcome: the system worked and correctly refused to hallucinate. Backend unavailability means the operation could not execute because an operational dependency failed.
+3. Empty strings can be interpreted as real filter values, cause false zero-result retrieval, or create different cache/trace semantics. Omitting them preserves the API's optional-field contract.
+4. The trace ID is a safe correlation identifier for support and debugging. The output path exposes server filesystem structure and is not useful to a browser user who cannot access the backend filesystem.
+5. Live QA proves the Streamlit app starts, renders the intended layout, exposes usable controls, and displays safe validation/error states in the actual framework. Unit tests prove logic and ordering but not visual composition, widget wiring, runtime imports, or framework rendering.
+
+### User answer evaluation - Step 88 - 2026-07-26
+
+#### Overall verdict
+Not yet interview-pass. Q1, Q4, and Q5 are accepted. Q2 and Q3 require correction. The gate is paused at the user's request.
+
+#### What was correct
+- Q1 correctly explains that readiness is time-sensitive and must be rechecked before cost-bearing retrieval.
+- Q4 correctly distinguishes a safe correlation ID from a sensitive and browser-useless server filesystem path.
+- Q5 correctly identifies runtime startup, layout, widget presence, and actual framework rendering as evidence supplied by browser QA.
+
+#### Areas to improve
+- Q2 incorrectly describes insufficient evidence as an operational-efficiency problem. It is a successful grounded-RAG outcome: retrieval and sufficiency evaluation ran, but the evidence did not meet the answer threshold, so refusal prevents hallucination. Backend unavailability is the operational failure.
+- Q3 should not claim that empty filters directly hallucinate results. They can be treated as literal filter values, cause false zero-result retrieval, alter cache/trace semantics, and violate the intended optional-field contract. Hallucination prevention is handled by sufficiency and grounded generation, not by trimming filters alone.
+- Q5 should separate the evidence clearly: unit tests prove pure logic and ordering; live QA proves Streamlit startup, widget wiring, visual composition, and rendered error states.
+
+#### Stronger interview-quality answer
+Insufficient evidence is a valid refusal because the RAG pipeline executed successfully and determined that retrieved evidence did not meet the sufficiency threshold. Refusing is the grounded behavior that prevents unsupported generation. Backend unavailability is different: the pipeline could not execute because a required operational dependency was unavailable.
+
+Blank optional filters should be omitted because an empty string may be interpreted as a literal filter value, producing false zero-result retrieval or inconsistent cache and trace semantics. Omitting it preserves the API contract that the filter is absent.
+
+#### Gate
+Step 88 remains paused. When the user is ready, rewrite Q2 and Q3 only. Do not proceed to Step 89 until those corrections are accepted and the user's questions or requested changes are addressed.
+
+### Gate acceptance - Step 88 - 2026-07-26
+
+#### Rewritten answers accepted
+The rewritten Q2 and Q3 are accepted.
+
+#### Why accepted
+- Q2 now correctly separates an expected evidence-insufficiency refusal from an operational dependency failure.
+- Q3 now correctly explains that empty strings may become literal filters, cause false zero-result retrieval, or change cache/trace semantics, while omission preserves the optional-field contract.
+
+#### Gate
+Step 88 interview gate accepted. Project progression remains paused at the user's request while their questions and requested changes are addressed. Do not begin Step 89 yet.
+
+## Step 89 - Reproducible uv project migration
+
+### Questions asked
+1. Why is committing `.venv` the wrong solution for reproducible deployment, while committing `uv.lock` is correct?
+2. What different responsibilities do `pyproject.toml` and `uv.lock` have?
+3. Why should `pytest` be in a development dependency group rather than runtime dependencies?
+4. Why use `uv run --locked` and `uv sync --locked` in CI instead of plain `uv run` or `uv sync`?
+5. Why is a generated `requirements.txt` acceptable for a legacy hosting platform while a manually maintained second requirements file is risky?
+
+### Correct answer key
+1. `.venv` contains platform-specific interpreters, paths, binaries, and installed artifacts; it is large, non-portable, and disposable. `uv.lock` records exact universal dependency resolution while allowing each target environment to build compatible local artifacts.
+2. `pyproject.toml` declares project metadata, supported Python versions, direct dependency constraints, and dependency groups. `uv.lock` records the exact resolved direct and transitive versions, sources, markers, and hashes used for reproducible installation.
+3. Tests are not needed to run FastAPI or Streamlit in production. Keeping pytest in `dev` reduces production attack surface, image size, install time, and unnecessary dependency conflicts while preserving the development workflow.
+4. Plain project commands may automatically relock when metadata changes. `--locked` makes CI fail when `pyproject.toml` and `uv.lock` disagree instead of silently changing dependency resolution during a supposedly reproducible build.
+5. A generated export is a deterministic adapter derived from the canonical lock and can be regenerated. A manually maintained second file can drift from `pyproject.toml` or `uv.lock`, producing different local, CI, and production environments.
+
+### User answer evaluation - Step 89 - 2026-07-26
+
+#### Overall verdict
+Pass. All five answers identify the correct production and reproducibility
+contracts.
+
+#### Precision improvements
+- A universal lock can represent resolution for multiple supported platforms,
+  but it does not promise compatibility with every possible operating system,
+  architecture, or unavailable wheel.
+- Because this project does not use Docker, the production benefit of excluding
+  pytest should be described as a smaller deployed environment, faster
+  installation, fewer conflicts, and reduced attack surface rather than only a
+  smaller image.
+- `pyproject.toml` remains the source of dependency intent, while `uv.lock` is
+  the source of the exact resolved environment. A generated requirements export
+  is only a compatibility adapter.
+
+#### Gate
+Step 89 interview gate accepted. Proceed to Step 90.
+
+## Step 90 - Locked GitHub Actions CI
+
+### Questions asked
+1. Why pin both the `setup-uv` action and the installed uv version?
+2. Why run `uv lock --check` before `uv sync --locked` even though locked synchronization also detects inconsistency?
+3. Why should the normal CI suite avoid requiring model API credentials or a live Qdrant collection?
+4. Why does dependency caching improve speed without weakening lockfile reproducibility?
+5. What can the local workflow contract tests prove, and what can only an actual GitHub Actions run prove?
+
+### Correct answer key
+1. Pinning the action by commit protects the CI bootstrap code from an
+   unexpected mutable-tag change. Pinning the uv executable separately keeps
+   lock parsing, synchronization, and command behavior reproducible because the
+   action and the tool it installs are different supply-chain layers.
+2. `uv lock --check` provides an early, explicit lock-freshness gate with a
+   focused error before installation work begins. `uv sync --locked` is still
+   required to ensure environment creation cannot silently update the lock.
+3. The normal suite should use fakes and dependency boundaries so pull requests
+   remain deterministic, safe for forks, inexpensive, and independent of
+   network or backend availability. Credentialed live-system tests belong in a
+   separately controlled integration workflow.
+4. The cache only reuses downloaded or built package artifacts. The committed
+   lockfile still determines which exact artifacts may be installed, and uv
+   validates them rather than treating the cache as dependency authority.
+5. Local contract tests prove that the workflow file contains the intended
+   triggers, permissions, pins, timeout, and locked commands. Only a hosted run
+   proves GitHub can parse the YAML, obtain the actions, restore the cache,
+   provision Linux/Python, install dependencies, and execute the suite in the
+   real runner environment.
+
+### Gate
+Step 90 implementation is complete. Await the user's answers before proceeding
+to the conversation-model step.
+
+### User answer evaluation - Step 90 - 2026-07-27
+
+#### Overall verdict
+Pass. All five answers clearly distinguish the CI controls and the guarantees
+each layer provides.
+
+#### What was strong
+- The two pins were correctly treated as separate bootstrap and tool
+  supply-chain controls.
+- Lock freshness was correctly separated from immutable environment creation.
+- Ordinary PR validation was correctly kept deterministic, safe for forks,
+  inexpensive, and independent of live credentials and services.
+- Cached artifacts were correctly distinguished from lockfile authority.
+- Static workflow-contract evidence was correctly separated from real hosted
+  runner evidence.
+
+#### Gate
+Step 90 interview gate accepted. Proceed to Step 91.
+
+## Step 91 - Conversation domain and local persistence
+
+### Questions asked
+1. Why should conversation persistence be hidden behind a `ConversationStore`
+   protocol instead of calling SQLite directly from FastAPI or Streamlit?
+2. Why are conversation summaries stored as versioned checkpoints with a
+   `summarized_through_sequence` value?
+3. Why must messages have per-conversation sequence numbers instead of relying
+   only on timestamps?
+4. Why does archiving keep a conversation readable but prevent further writes?
+5. What failure modes are covered by durability, isolation, forward-only
+   summary, and use-after-close tests?
+
+### Correct answer key
+1. The protocol separates domain/application behavior from storage technology,
+   keeps API and UI code thin, makes tests deterministic, and allows a future
+   Oracle adapter to replace SQLite without changing conversation orchestration.
+2. The checkpoint identifies exactly which messages the summary covers, while
+   the version records each replacement. This prevents duplicate context,
+   supports traceability, and makes stale or backward-moving summary writes
+   detectable.
+3. Timestamps can collide, have different precision across databases, and do
+   not by themselves express a stable order within one conversation. A unique
+   sequence number provides deterministic reconstruction and summary
+   boundaries.
+4. Archive is a reversible lifecycle state, unlike destructive deletion.
+   Readability preserves history and auditability, while blocking writes avoids
+   silently reviving a conversation the UI considers closed.
+5. Durability proves history survives store reopening; isolation proves one
+   conversation cannot read another's messages; forward-only tests prevent
+   stale summaries from replacing newer coverage or claiming nonexistent
+   messages; use-after-close tests give a deliberate application error instead
+   of leaking a low-level SQLite failure.
+
+### Gate
+Step 91 implementation is complete. Await the user's answers before proceeding
+to context budgeting and rolling summarization.
+
+### User answer evaluation - Step 91 - 2026-07-27
+
+#### Overall verdict
+Pass, with precision improvements required in Q2 and Q3. The answers identify
+the correct production contracts and are sufficient to proceed.
+
+#### What was strong
+- Q1 correctly separates application behavior from storage technology and
+  recognizes that SQLite can later be replaced without coupling the API or UI
+  to the new database.
+- Q2 correctly identifies checkpoint coverage, duplicate-context prevention,
+  and traceability.
+- Q3 correctly recognizes timestamp collisions and the need for deterministic
+  message ordering.
+- Q4 clearly distinguishes reversible archival from destructive deletion and
+  connects read-only history to auditability.
+- Q5 correctly maps durability, isolation, forward-only summaries, and
+  use-after-close behavior to the failures each test is intended to expose.
+
+#### Precision improvements
+- The `summarized_through_sequence` value identifies the exact final message
+  covered by a summary. The version is a separate monotonic revision number for
+  summary replacements. Together they detect stale writes, avoid sending both
+  summarized and raw copies of the same history, and support traceability.
+- Sequence numbers are scoped to one conversation. Their main guarantee is a
+  stable total order and an exact summary boundary. Timestamps can collide and
+  database timestamp precision can differ; simultaneous users are not the only
+  reason timestamps are insufficient.
+- The store protocol also improves deterministic unit testing by allowing a
+  fake or alternative adapter, not only a future production database.
+
+#### Stronger interview-quality answer
+Persistence belongs behind a `ConversationStore` protocol so domain and
+application behavior do not depend on SQLite APIs or schema details. FastAPI
+and Streamlit remain thin consumers of the same contract, tests can substitute
+a deterministic adapter, and a future Oracle implementation can replace the
+local SQLite adapter without rewriting conversation orchestration.
+
+A summary checkpoint records the exact message sequence through which history
+has been compressed. Its version records successive replacements. This makes
+summary coverage auditable, prevents duplicate raw and summarized context, and
+allows stale or backward-moving updates to be rejected.
+
+Per-conversation sequence numbers provide deterministic ordering and exact
+summary boundaries. Timestamps may collide, vary in precision across databases,
+or fail to express a stable order for messages created close together.
+
+Archiving is a reversible lifecycle transition. Keeping archived conversations
+readable preserves history and auditability, while rejecting new writes avoids
+silently reopening a conversation the application considers closed.
+
+Durability tests catch data loss across store reopen; isolation tests catch
+cross-conversation leakage; forward-only checkpoint tests catch stale summaries
+and claims beyond existing messages; use-after-close tests ensure a deliberate
+domain-level error is raised instead of exposing an incidental SQLite failure.
+
+#### Gate
+Step 91 interview gate accepted. Proceed to Step 92.
+
+## Step 92 - Token-aware context budgeting and rolling summarization
+
+### Questions asked
+1. Why must conversation history receive only the context capacity left after
+   reserving tokens for system instructions, retrieved evidence, and the answer?
+2. Why should rolling summarization be triggered by tokens rather than a fixed
+   message count, and why keep recent messages verbatim?
+3. How do `summarized_through_sequence` and summary versioning prevent duplicate
+   context and stale rolling-summary updates?
+4. Why is an injectable approximate token counter acceptable for preflight
+   budgeting, and where can it still break in production?
+5. Why must conversation summaries remain separate from documentary RAG
+   evidence, and what should happen if mandatory recent messages or the
+   generated summary exceed their allocation?
+
+### Correct answer key
+1. The model context window is shared by every prompt component. Allowing
+   history to consume it all can truncate system rules, crowd out fresh
+   evidence, leave no output capacity, or cause a hard context-length failure.
+   Explicit reserves make the prompt allocation predictable and protect
+   grounding and answer generation.
+2. Equal message counts can contain radically different token volumes, so
+   token-triggering reflects the actual model constraint. Recent messages retain
+   exact wording, entities, and follow-up references; older history is more
+   safely compressed because some detail loss is acceptable there.
+3. The checkpoint records the final message represented by the summary, so
+   those messages are not also sent verbatim. The version records successive
+   replacements. Forward-only persistence rejects coverage moving backward or
+   claiming future messages, making stale writes detectable.
+4. A deterministic approximation provides cheap preflight control without a
+   tokenizer dependency, and dependency injection allows replacement with an
+   exact model tokenizer. It can misestimate model-specific tokenization,
+   message framing, Unicode, or provider overhead, so production needs a safety
+   margin, observed usage, and eventually the selected model's tokenizer.
+5. Chat memory can contain user assumptions, prior model errors, and prompt
+   injection; it helps interpret intent but cannot prove functional-spec facts.
+   Claims still require fresh retrieved evidence and citations. If required
+   recent context or a summary cannot fit, the system must fail explicitly or
+   request a smaller input rather than silently discard context, invade reserved
+   capacity, or save an invalid checkpoint.
+
+### Gate
+Step 92 implementation is complete. Await the user's answers before proceeding
+to the conversation API.
+
+### User answer evaluation - Step 92 - 2026-07-27
+
+#### Overall verdict
+Pass. All five answers identify the essential context-management, grounding,
+and failure-handling contracts.
+
+#### What was strong
+- Q1 correctly protects instructions, fresh evidence, and response capacity
+  from unbounded conversation history.
+- Q2 correctly ties compaction to the real token constraint and distinguishes
+  exact recent context from lossy older memory.
+- Q3 correctly connects checkpoint coverage and versioning to duplicate,
+  stale, and invalid updates.
+- Q4 correctly treats approximation as replaceable preflight logic and calls
+  for safety margins plus observed production usage.
+- Q5 correctly separates conversational context from evidence and requires an
+  explicit failure when mandatory context cannot fit.
+
+#### Precision improvements
+- `summarized_through_sequence` is the control that prevents the same messages
+  from appearing in both summarized and raw form. The summary version records
+  replacements for traceability; forward-only checkpoint validation rejects
+  backward or future coverage.
+- Approximation can diverge because of model-specific tokenization, chat-message
+  framing, Unicode behavior, and provider-added overhead. Monitoring real usage
+  should eventually inform replacement with the selected model's exact
+  tokenizer.
+- Explicit overflow handling must avoid silent truncation, consuming evidence
+  or answer reserves, and saving a summary checkpoint that does not accurately
+  represent the retained context.
+
+#### Stronger interview-quality answer
+Conversation history receives only the remaining model-window capacity because
+system rules, newly retrieved evidence, and answer output are mandatory prompt
+components. Explicit reserves prevent memory from weakening grounding or
+causing a hard context-length failure.
+
+Compaction is token-triggered because equal message counts can have very
+different sizes. Recent messages remain verbatim to preserve exact wording,
+entities, and follow-up references, while older history can tolerate controlled
+loss through summarization.
+
+The summary checkpoint identifies the exact final message represented by the
+summary, preventing those messages from also being sent raw. The version tracks
+successive replacements, while forward-only validation rejects stale or future
+coverage.
+
+A cheap deterministic estimate is suitable for preflight budgeting when it is
+behind a replaceable contract. Because it may miss model tokenization, framing,
+Unicode, and provider overhead, production should retain a safety margin,
+measure actual usage, and move to an exact model tokenizer where required.
+
+Conversation memory may contain assumptions, prior model errors, or injected
+instructions, so it can clarify intent but cannot prove document facts. Fresh
+retrieval and citations remain mandatory. If required context cannot fit, the
+system must fail explicitly rather than silently truncate history, invade
+reserved capacity, or persist an invalid summary checkpoint.
+
+#### Gate
+Step 92 interview gate accepted. Proceed to Step 93.
+
+## Step 93 - Conversation API and multi-turn message submission
+
+### Questions asked
+1. Why should the conversation routes receive a `ConversationStore` through a
+   FastAPI dependency instead of opening SQLite directly inside every handler?
+2. Why does message submission persist the user message before running the
+   cost-bearing grounded query, but persist the assistant message only after a
+   completed answer or safe refusal?
+3. Why is conversation memory included in the generation prompt but explicitly
+   prohibited from acting as documentary evidence?
+4. Why are missing, archived, context-overflow, dependency-unavailable, and
+   unexpected failures mapped to different HTTP status classes?
+5. What do the conversation API tests prove about isolation and failure
+   handling, and what important production guarantees do they not yet prove?
+
+### Correct answer key
+1. Dependency injection centralizes store construction and cleanup, keeps
+   handlers storage-agnostic, supports deterministic replacement in tests, and
+   allows a future Oracle adapter without changing endpoint behavior. Direct
+   per-handler SQLite code would duplicate lifecycle and schema coupling.
+2. Persisting the accepted user input preserves auditability and enables retry
+   after retrieval or model failure. Delaying the assistant write prevents a
+   nonexistent answer from being recorded. The resulting user-only partial turn
+   is honest but requires UI retry and future idempotency handling.
+3. Memory can clarify pronouns, referenced entities, user intent, and prior
+   constraints, but it may contain assumptions, prior model errors, or injected
+   instructions. Functional-spec claims must therefore still be supported by
+   newly retrieved evidence and validated citations.
+4. `404` means the resource does not exist, `409` means its archived lifecycle
+   conflicts with mutation, `413` means bounded context cannot fit, and `503`
+   means a required retrieval dependency is unavailable. Unexpected internal
+   failures use a safe `500`. Distinct statuses let clients choose the correct
+   recovery behavior without exposing exception details.
+5. Tests prove local route wiring, validation, per-conversation history
+   isolation, archive enforcement, safe overflow, reuse of grounded query
+   execution, trace persistence, and honest partial-turn behavior under a fake
+   downstream failure. They do not prove hosted concurrency, multi-process
+   SQLite write safety, authentication/authorization, idempotent retries, real
+   model follow-up quality, exact tokenization, or live Qdrant/model behavior.
+
+### Gate
+Step 93 implementation is complete. Await the user's answers before proceeding
+to the Streamlit multi-turn chat UI.
+
+### User answer evaluation - Step 93 - 2026-07-29
+
+#### Overall verdict
+Not yet interview-pass. Q1, Q3, and Q5 are accepted with precision
+improvements. Q2 and Q4 require correction before proceeding.
+
+#### What was strong
+- Q1 recognizes centralized API handling and the ability to replace SQLite with
+  Oracle or another persistence technology.
+- Q3 correctly identifies memory's role in resolving pronouns, entities,
+  intent, and constraints while requiring current document retrieval for
+  factual claims that may change across releases.
+- Q5 correctly identifies lifecycle, archival, isolation, and simulated failure
+  evidence, then distinguishes those tests from real high-concurrency,
+  pagination, memory, latency, and streaming behavior.
+- The delivery analogy in Q2 correctly conveys why a system must not record a
+  downstream outcome before that outcome actually exists.
+
+#### Areas to improve
+- Q1 should name FastAPI dependency injection rather than routing alone. The
+  dependency centralizes store construction and cleanup, keeps handlers
+  storage-agnostic, and lets tests substitute a deterministic store.
+- Q2's final sentence says the message should be stored only after completion
+  or safe refusal. That reverses the implemented contract. The accepted user
+  message is persisted before the cost-bearing query; only the assistant
+  message waits for a completed grounded answer or safe refusal. A downstream
+  failure therefore leaves an honest, retryable user-only partial turn.
+- Q4 must map the statuses rather than merely say different errors help
+  debugging: `404` is missing conversation, `409` is an archived-state conflict,
+  `413` is context too large, `503` is a required dependency unavailable, and
+  safe `500` is unexpected internal failure. The client recovery differs for
+  each.
+- Q5 could additionally name authentication/authorization, idempotent retries,
+  multi-process database safety, real Qdrant/model behavior, and exact
+  tokenization as unproven production guarantees.
+
+#### Stronger interview-quality answer
+The store is provided through a FastAPI dependency so connection construction
+and cleanup are centralized, route handlers depend on the `ConversationStore`
+contract rather than SQLite, tests can inject a deterministic store, and a
+future Oracle adapter can replace the local implementation without changing
+endpoint behavior.
+
+The user message is persisted as soon as valid input is accepted, before the
+cost-bearing query, so a later retrieval or model failure does not erase the
+user's attempt and the client can retry it. The assistant message is persisted
+only after a grounded answer or safe refusal actually exists. This avoids
+recording a false successful outcome and deliberately permits an auditable
+user-only partial turn.
+
+Conversation memory can clarify references, entities, intent, and constraints,
+but it may contain stale assumptions, previous model errors, or injected
+instructions. Therefore it cannot prove functional-spec facts; current
+retrieval and validated citations remain authoritative.
+
+`404` means the conversation does not exist, `409` means archival conflicts
+with a requested mutation, `413` means required context cannot fit its budget,
+`503` means a required retrieval dependency is unavailable, and a safe `500`
+represents an unexpected internal failure. These distinctions let clients
+choose between correcting an ID, starting or selecting another chat, reducing
+context, retrying later, or reporting a server fault.
+
+The tests prove local validation, endpoint wiring, durable turn storage,
+archive enforcement, conversation isolation, trace linkage, safe overflow, and
+partial-turn behavior under simulated failures. They do not prove concurrent
+multi-user behavior, authentication and authorization, idempotent retries,
+pagination at scale, multi-process SQLite safety, streaming latency, exact
+token accounting, or live Qdrant and model behavior.
+
+#### Gate
+Step 93 remains open. Rewrite Q2 and Q4 only. Do not proceed to Step 94 until
+both corrections are accepted.
+
+### Gate acceptance - Step 93 - 2026-07-29
+
+#### Rewritten answers accepted
+The rewritten Q2 and Q4 are accepted.
+
+#### Why accepted
+- Q2 now correctly states that accepted user input is persisted for audit and
+  retry before retrieval or model execution, while assistant output is delayed
+  until a grounded answer or safe refusal actually exists. It also recognizes
+  the resulting UI retry and idempotency requirement.
+- Q4 now correctly separates `404` missing resources, `409` lifecycle
+  conflicts such as archived writes, `413` context-capacity failures, `503`
+  unavailable dependencies, and safe `500` internal failures without leaking
+  implementation details.
+
+#### Gate
+Step 93 interview gate accepted. Proceed to Step 94.

@@ -1,17 +1,29 @@
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.query_api import QueryRequest
+from app.schemas.conversation_api import (
+    ConversationMessageResponse,
+    ConversationResponse,
+)
 from app.ui.api_client import UiApiError
-from app.ui.streamlit_app import _build_query_request, _run_ready_query
+from app.ui.streamlit_app import (
+    _build_message_request,
+    _find_unanswered_user_sequences,
+    _run_ready_turn,
+    _select_active_conversation_id,
+)
 
 
-def test_streamlit_ui_builds_validated_query_and_omits_blank_filters() -> None:
-    request = _build_query_request(
-        query="  What changed in branch reports?  ",
+NOW = datetime(2026, 7, 29, tzinfo=UTC)
+
+
+def test_streamlit_ui_builds_validated_message_and_omits_blank_filters() -> None:
+    request = _build_message_request(
+        content="  What changed in branch reports?  ",
         limit=3,
         document_family=" ",
         release_label=" R24 ",
@@ -21,16 +33,16 @@ def test_streamlit_ui_builds_validated_query_and_omits_blank_filters() -> None:
     )
 
     assert request.model_dump(exclude_none=True) == {
-        "query": "What changed in branch reports?",
+        "content": "What changed in branch reports?",
         "limit": 3,
         "release_label": "R24",
     }
 
 
-def test_streamlit_ui_rejects_blank_query_before_api_call() -> None:
+def test_streamlit_ui_rejects_blank_message_before_api_call() -> None:
     with pytest.raises(ValidationError):
-        _build_query_request(
-            query=" ",
+        _build_message_request(
+            content=" ",
             limit=5,
             document_family="",
             release_label="",
@@ -40,25 +52,90 @@ def test_streamlit_ui_rejects_blank_query_before_api_call() -> None:
         )
 
 
-def test_streamlit_ui_checks_readiness_before_query() -> None:
+def test_streamlit_ui_checks_readiness_before_submitting_turn() -> None:
     api = _FakeApi(is_ready=True)
-    request = QueryRequest(query="branch reports")
+    request = _build_message_request(
+        content="branch reports",
+        limit=5,
+        document_family="",
+        release_label="",
+        source_kind="Any",
+        use_min_top_score=False,
+        min_top_score=0.25,
+    )
 
-    response = _run_ready_query(api, request)
+    response = _run_ready_turn(api, "conversation-1", request)
 
     assert response is api.response
-    assert api.calls == ["ready", "query"]
-    assert api.query_request == request
+    assert api.calls == ["ready", "submit"]
+    assert api.conversation_id == "conversation-1"
+    assert api.message_request == request
 
 
-def test_streamlit_ui_blocks_query_when_backend_is_not_ready() -> None:
+def test_streamlit_ui_blocks_turn_when_backend_is_not_ready() -> None:
     api = _FakeApi(is_ready=False)
+    request = _build_message_request(
+        content="branch reports",
+        limit=5,
+        document_family="",
+        release_label="",
+        source_kind="Any",
+        use_min_top_score=False,
+        min_top_score=0.25,
+    )
 
     with pytest.raises(UiApiError) as exc_info:
-        _run_ready_query(api, QueryRequest(query="branch reports"))
+        _run_ready_turn(api, "conversation-1", request)
 
     assert exc_info.value.code == "not_ready"
     assert api.calls == ["ready"]
+
+
+def test_streamlit_ui_selects_current_or_most_recent_conversation() -> None:
+    conversations = [
+        _conversation("conversation-2", "Second"),
+        _conversation("conversation-1", "First"),
+    ]
+
+    assert (
+        _select_active_conversation_id(
+            "conversation-1",
+            conversations,
+        )
+        == "conversation-1"
+    )
+    assert (
+        _select_active_conversation_id("missing", conversations)
+        == "conversation-2"
+    )
+    assert _select_active_conversation_id(None, []) is None
+
+
+def test_streamlit_ui_identifies_partial_user_turns() -> None:
+    messages = [
+        _message(1, "user"),
+        _message(2, "assistant"),
+        _message(3, "user"),
+        _message(4, "user"),
+        _message(5, "assistant"),
+        _message(6, "user"),
+    ]
+
+    assert _find_unanswered_user_sequences(messages) == {3, 6}
+
+
+def test_streamlit_source_uses_chat_and_conversation_controls() -> None:
+    source = Path("app/ui/streamlit_app.py").read_text(encoding="utf-8")
+
+    assert "st.chat_message" in source
+    assert "st.chat_input" in source
+    assert '"New chat"' in source
+    assert '"Archive active chat"' in source
+    assert "api.list_conversations()" in source
+    assert "api.get_conversation(active_id)" in source
+    assert "api.submit_conversation_message" in source
+    assert "No assistant response was persisted" in source
+    assert "Evidence and debug details" in source
 
 
 def test_readme_documents_streamlit_run_command_and_dependency() -> None:
@@ -67,20 +144,55 @@ def test_readme_documents_streamlit_run_command_and_dependency() -> None:
 
     assert "uv run --locked streamlit run app/ui/streamlit_app.py" in readme
     assert '"streamlit>=1.60,<2"' in pyproject
+    assert "**New chat**" in readme
+    assert "**Archive active chat**" in readme
+    assert "user-only" in readme
+    assert "partial turn is rendered as retryable" in readme
+    assert "only debug details returned during the current UI session" in readme
 
 
 class _FakeApi:
     def __init__(self, *, is_ready: bool) -> None:
         self.is_ready = is_ready
         self.calls: list[str] = []
-        self.query_request: QueryRequest | None = None
-        self.response = SimpleNamespace(is_answered=True)
+        self.conversation_id: str | None = None
+        self.message_request = None
+        self.response = SimpleNamespace(answer=SimpleNamespace(is_answered=True))
 
     def get_readiness(self):
         self.calls.append("ready")
         return SimpleNamespace(is_ready=self.is_ready)
 
-    def query(self, request: QueryRequest):
-        self.calls.append("query")
-        self.query_request = request
+    def submit_conversation_message(self, conversation_id, request):
+        self.calls.append("submit")
+        self.conversation_id = conversation_id
+        self.message_request = request
         return self.response
+
+
+def _conversation(
+    conversation_id: str,
+    title: str,
+) -> ConversationResponse:
+    return ConversationResponse(
+        conversation_id=conversation_id,
+        title=title,
+        created_at_utc=NOW,
+        updated_at_utc=NOW,
+        is_archived=False,
+    )
+
+
+def _message(
+    sequence_number: int,
+    role: str,
+) -> ConversationMessageResponse:
+    return ConversationMessageResponse(
+        message_id=f"message-{sequence_number}",
+        conversation_id="conversation-1",
+        sequence_number=sequence_number,
+        role=role,
+        content=f"{role} content",
+        created_at_utc=NOW,
+        trace_id=None,
+    )

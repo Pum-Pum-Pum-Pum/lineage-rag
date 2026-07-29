@@ -51,8 +51,10 @@ model accounting is required. Conversation summaries preserve chat intent and
 constraints only; functional-spec claims must still be grounded in newly
 retrieved evidence and citations.
 
-The conversation API uses these contracts now. The next stage upgrades the
-Streamlit interface to consume the multi-turn endpoints.
+The conversation API and Streamlit multi-turn interface now use these
+contracts. Durable backend history remains the source of truth; Streamlit
+session state only caches transient debug details for turns created in the
+current UI session.
 
 ## Setup
 
@@ -101,11 +103,17 @@ The UI defaults to `http://127.0.0.1:8000`. Override it from the sidebar or set:
 RAG_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-Use **Check backend** before querying. Every submitted query performs a readiness
-check before `POST /query`; a failed readiness check blocks cost-bearing retrieval
-and generation. The UI renders grounded answers or safe refusals, evidence
-sufficiency, citations, trace IDs, and optional model usage/cost. It does not expose
-the local trace output path.
+Use **New chat** to create a durable conversation, select active conversations
+from the sidebar, and use **Archive active chat** to make history read-only.
+Every submitted chat message performs a readiness check before
+`POST /conversations/{conversation_id}/messages`; a failed readiness check
+blocks cost-bearing retrieval and generation.
+
+The UI renders durable user/assistant history, grounded answers or safe
+refusals, trace IDs, and optional evidence/debug details containing sufficiency,
+citations, token-budget state, model usage, and estimated cost. A user-only
+partial turn is rendered as retryable instead of being hidden. The local trace
+output path and raw backend error bodies are not exposed.
 
 ## Smoke test the API
 
@@ -363,7 +371,14 @@ uv export --locked --no-dev --format requirements-txt --output-file requirements
 
 ## UI integration status
 
-The Streamlit interface is available in `app/ui/streamlit_app.py` and uses the typed
-client in `app/ui/api_client.py` for `/health`, `/ready`, and `/query`. It maps
-network, timeout, HTTP, malformed JSON, and schema-validation failures to safe
-presentation-layer errors without exposing backend response bodies.
+The Streamlit interface is available in `app/ui/streamlit_app.py` and uses the
+typed client in `app/ui/api_client.py` for health/readiness and the conversation
+lifecycle/message endpoints. It provides new/select/archive controls,
+`st.chat_message` history, `st.chat_input` submission, readiness gating, partial
+turn warnings, and an optional evidence/debug panel.
+
+Network, timeout, `404`, `409`, `413`, `503`, generic HTTP, malformed JSON, and
+schema-validation failures map to safe presentation-layer errors without
+exposing backend response bodies. Conversation history is reloaded from the
+backend; only debug details returned during the current UI session are cached
+in Streamlit state.

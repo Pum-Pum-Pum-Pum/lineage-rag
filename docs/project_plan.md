@@ -992,8 +992,8 @@ The remaining work should proceed in this order, one practical step at a time:
 4. **Completed:** Token-aware context budgeting and rolling summarization.
 5. **Completed:** FastAPI conversation creation, history retrieval, archival,
    and multi-turn message submission.
-6. Upgrade the Streamlit page into a multi-turn chat UI with conversation
-   controls, citations, readiness state, and safe error rendering.
+6. **Completed:** Streamlit multi-turn chat UI with conversation controls,
+   durable history, citations/debug details, readiness state, and safe errors.
 7. Add end-to-end and evaluation coverage for follow-up resolution,
    conversation isolation, summary drift, context overflow, abstention, and
    evidence grounding.

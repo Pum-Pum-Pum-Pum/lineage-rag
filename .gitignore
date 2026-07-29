@@ -63,5 +63,3 @@ data/qdrant_local/
 .env.example
 .clinerules
 Culling Blade Lineage- Gen AI RAG System_Prompt_for_GPT.txt
-interview-questions.md
-Steps_followed.md

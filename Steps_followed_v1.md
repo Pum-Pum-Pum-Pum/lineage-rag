@@ -3374,3 +3374,935 @@ The readiness endpoint now has stronger regression coverage for degraded-mode be
 
 ### Failure-mode thinking
 Stress cases covered: Qdrant missing in dense/hybrid, lexical artifacts missing in lexical/hybrid, dense mode with no lexical artifacts, and lexical mode with a Qdrant constructor that would fail if called.
+
+
+<!-- Active history archived through Step 93 on 2026-07-29 -->
+
+## Step 77 - Query Qdrant dependency failure returns safe 503
+
+### Goal
+Harden `POST /query` so dense and hybrid modes classify Qdrant dependency failures as safe `503 Service Unavailable` responses instead of generic `500` errors, while preserving lexical independence from Qdrant.
+
+### Files touched
+- `app/api/routes/query.py`
+- `tests/test_query_api.py`
+
+### What changed
+- Wrapped dense/hybrid Qdrant client creation and collection-existence check in a dependency-specific exception boundary.
+- Preserved the existing explicit `503` when the required Qdrant collection does not exist.
+- Added safe `503` handling when Qdrant client creation fails.
+- Added safe `503` handling when the Qdrant collection check raises unexpectedly.
+- Ensured raw exception details such as local paths, secrets, or backend internals do not leak to API clients.
+- Ensured query orchestration does not run when the required Qdrant dependency check fails.
+- Ensured opened Qdrant clients are still closed in failure paths.
+
+### Python/code pattern used
+```python
+try:
+    client = create_persistent_qdrant_client(settings.qdrant_local_path)
+    if not client.collection_exists(settings.qdrant_collection_name):
+        raise HTTPException(status_code=503, detail="Qdrant collection does not exist...")
+except HTTPException:
+    raise
+except Exception as exc:
+    logger.exception("Qdrant dependency check failed during query")
+    raise HTTPException(
+        status_code=503,
+        detail="Qdrant dependency check failed. Verify vector-store availability before querying.",
+    ) from exc
+```
+
+### Validation
+- Targeted query API tests: `python -m pytest tests/test_query_api.py -q` -> 10 passed.
+- Broader API/docs tests: `python -m pytest tests/test_health_api.py tests/test_readiness_api.py tests/test_query_api.py tests/test_api_smoke_script.py tests/test_readme_api_docs.py -q` -> 34 passed.
+- Full suite: `python -m pytest -q` -> 193 passed.
+
+### Production interpretation
+Dense and hybrid `/query` now fail fast and safely when vector-store availability is broken. This prevents expensive retrieval/embedding/LLM work from starting after a known dependency failure and gives operators a clear service-unavailable signal without leaking implementation details.
+
+### Failure-mode thinking
+Stress cases covered: Qdrant client creation raises, Qdrant collection check raises, required collection is missing, orchestration must not run on dependency failure, and error responses must not expose raw exception content.
+
+## Step 78 - Answer smoke script lexical Qdrant independence
+
+### Goal
+Harden `scripts/run_answer_smoke_test.py` so lexical-only smoke tests do not instantiate Qdrant, matching the API/readiness retrieval-mode dependency matrix.
+
+### Files touched
+- `scripts/run_answer_smoke_test.py`
+- `tests/test_answer_smoke_script.py`
+
+### What changed
+- Moved Qdrant client creation inside the dense/hybrid-only dependency branch.
+- Preserved the existing collection-existence check for dense and hybrid modes.
+- Passed `qdrant_client=None` into answer orchestration for lexical mode.
+- Guarded Qdrant client cleanup so `close()` is called only when a client was actually created.
+- Added a lexical-mode regression test that makes Qdrant client creation raise if touched.
+- Confirmed hybrid smoke-script behavior still checks Qdrant and closes the client.
+
+### Python/code pattern used
+```python
+client = None
+try:
+    if _requires_qdrant_collection(retrieval_config.retrieval_mode):
+        client = create_persistent_qdrant_client(settings.qdrant_local_path)
+        if not client.collection_exists(settings.qdrant_collection_name):
+            raise RuntimeError("Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first.")
+
+    orchestration_result = run_grounded_answer_query(
+        qdrant_client=client,
+        ...
+    )
+finally:
+    if client is not None:
+        client.close()
+```
+
+### Validation
+- Targeted answer smoke script tests: `python -m pytest tests/test_answer_smoke_script.py -q` -> 4 passed.
+- Broader dependency-boundary tests: `python -m pytest tests/test_answer_smoke_script.py tests/test_answer_orchestration_service.py tests/test_query_retrieval_service.py tests/test_query_api.py tests/test_readiness_api.py -q` -> 33 passed.
+- Full suite: `python -m pytest -q` -> 194 passed.
+
+### Production interpretation
+The CLI smoke path now matches the service contract used by `/ready` and `/query`: lexical retrieval depends on local retrieval-ready artifacts, not Qdrant. Dense and hybrid modes still fail fast if their required Qdrant collection is missing. This keeps local degraded-mode testing reliable when the vector store is absent, locked, corrupted, or intentionally not started.
+
+### Failure-mode thinking
+The new test intentionally makes Qdrant construction fail in lexical mode. The script still succeeds because it never touches Qdrant and passes `None` to orchestration. If a future change accidentally reintroduces Qdrant coupling, this regression test will fail immediately.
+
+## Step 79 - Query-search script lexical Qdrant independence
+
+### Goal
+Harden `scripts/run_qdrant_query_search.py` so lexical-only query-search smoke tests do not instantiate Qdrant, matching the API/readiness dependency matrix and the Step 78 answer-smoke behavior.
+
+### Files touched
+- `scripts/run_qdrant_query_search.py`
+- `tests/test_qdrant_query_search_script.py`
+
+### What changed
+- Moved Qdrant client creation inside the dense/hybrid-only dependency branch.
+- Preserved the existing Qdrant collection-existence check for dense and hybrid modes.
+- Passed `qdrant_client=None` into `retrieve_query_evidence(...)` for lexical mode.
+- Guarded Qdrant client cleanup so `close()` is called only when a client was actually created.
+- Added a hybrid-mode regression test proving the script checks the Qdrant collection and closes the client.
+- Added a lexical-mode regression test that makes Qdrant client creation raise if touched.
+
+### Python/code pattern used
+```python
+client = None
+try:
+    if _requires_qdrant_collection(retrieval_config.retrieval_mode):
+        client = create_persistent_qdrant_client(settings.qdrant_local_path)
+        if not client.collection_exists(settings.qdrant_collection_name):
+            raise RuntimeError("Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first.")
+
+    routed = retrieve_query_evidence(
+        qdrant_client=client,
+        ...
+    )
+finally:
+    if client is not None:
+        client.close()
+```
+
+### Validation
+- Targeted query-search script tests: `python -m pytest tests/test_qdrant_query_search_script.py -q` -> 4 passed.
+- Broader dependency-boundary tests: `python -m pytest tests/test_qdrant_query_search_script.py tests/test_query_retrieval_service.py tests/test_answer_smoke_script.py tests/test_query_api.py tests/test_readiness_api.py -q` -> 35 passed.
+- Full suite: `python -m pytest -q` -> 196 passed.
+
+### Production interpretation
+The query-search CLI now has the same retrieval-mode dependency behavior as the API and answer-smoke script. Lexical mode can search local retrieval-ready artifacts without Qdrant. Dense and hybrid modes still fail before retrieval if their required vector-store collection is missing, avoiding confusing retrieval failures and wasted embedding work.
+
+### Failure-mode thinking
+The lexical regression test intentionally makes Qdrant client creation fail. The script still succeeds because lexical mode never touches Qdrant. This protects local/offline query-search debugging when Qdrant is missing, locked, corrupted, or intentionally unavailable.
+
+## Step 80 - Retrieval comparison script Qdrant client cleanup
+
+### Goal
+Harden `scripts/run_retrieval_comparison.py` so its persistent Qdrant client is closed on both successful runs and failure paths.
+
+### Files touched
+- `scripts/run_retrieval_comparison.py`
+- `tests/test_retrieval_comparison_script.py`
+
+### What changed
+- Wrapped the Qdrant-dependent retrieval comparison flow in `try/finally`.
+- Removed the special-case manual `client.close()` before the missing-collection error because `finally` now handles it.
+- Preserved the existing fail-fast error when the Qdrant collection is missing.
+- Preserved the dense-vs-lexical comparison behavior and report-writing behavior.
+- Added a successful-path test proving the script checks collection existence, runs dense and lexical retrieval, writes a report, and closes the client.
+- Added a failure-path test proving the client is still closed when dense retrieval raises.
+
+### Python/code pattern used
+```python
+client = create_persistent_qdrant_client(settings.qdrant_local_path)
+try:
+    if not client.collection_exists(settings.qdrant_collection_name):
+        raise RuntimeError("Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first.")
+
+    # Run dense retrieval, lexical retrieval, comparison, and report writing.
+finally:
+    client.close()
+```
+
+### Validation
+- Targeted retrieval comparison script tests: `python -m pytest tests/test_retrieval_comparison_script.py -q` -> 3 passed.
+- Broader retrieval-script tests: `python -m pytest tests/test_retrieval_comparison_script.py tests/test_retrieval_comparison.py tests/test_retrieval_error_analysis_script.py tests/test_hybrid_retrieval_eval_script.py tests/test_hybrid_weight_experiments_script.py -q` -> 10 passed.
+- Full suite: `python -m pytest -q` -> 198 passed.
+
+### Production interpretation
+The retrieval comparison script is intentionally Qdrant-dependent because it compares dense vector retrieval with lexical artifact retrieval. The important boundary in this step is lifecycle safety: if dense retrieval, lexical retrieval, comparison building, or report writing fails, the local persistent Qdrant client is still closed. This reduces file-lock and stale-handle risk during repeated local eval runs.
+
+### Failure-mode thinking
+The new failure-path test makes dense retrieval raise after the Qdrant collection check. The exception still propagates, but the fake client records `closed=True`, proving cleanup happens even when the script fails mid-run.
+
+## Step 81 - Hybrid retrieval evaluation Qdrant client cleanup
+
+### Goal
+Harden `scripts/run_hybrid_retrieval_eval.py` so its persistent Qdrant client is closed after successful evaluation and after failures anywhere in the Qdrant-dependent evaluation flow.
+
+### Files touched
+- `scripts/run_hybrid_retrieval_eval.py`
+- `tests/test_hybrid_retrieval_eval_script.py`
+
+### What changed
+- Wrapped the collection check, dense retrieval, lexical retrieval, fusion, evaluation, and report-writing flow in `try/finally`.
+- Removed the special-case manual close before the missing-collection error because `finally` now owns client cleanup.
+- Preserved fail-fast behavior when the required Qdrant collection is missing.
+- Preserved propagation of retrieval and evaluation errors after cleanup.
+- Added a success-path regression test proving collection checking, evaluation, report construction, and client cleanup.
+- Added a failure-path regression test proving the client closes when dense retrieval raises.
+
+### Python/code pattern used
+```python
+client = create_persistent_qdrant_client(settings.qdrant_local_path)
+try:
+    if not client.collection_exists(settings.qdrant_collection_name):
+        raise RuntimeError(
+            "Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first."
+        )
+
+    # Run dense and lexical retrieval, hybrid fusion, evaluation, and report writing.
+finally:
+    client.close()
+```
+
+### Validation
+- Targeted hybrid evaluation script tests: `python -m pytest tests/test_hybrid_retrieval_eval_script.py -q` -> 3 passed.
+- Broader retrieval/evaluation tests: `python -m pytest tests/test_hybrid_retrieval_eval_script.py tests/test_hybrid_evaluation.py tests/test_retrieval_comparison_script.py tests/test_retrieval_comparison.py tests/test_retrieval_error_analysis_script.py tests/test_hybrid_weight_experiments_script.py -q` -> 15 passed.
+- Full suite: `python -m pytest -q` -> 200 passed.
+- Diff whitespace validation: `git diff --check` -> passed; only the existing Git line-ending conversion warnings were reported.
+
+### Production interpretation
+Hybrid evaluation legitimately depends on Qdrant because its dense branch performs vector search. The new lifecycle boundary prevents failed evaluation runs from leaving persistent local Qdrant handles or locks behind, while keeping the original failure visible for diagnosis.
+
+### Failure-mode thinking
+The failure-path test intentionally raises during dense retrieval after the client and collection check succeed. The original exception still propagates, while `closed=True` proves that later local indexing, querying, or evaluation runs are not left with the leaked client from this run.
+
+## Step 82 - Hybrid weight experiment Qdrant client cleanup
+
+### Goal
+Harden `scripts/run_hybrid_weight_experiments.py` so its persistent Qdrant client is closed after successful experiments and after failures during candidate retrieval, weight evaluation, or report persistence.
+
+### Files touched
+- `scripts/run_hybrid_weight_experiments.py`
+- `tests/test_hybrid_weight_experiments_script.py`
+
+### What changed
+- Wrapped the Qdrant collection check and the complete hybrid weight experiment flow in `try/finally`.
+- Removed the branch-specific manual close before the missing-collection error because `finally` now owns cleanup.
+- Kept dense and lexical candidate retrieval inside the lifecycle boundary.
+- Kept weight-setting evaluation, ranking, logging, and report writing inside the lifecycle boundary.
+- Preserved the original exception after cleanup instead of converting a failed experiment into apparent success.
+- Added success- and failure-path regression tests for client cleanup.
+
+### Python/code pattern used
+```python
+client = create_persistent_qdrant_client(settings.qdrant_local_path)
+try:
+    if not client.collection_exists(settings.qdrant_collection_name):
+        raise RuntimeError(
+            "Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first."
+        )
+
+    # Retrieve candidates, evaluate weight settings, rank results, and write the report.
+finally:
+    client.close()
+```
+
+### Validation
+- Targeted hybrid weight script tests: `python -m pytest tests/test_hybrid_weight_experiments_script.py -q` -> 3 passed.
+- Broader hybrid/retrieval tests: `python -m pytest tests/test_hybrid_weight_experiments_script.py tests/test_hybrid_weight_experiment.py tests/test_hybrid_retrieval_eval_script.py tests/test_hybrid_evaluation.py tests/test_retrieval_comparison_script.py tests/test_retrieval_comparison.py -q` -> 21 passed.
+- Full suite: `python -m pytest -q` -> 202 passed.
+- Diff whitespace validation: `git diff --check` -> passed; only Git line-ending conversion warnings were reported.
+
+### Production interpretation
+Weight experiments may perform many dense searches and evaluate several fusion settings in one run. A mid-run exception should invalidate the experiment but must not leak the persistent local Qdrant client. Centralized cleanup makes repeated tuning runs safer without hiding retrieval, evaluation, or report-writing failures.
+
+### Failure-mode thinking
+The failure-path test raises during dense candidate retrieval after the Qdrant collection check. The test verifies two independent guarantees: the original retrieval exception reaches the caller, and the Qdrant client is still closed so the failed experiment is less likely to leave locks or handles that break the next run.
+
+## Step 83 - Dense retrieval evaluation Qdrant client cleanup
+
+### Goal
+Harden `scripts/run_retrieval_eval.py` so its persistent Qdrant client closes after both successful dense evaluation and failures during retrieval, evaluation, result serialization, or report writing.
+
+### Files touched
+- `scripts/run_retrieval_eval.py`
+- `tests/test_retrieval_eval_script.py`
+
+### What changed
+- Wrapped the complete post-client-creation evaluation flow in `try/finally`.
+- Kept per-case dense retrieval, expectation evaluation, result serialization, logging, aggregate report building, and report writing inside the protected lifecycle.
+- Preserved propagation of the original exception after cleanup.
+- Added a dedicated script-test module.
+- Added a help-path test plus success- and failure-path client cleanup tests.
+- Kept this step focused on lifecycle safety; explicit collection-existence validation remains a separate dependency-boundary concern.
+
+### Python/code pattern used
+```python
+client = create_persistent_qdrant_client(settings.qdrant_local_path)
+try:
+    # Retrieve and evaluate every case, build the aggregate report, and write JSON.
+finally:
+    client.close()
+```
+
+### Validation
+- Targeted retrieval evaluation script tests: `python -m pytest tests/test_retrieval_eval_script.py -q` -> 3 passed.
+- Related retrieval-script tests: `python -m pytest tests/test_retrieval_eval_script.py tests/test_retrieval_evaluation.py tests/test_retrieval_comparison_script.py tests/test_hybrid_retrieval_eval_script.py tests/test_hybrid_weight_experiments_script.py -q` -> 19 passed.
+- Full suite: `python -m pytest -q` -> 205 passed.
+- Tracked diff whitespace validation: `git diff --check` -> passed; only Git line-ending conversion warnings were reported.
+
+### Production interpretation
+The baseline evaluator may execute many embedding-backed vector searches in one run. If any case fails, the report should fail visibly, but the persistent local Qdrant client must still release its handles. This makes repeated evaluation runs safer and prevents cleanup from masking the diagnostic error.
+
+### Failure-mode thinking
+The failure-path test intentionally raises during dense search. It verifies that the same retrieval exception reaches the caller and that the client is closed. Without the `finally` boundary, a single bad case could terminate the run while leaving local vector-store resources open for the next indexing or evaluation command.
+
+## Step 84 - Consolidated persistent Qdrant client lifecycle sweep
+
+### Goal
+Complete the remaining `try/finally` cleanup work across all production scripts that create persistent Qdrant clients, as one consolidated change rather than continuing file by file.
+
+### Files touched
+- `scripts/run_qdrant_indexing.py`
+- `scripts/check_qdrant_index.py`
+- `tests/test_qdrant_script_client_cleanup.py`
+
+### Inventory result
+- The two remaining unprotected production scripts were `run_qdrant_indexing.py` and `check_qdrant_index.py`.
+- API routes `query.py` and `readiness.py` already had guarded `finally` cleanup.
+- Answer smoke, query search, retrieval comparison, dense evaluation, hybrid evaluation, and hybrid weight experiment scripts already had guarded `finally` cleanup after Steps 78-83.
+- Direct client use in unit tests is test-scoped and was not treated as a production call-site gap.
+
+### What changed
+- Wrapped Qdrant indexing work and summary logging in `try/finally`.
+- Wrapped collection inspection, count, scroll, and sample logging in `try/finally`.
+- Removed the check script's branch-specific manual close before its early return.
+- Preserved successful indexing and inspection behavior.
+- Preserved early return when the collection is absent.
+- Preserved original indexing and inspection exceptions after cleanup.
+- Added five consolidated regression tests covering indexing success/failure, missing-collection early return, inspection success, and inspection failure.
+
+### Python/code pattern used
+```python
+client = create_persistent_qdrant_client(settings.qdrant_local_path)
+try:
+    # Perform indexing or collection inspection.
+finally:
+    client.close()
+```
+
+### Validation
+- Consolidated targeted tests: `python -m pytest tests/test_qdrant_script_client_cleanup.py -q` -> 5 passed.
+- Broader Qdrant lifecycle and API tests -> 49 passed.
+- Full suite: `python -m pytest -q` -> 210 passed.
+- Production call-site audit confirmed centralized cleanup in both Qdrant-using API routes and all eight persistent-client scripts.
+- Tracked diff whitespace validation passed; only Git line-ending conversion warnings were reported.
+
+### Production interpretation
+Indexing and inspection are operational scripts that are likely to be rerun immediately after a failure. Leaked local Qdrant handles can create file locks or stale state that makes recovery harder. The consolidated sweep establishes one consistent invariant: after a persistent client is created, every normal return and protected exception path closes it.
+
+### Failure-mode thinking
+The tests intentionally fail both an indexing upsert operation and a collection metadata inspection. They also exercise the missing-collection early return. In every case, cleanup runs while the original control flow remains intact: errors propagate, and the expected early return stays non-error behavior.
+
+## Step 85 - Dense retrieval evaluation fail-fast collection check
+
+### Goal
+Make `scripts/run_retrieval_eval.py` verify that its required Qdrant collection exists before starting embedding-backed dense searches.
+
+### Files touched
+- `scripts/run_retrieval_eval.py`
+- `tests/test_retrieval_eval_script.py`
+
+### What changed
+- Added a Qdrant collection-existence check immediately inside the existing `try/finally` lifecycle boundary.
+- Added an actionable missing-collection error directing operators to run the indexing script.
+- Ensured no dense search begins when the collection is missing.
+- Preserved client cleanup on missing-collection, successful evaluation, and search-failure paths.
+- Extended existing success and search-failure tests to assert the collection check.
+- Added a missing-collection regression test that fails if search is touched.
+
+### Python/code pattern used
+```python
+client = create_persistent_qdrant_client(settings.qdrant_local_path)
+try:
+    if not client.collection_exists(settings.qdrant_collection_name):
+        raise RuntimeError(
+            "Qdrant collection does not exist. Run scripts/run_qdrant_indexing.py first."
+        )
+
+    # Begin embedding-backed dense evaluation only after the dependency passes.
+finally:
+    client.close()
+```
+
+### Validation
+- Targeted retrieval evaluation script tests: `python -m pytest tests/test_retrieval_eval_script.py -q` -> 4 passed.
+- Broader retrieval/Qdrant tests -> 25 passed.
+- Full suite: `python -m pytest -q` -> 211 passed.
+- Diff whitespace validation passed; only Git line-ending conversion warnings were reported.
+
+### Production interpretation
+The dense evaluator has a hard dependency on an indexed Qdrant collection. Failing before search gives operators a clear recovery action and avoids starting embedding calls or producing backend-specific search errors after the prerequisite is already known to be absent.
+
+### Failure-mode thinking
+The missing-collection test uses a search fake that raises if called. The expected result is the actionable collection error, zero search calls, and a closed client. This proves both fail-fast behavior and lifecycle cleanup rather than merely checking the final exception text.
+
+## Step 86 - Evaluation script missing-collection regression coverage
+
+### Goal
+Lock down the existing fail-fast Qdrant collection contract in the remaining dense/hybrid evaluation scripts without changing already-correct production code.
+
+### Files touched
+- `tests/test_retrieval_comparison_script.py`
+- `tests/test_hybrid_retrieval_eval_script.py`
+- `tests/test_hybrid_weight_experiments_script.py`
+
+### What changed
+- Added a missing-collection regression test for dense-vs-lexical retrieval comparison.
+- Added a missing-collection regression test for hybrid retrieval evaluation.
+- Added a missing-collection regression test for hybrid weight experiments.
+- Configured fake clients to report the required collection as absent.
+- Used raising dense-search fakes to prove no embedding-backed retrieval was touched.
+- Verified the actionable indexing prerequisite error and client cleanup in every script.
+- Left production scripts unchanged because they already implemented the correct behavior.
+
+### Python/code pattern used
+```python
+fake_client = FakeQdrantClient(collection_exists=False)
+
+def unexpected_search(**kwargs):
+    raise AssertionError("search should not run without the required collection")
+
+with pytest.raises(
+    RuntimeError,
+    match="Qdrant collection does not exist.*run_qdrant_indexing.py",
+):
+    script.main()
+
+assert fake_client.closed is True
+```
+
+### Validation
+- Targeted evaluation script tests -> 12 passed.
+- Broader retrieval evaluation tests -> 35 passed.
+- Full suite: `python -m pytest -q` -> 214 passed.
+- Diff whitespace validation passed; only Git line-ending conversion warnings were reported.
+
+### Production interpretation
+The tests now protect a consistent pre-flight contract across dense baseline, comparison, hybrid evaluation, and weight-tuning CLIs. If indexing is missing, evaluation fails before embedding cost and returns the same operator recovery action while releasing the persistent client.
+
+### Failure-mode thinking
+Final exception assertions alone could pass even if a script performed an embedding call first. The raising search fakes deliberately break on any retrieval touch, proving the dependency check truly occurs before cost-bearing work.
+
+## Step 87 - Typed UI API client boundary
+
+### Goal
+Create a reusable, testable HTTP boundary for a future Streamlit UI without coupling presentation code directly to raw HTTP responses.
+
+### Files touched
+- `app/ui/__init__.py`
+- `app/ui/api_client.py`
+- `tests/test_ui_api_client.py`
+- `README.md`
+
+### What changed
+- Added `RagApiClient` with typed methods for `GET /health`, `GET /ready`, and `POST /query`.
+- Reused the existing Pydantic API request/response contracts.
+- Added base-URL normalization and positive timeout validation.
+- Added an injectable `httpx.Client` for deterministic tests.
+- Added safe `UiApiError` categories for timeout, unavailable backend, `503` not-ready, other HTTP errors, and invalid responses.
+- Prevented raw backend bodies and low-level network exception details from reaching the presentation layer.
+- Added owned-client context-manager cleanup while leaving injected-client ownership with the caller.
+- Updated the README to mark the UI client boundary complete and the visual Streamlit page as the next step.
+
+### Python/code pattern used
+```python
+with RagApiClient("http://127.0.0.1:8000", timeout=10.0) as api:
+    readiness = api.get_readiness()
+    result = api.query(QueryRequest(query="What changed?", limit=5))
+```
+
+### Validation
+- Targeted UI API client tests: `python -m pytest tests/test_ui_api_client.py -q` -> 8 passed.
+- Broader API/schema tests -> 40 passed.
+- Full suite: `python -m pytest -q` -> 222 passed.
+- Diff whitespace validation passed; only Git line-ending conversion warnings were reported.
+
+### Production interpretation
+The future UI can render typed domain responses and one safe error contract instead of interpreting status codes, arbitrary JSON, or low-level network exceptions itself. This keeps the Streamlit layer thin, makes failure behavior reusable, and catches backend contract drift through Pydantic validation.
+
+### Failure-mode thinking
+Mock transports deliberately return `503`, raise timeout and connection errors, emit malformed JSON, and return schema-incomplete JSON. Each case becomes a stable UI-safe error without leaking secret response-body or exception details. These tests make the client fail closed when backend contracts drift.
+
+## Step 88 - Streamlit grounded-query interface
+
+### Goal
+Build the first visual UI over the typed Step 87 API client while keeping readiness, validation, and failure behavior production-minded and testable.
+
+### Files touched
+- `app/ui/streamlit_app.py`
+- `tests/test_streamlit_ui.py`
+- `requirements.txt`
+- `README.md`
+
+### What changed
+- Added a Streamlit page with configurable backend URL and timeout.
+- Added a backend health/readiness check in the sidebar.
+- Added a grounded-query form with evidence limit, document family, release label, source kind, and optional minimum-score override.
+- Added Pydantic request validation before HTTP calls.
+- Added readiness gating before every cost-bearing query.
+- Added rendering for grounded answers, safe refusals, evidence sufficiency, citations, trace IDs, and optional model usage/cost.
+- Deliberately omitted the local trace output path from the UI.
+- Added `streamlit` to project dependencies and documented the two-terminal run workflow.
+- Added pure boundary tests for payload construction, blank-query rejection, readiness-before-query ordering, and not-ready query blocking.
+
+### Python/code pattern used
+```python
+with RagApiClient(api_base_url, timeout=timeout) as api:
+    readiness = api.get_readiness()
+    if not readiness.is_ready:
+        raise UiApiError(code="not_ready", message="The RAG API is not ready...")
+    response = api.query(request)
+```
+
+### Validation
+- Streamlit/UI client/README tests -> 18 passed.
+- Broader UI/API contract tests -> 47 passed.
+- Full suite: `python -m pytest -q` -> 227 passed.
+- Runtime dependency: Streamlit 1.52.2 was installed and callable.
+- Local browser visual QA confirmed the full form layout, backend-unavailable safe message, and blank-query validation.
+- The temporary Streamlit server used for QA was stopped afterward.
+
+### Production interpretation
+The UI remains a presentation layer: it builds a validated request, checks readiness, delegates HTTP policy to `RagApiClient`, and renders typed responses. A missing backend or dependency blocks retrieval/generation, while insufficient evidence remains a valid refusal response rather than a UI error.
+
+### Failure-mode thinking
+Tests and live QA intentionally exercised blank input, backend unavailability, and not-ready state. These cases never reach `POST /query`. The UI also avoids displaying raw exception bodies or the server's local trace path, reducing accidental leakage of implementation details.
+
+## Step 89 - Reproducible uv project migration
+
+### Goal
+Replace the unpinned, manually managed `requirements.txt` workflow with a reproducible `uv` project suitable for local development, CI, packaging, and deployment.
+
+### Files touched
+- `pyproject.toml`
+- `uv.lock`
+- `.python-version`
+- `requirements.txt` (removed)
+- `README.md`
+- `tests/test_readme_api_docs.py`
+- `tests/test_streamlit_ui.py`
+- `tests/test_uv_project_config.py`
+
+### What changed
+- Added standardized project metadata and Python policy in `pyproject.toml`.
+- Declared Python `>=3.12,<3.13` and added `.python-version` with `3.12`.
+- Moved runtime dependencies into `[project].dependencies`.
+- Moved `pytest` into the `dev` dependency group.
+- Added tested lower bounds and major-version ceilings for every direct runtime and development dependency.
+- Removed unused `pandas` as a direct dependency; it remains a transitive Streamlit dependency in the lock.
+- Generated the universal `uv.lock` with exact transitive versions.
+- Removed handwritten `requirements.txt` as a competing source of truth.
+- Converted backend, UI, smoke-test, indexing, and test commands to `uv run --locked`.
+- Documented locked sync, lock freshness checks, production-only sync, and generated pip export for platforms that require it.
+- Added repository tests protecting the uv metadata, lockfile, Python version, single-source dependency policy, and README workflow.
+
+### Python/code pattern used
+```toml
+[project]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi",
+    "httpx",
+    "openai",
+    "pydantic>=2",
+    "pydantic-settings",
+    "python-docx",
+    "qdrant-client",
+    "streamlit",
+    "uvicorn",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+```
+
+### Validation
+- `uv lock` -> resolved 72 packages.
+- `uv sync --locked` -> created `.venv` and installed the locked development environment.
+- Full suite: `uv run --locked pytest -q` -> 231 passed.
+- `uv lock --check` -> passed.
+- `uv export --locked --no-dev --format requirements-txt` -> generated a hashed pip-compatible export successfully.
+- `uv sync --locked --no-dev` -> production-only environment synchronized successfully.
+- Runtime-only import check -> FastAPI, HTTPX, OpenAI, Pydantic, pydantic-settings, python-docx, Qdrant, Streamlit, and Uvicorn imported successfully.
+- Development dependencies were restored afterward with `uv sync --locked`.
+- Refreshed the lock after adding compatibility bounds; all 72 packages and all direct locked versions remained unchanged.
+- `uv tree --locked --depth 1` confirmed the exact direct versions satisfy the declared ranges.
+- Bounded-dependency packaging/documentation tests -> 14 passed after correcting one stale test assertion that still expected an unversioned Streamlit dependency.
+- Final bounded-dependency full suite: `uv run --locked pytest -q` -> 231 passed with the same single upstream warning.
+
+### Warning observed
+The locked environment reports one upstream Starlette deprecation warning stating that its current `TestClient` use of `httpx` is deprecated in favor of `httpx2`. It does not fail tests. The lockfile makes the exact FastAPI/Starlette/HTTPX state reproducible so this can be upgraded deliberately rather than appearing unexpectedly on another machine.
+
+### Production interpretation
+The `.venv` remains disposable and Git-ignored. Deployments reproduce dependencies from `pyproject.toml` plus `uv.lock`, while `--locked` prevents silent dependency resolution changes. Development tooling is excluded with `--no-dev`, and pip requirements are generated only as a deployment adapter rather than manually maintained.
+
+The direct dependency ranges now encode the tested baseline and prevent accidental
+major-version upgrades during a future deliberate relock. Exact installed versions
+remain the responsibility of `uv.lock`.
+
+### Failure-mode thinking
+The migration was tested against newly resolved major dependency versions, not merely the preexisting global environment. Production-only sync deliberately removed pytest and its transitive tools, then verified every runtime import. Lock freshness and export checks protect CI from stale metadata and hosting platforms that still require pip-compatible inputs.
+
+## Step 90 - Locked GitHub Actions CI
+
+### Goal
+Make every push and pull request independently verify the locked Python 3.12
+environment and full regression suite.
+
+### Files touched
+- `.github/workflows/ci.yml`
+- `tests/test_ci_workflow.py`
+- `README.md`
+- `interview-questions.md`
+- `Steps_followed.md`
+
+### What changed
+- Added a least-privilege GitHub Actions workflow for pushes and pull requests.
+- Pinned the official Astral uv setup action to a commit SHA and pinned uv
+  `0.11.32`.
+- Configured Python 3.12 and lockfile-keyed dependency caching.
+- Added an explicit `uv lock --check` gate before installation.
+- Installed development dependencies with `uv sync --locked --dev`.
+- Ran the complete suite with `uv run --locked pytest -q`.
+- Kept CI independent of application secrets and live Qdrant/model services.
+- Added regression tests that protect the CI triggers, permissions, pins, and
+  locked commands.
+
+### Python/code pattern used
+```python
+def test_ci_rejects_lock_drift_and_runs_only_locked_project_commands() -> None:
+    workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "run: uv lock --check" in workflow
+    assert "run: uv sync --locked --dev" in workflow
+    assert "run: uv run --locked pytest -q" in workflow
+```
+
+### Production interpretation
+CI now rebuilds the project from committed metadata instead of trusting a
+developer's local `.venv`. Lock drift fails visibly, and tests run in a clean
+Linux environment before changes are merged.
+
+### Validation
+- CI/uv/README contract tests: 12 passed.
+- Full regression suite: 234 passed.
+- The existing upstream Starlette `TestClient`/HTTPX deprecation warning remains
+  non-failing.
+- Pytest's local cache was disabled for the full local run because this managed
+  workspace denied writes to `.pytest_cache`; test execution was unaffected.
+
+### Failure-mode thinking
+The workflow has a 15-minute timeout, read-only repository permissions, no
+secret dependency, and tests that fail if a future edit removes lock checking
+or replaces locked commands with auto-resolving commands.
+
+## Step 91 - Conversation domain and local persistence
+
+### Goal
+Create durable, conversation-scoped memory contracts without coupling the chat
+application to SQLite or prematurely implementing summarization.
+
+### Files touched
+- `app/conversation/__init__.py`
+- `app/conversation/models.py`
+- `app/conversation/store.py`
+- `app/core/config.py`
+- `tests/test_conversation_models.py`
+- `tests/test_conversation_store.py`
+- `README.md`
+- `docs/project_plan.md`
+- `interview-questions.md`
+- `Steps_followed.md`
+
+### What changed
+- Added immutable conversation, message, and summary-checkpoint records.
+- Added user and assistant message roles with deterministic per-conversation
+  sequence numbers.
+- Added a runtime-checkable `ConversationStore` protocol.
+- Added a durable local `SqliteConversationStore` using only the Python standard
+  library.
+- Added configurable storage through `CONVERSATION_DB_PATH`.
+- Added forward-only, versioned summary checkpoints without implementing summary
+  generation yet.
+- Added readable, write-protected conversation archiving.
+- Added idempotent cleanup and a safe use-after-close error.
+- Kept persistence independent from FastAPI, Streamlit, retrieval, and
+  generation.
+
+### Python/code pattern used
+```python
+@runtime_checkable
+class ConversationStore(Protocol):
+    def create_conversation(self, title: str = "New conversation") -> Conversation: ...
+    def add_message(
+        self,
+        conversation_id: str,
+        role: MessageRole,
+        content: str,
+        *,
+        trace_id: str | None = None,
+    ) -> ConversationMessage: ...
+    def save_summary(
+        self,
+        conversation_id: str,
+        summary_text: str,
+        *,
+        summarized_through_sequence: int,
+    ) -> ConversationSummary: ...
+```
+
+### Production interpretation
+SQLite provides local durability now, but application code depends on the store
+contract rather than SQL. A future Oracle-backed implementation can preserve the
+same conversation behavior while changing connection pooling, schema, and query
+details behind the adapter.
+
+### Validation
+- Focused conversation and documentation checks: 18 covered tests.
+- Full regression suite: 247 passed with the existing non-failing upstream
+  Starlette `TestClient`/HTTPX deprecation warning.
+- The focused suite covers configurable database location, durable reopen,
+  conversation isolation, ordered messages, summary versioning, stale and
+  future checkpoint rejection, archive behavior, missing conversations, and
+  cleanup.
+
+### Failure-mode thinking
+Tests intentionally attempt cross-conversation access patterns, backward and
+future summary checkpoints, writes to archived conversations, missing IDs, and
+store use after cleanup. Summary generation and token budgeting remain outside
+this step so persistence failures are isolated from model behavior.
+
+## Step 92 - Token-aware context budgeting and rolling summarization
+
+### Goal
+Bound conversation memory before prompt construction, preserve recent messages
+verbatim, and compact only older history into a durable rolling summary without
+treating chat memory as authoritative RAG evidence.
+
+### Files touched
+- `app/conversation/context.py`
+- `app/conversation/summarizer.py`
+- `app/conversation/__init__.py`
+- `app/core/config.py`
+- `tests/test_conversation_context.py`
+- `tests/test_conversation_summarizer.py`
+- `README.md`
+- `docs/project_plan.md`
+- `interview-questions.md`
+- `Steps_followed.md`
+
+### What changed
+- Added explicit token allocations for the complete model context, system
+  instructions, retrieved evidence, answer output, and rolling summaries.
+- Added an injectable `TokenCounter` contract and a dependency-free,
+  UTF-8-aware approximate counter for deterministic preflight estimates.
+- Added a `RollingConversationContextBuilder` that keeps context unchanged
+  below the threshold and summarizes only the older prefix above it.
+- Retained a configurable minimum recent-message suffix verbatim.
+- Consolidated each previous summary with newly compacted messages and advanced
+  the durable checkpoint only after validating the new summary.
+- Added an OpenAI-compatible conversation summarizer with instructions to
+  preserve intent and constraints, resist instructions embedded in history,
+  avoid invented facts and citations, and respect the output-token cap.
+- Kept summary memory explicitly separate from newly retrieved documentary
+  evidence.
+
+### Python/code pattern used
+```python
+budget = ContextBudget(
+    max_context_tokens=32_000,
+    reserved_system_tokens=2_000,
+    reserved_evidence_tokens=12_000,
+    reserved_answer_tokens=4_000,
+    summary_target_tokens=1_000,
+)
+
+context = RollingConversationContextBuilder(
+    store=store,
+    summarizer=summarizer,
+    token_counter=ApproximateTokenCounter(),
+    budget=budget,
+).build(conversation_id)
+```
+
+### Why it is implemented this way
+The complete model window is not available to chat history: system rules,
+freshly retrieved evidence, and output generation need protected capacity.
+Summarization is triggered by estimated tokens instead of message count because
+message lengths vary substantially. A recent suffix remains verbatim to retain
+exact follow-up details, while the versioned checkpoint identifies precisely
+which older messages the rolling summary replaces.
+
+Both token counting and summary generation are replaceable adapters. The local
+estimator avoids a new tokenizer dependency, while a future model-specific
+counter can provide exact accounting without changing the rolling policy.
+
+### Production interpretation
+The builder prevents unbounded chat growth from crowding out grounding
+evidence or exceeding the model window. Summary generation is cost-bearing only
+when the threshold is crossed. Durable checkpoints allow later requests to
+reuse the compacted state instead of repeatedly summarizing the full history.
+Conversation summaries help resolve follow-ups but cannot support
+functional-spec claims without fresh retrieved evidence and citations.
+
+### Validation
+- Focused conversation, configuration, summarizer, and documentation suite:
+  32 passed.
+- Full regression suite: 261 passed.
+- The existing upstream Starlette `TestClient`/HTTPX deprecation warning remains
+  non-failing.
+- `git diff --check` passed; Git reported only the existing Windows line-ending
+  normalization notices.
+
+### Failure-mode thinking
+Tests force token overflow, cross-conversation access, repeated rolling
+checkpoints, prompt-like instructions embedded in message history, blank model
+output, oversized summary output, and mandatory recent messages that cannot fit.
+Invalid summaries never advance the durable checkpoint. Impossible budgets fail
+explicitly rather than silently dropping messages or consuming evidence and
+answer reserves.
+
+## Step 93 - Conversation API and multi-turn message submission
+
+### Goal
+Expose durable conversation lifecycle and grounded multi-turn submission through
+FastAPI without duplicating the existing retrieval-answer orchestration or
+weakening the evidence boundary.
+
+### Files touched
+- `app/api/main.py`
+- `app/api/routes/query.py`
+- `app/api/routes/conversations.py`
+- `app/schemas/conversation_api.py`
+- `app/conversation/context.py`
+- `app/conversation/summarizer.py`
+- `app/conversation/__init__.py`
+- `app/llm/answer_contract.py`
+- `app/llm/prompt_template.py`
+- `app/services/answer_generation.py`
+- `app/services/answer_orchestration.py`
+- `tests/test_conversation_api.py`
+- `tests/test_prompt_template.py`
+- `tests/test_readme_api_docs.py`
+- `README.md`
+- `docs/project_plan.md`
+- `interview-questions.md`
+- `Steps_followed.md`
+
+### What changed
+- Added endpoints to create and list conversations, retrieve messages and the
+  current summary, archive conversations, and submit grounded messages.
+- Added typed request/response contracts with trimmed non-blank titles and
+  content, bounded input length, supported source-kind validation, and
+  structured conversation/turn metadata.
+- Added a per-request `ConversationStore` dependency so local connections close
+  safely and tests can replace persistence deterministically.
+- Reused the same query execution and grounded orchestration path as
+  `POST /query`.
+- Rendered bounded conversation history as explicitly marked prompt data.
+- Extended grounded prompting so memory may resolve conversational intent but
+  cannot support functional-spec claims without retrieved evidence.
+- Made the conversation summarizer client lazy so short histories do not create
+  a model client or require credentials before compaction is actually needed.
+- Persisted user messages before cost-bearing processing and assistant messages
+  only after a completed grounded result.
+
+### Python/code pattern used
+```python
+@router.post(
+    "/{conversation_id}/messages",
+    response_model=ConversationTurnResponse,
+)
+def submit_message(
+    conversation_id: str,
+    request: ConversationMessageRequest,
+    store: ConversationStore = Depends(get_conversation_store),
+) -> ConversationTurnResponse:
+    user_message = store.add_message(
+        conversation_id,
+        MessageRole.USER,
+        request.content,
+    )
+    context = build_conversation_context(store, conversation_id)
+    answer = execute_query_request(
+        QueryRequest(query=request.content, limit=request.limit),
+        conversation_context=render_conversation_context(context),
+    )
+    assistant_message = store.add_message(
+        conversation_id,
+        MessageRole.ASSISTANT,
+        answer.answer,
+        trace_id=answer.trace_id,
+    )
+```
+
+### Why it is implemented this way
+FastAPI handles transport validation, dependency lifecycle, status mapping, and
+response formatting while the store and grounded-query services retain domain
+and orchestration responsibilities. This prevents the chat API from becoming a
+second retrieval pipeline with different sufficiency, citation, or trace
+behavior.
+
+Persisting the user message first creates an honest durable record when a
+dependency fails. The assistant message is not created until a grounded answer
+or safe refusal exists. This allows a visible partial turn rather than
+fabricating success or silently losing the user's submitted question.
+
+### Production interpretation
+Clients can now reconstruct conversation history from durable storage instead
+of trusting Streamlit session state. Archive is a read-only lifecycle action,
+and assistant messages retain trace IDs for debugging. Memory is passed to the
+answer prompt as context only; retrieval evidence and citation validation remain
+the factual authority.
+
+The partial-turn contract requires future UI retry behavior and idempotency
+design. List endpoints also need pagination before a high-volume or multi-user
+deployment. Those concerns are explicit rather than hidden by the local API.
+
+### Validation
+- Focused conversation API, legacy query, prompt, orchestration, and README
+  contract suite: 32 passed.
+- Full regression suite: 270 passed.
+- The existing upstream Starlette `TestClient`/HTTPX deprecation warning remains
+  non-failing.
+- `git diff --check` passed with only Windows line-ending normalization notices.
+
+### Failure-mode thinking
+Tests cover unknown conversation IDs, cross-conversation history isolation,
+archived writes, invalid inputs, context overflow, downstream retrieval failure,
+safe error bodies, and persistence after partial failure. Overflow stops before
+the grounded query, archived chats cannot incur query cost, and backend failure
+leaves a user-only partial turn instead of inventing an assistant response.

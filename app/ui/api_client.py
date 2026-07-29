@@ -1,16 +1,24 @@
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import Any, TypeVar
+from urllib.parse import quote
 
 import httpx
-from pydantic import BaseModel, ValidationError
+from pydantic import TypeAdapter, ValidationError
 
+from app.schemas.conversation_api import (
+    ConversationDetailResponse,
+    ConversationMessageRequest,
+    ConversationResponse,
+    ConversationTurnResponse,
+    CreateConversationRequest,
+)
 from app.schemas.health_api import HealthResponse
 from app.schemas.query_api import QueryRequest, QueryResponse
 from app.schemas.readiness_api import ReadinessResponse
 
 
-ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
+ResponseModel = TypeVar("ResponseModel")
 
 
 class UiApiError(RuntimeError):
@@ -59,6 +67,60 @@ class RagApiClient:
             json=request.model_dump(exclude_none=True),
         )
 
+    def create_conversation(
+        self,
+        request: CreateConversationRequest,
+    ) -> ConversationResponse:
+        return self._request(
+            "POST",
+            "/conversations",
+            response_model=ConversationResponse,
+            json=request.model_dump(exclude_none=True),
+        )
+
+    def list_conversations(
+        self,
+        *,
+        include_archived: bool = False,
+    ) -> list[ConversationResponse]:
+        return self._request(
+            "GET",
+            f"/conversations?include_archived={'true' if include_archived else 'false'}",
+            response_model=list[ConversationResponse],
+        )
+
+    def get_conversation(
+        self,
+        conversation_id: str,
+    ) -> ConversationDetailResponse:
+        return self._request(
+            "GET",
+            f"/conversations/{_path_segment(conversation_id)}",
+            response_model=ConversationDetailResponse,
+        )
+
+    def archive_conversation(
+        self,
+        conversation_id: str,
+    ) -> ConversationResponse:
+        return self._request(
+            "POST",
+            f"/conversations/{_path_segment(conversation_id)}/archive",
+            response_model=ConversationResponse,
+        )
+
+    def submit_conversation_message(
+        self,
+        conversation_id: str,
+        request: ConversationMessageRequest,
+    ) -> ConversationTurnResponse:
+        return self._request(
+            "POST",
+            f"/conversations/{_path_segment(conversation_id)}/messages",
+            response_model=ConversationTurnResponse,
+            json=request.model_dump(exclude_none=True),
+        )
+
     def close(self) -> None:
         if self._owns_client:
             self._client.close()
@@ -74,7 +136,7 @@ class RagApiClient:
         method: str,
         path: str,
         *,
-        response_model: type[ResponseModel],
+        response_model: Any,
         json: dict[str, object] | None = None,
     ) -> ResponseModel:
         try:
@@ -96,10 +158,29 @@ class RagApiClient:
             ) from exc
 
         if response.status_code >= 400:
-            if response.status_code == 503:
+            safe_errors = {
+                404: (
+                    "not_found",
+                    "The selected conversation no longer exists. Refresh the conversation list.",
+                ),
+                409: (
+                    "archived",
+                    "The selected conversation is archived and cannot receive messages.",
+                ),
+                413: (
+                    "context_too_large",
+                    "The conversation is too large to process safely. Start a new chat or shorten the message.",
+                ),
+                503: (
+                    "not_ready",
+                    "The RAG API is not ready. Check backend readiness and dependencies.",
+                ),
+            }
+            if response.status_code in safe_errors:
+                code, message = safe_errors[response.status_code]
                 raise UiApiError(
-                    code="not_ready",
-                    message="The RAG API is not ready. Check backend readiness and dependencies.",
+                    code=code,
+                    message=message,
                     status_code=response.status_code,
                 )
             raise UiApiError(
@@ -110,7 +191,7 @@ class RagApiClient:
 
         try:
             payload = response.json()
-            return response_model.model_validate(payload)
+            return TypeAdapter(response_model).validate_python(payload)
         except (ValueError, ValidationError) as exc:
             raise UiApiError(
                 code="invalid_response",
@@ -124,3 +205,10 @@ def _normalize_base_url(base_url: str) -> str:
     if not cleaned:
         raise ValueError("base_url must not be blank")
     return cleaned
+
+
+def _path_segment(value: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError("conversation_id must not be blank")
+    return quote(cleaned, safe="")

@@ -4,6 +4,10 @@ import httpx
 import pytest
 
 from app.schemas.query_api import QueryRequest
+from app.schemas.conversation_api import (
+    ConversationMessageRequest,
+    CreateConversationRequest,
+)
 from app.ui.api_client import RagApiClient, UiApiError
 
 
@@ -55,6 +59,78 @@ def test_ui_api_client_posts_validated_query_payload() -> None:
     }
     assert result.is_answered is True
     assert result.citations[0].unit_id == "unit-1"
+
+
+def test_ui_api_client_supports_conversation_lifecycle_and_turns() -> None:
+    calls: list[tuple[str, str, dict | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content) if request.content else None
+        calls.append((request.method, request.url.path, payload))
+        if request.method == "POST" and request.url.path == "/conversations":
+            return httpx.Response(201, json=_conversation_payload())
+        if request.method == "GET" and request.url.path == "/conversations":
+            assert request.url.params["include_archived"] == "false"
+            return httpx.Response(200, json=[_conversation_payload()])
+        if request.method == "GET":
+            return httpx.Response(200, json=_conversation_detail_payload())
+        if request.url.path.endswith("/messages"):
+            return httpx.Response(200, json=_conversation_turn_payload())
+        if request.url.path.endswith("/archive"):
+            archived = _conversation_payload()
+            archived["is_archived"] = True
+            return httpx.Response(200, json=archived)
+        raise AssertionError(f"Unexpected request: {request.method} {request.url}")
+
+    with _client(handler) as api:
+        created = api.create_conversation(
+            CreateConversationRequest(title="Release chat")
+        )
+        listed = api.list_conversations()
+        detail = api.get_conversation("conversation-1")
+        turn = api.submit_conversation_message(
+            "conversation-1",
+            ConversationMessageRequest(content="What changed?"),
+        )
+        archived = api.archive_conversation("conversation-1")
+
+    assert created.title == "Release chat"
+    assert listed[0].conversation_id == "conversation-1"
+    assert detail.messages == []
+    assert turn.assistant_message.trace_id == "trace-1"
+    assert turn.answer.is_answered is True
+    assert archived.is_archived is True
+    assert calls[0][2] == {"title": "Release chat"}
+    assert calls[3][2] == {"content": "What changed?", "limit": 5}
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_code"),
+    [
+        (404, "not_found"),
+        (409, "archived"),
+        (413, "context_too_large"),
+        (503, "not_ready"),
+        (500, "http_error"),
+    ],
+)
+def test_ui_api_client_maps_conversation_failures_without_leaking_body(
+    status_code: int,
+    expected_code: str,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status_code,
+            json={"detail": "secret-server-detail"},
+        )
+
+    with _client(handler) as api:
+        with pytest.raises(UiApiError) as exc_info:
+            api.get_conversation("conversation-1")
+
+    assert exc_info.value.code == expected_code
+    assert exc_info.value.status_code == status_code
+    assert "secret-server-detail" not in str(exc_info.value)
 
 
 def test_ui_api_client_maps_readiness_503_without_leaking_body() -> None:
@@ -191,4 +267,49 @@ def _query_payload() -> dict[str, object]:
         "retrieval_metadata": None,
         "usage": None,
         "cost": None,
+    }
+
+
+def _conversation_payload() -> dict[str, object]:
+    return {
+        "conversation_id": "conversation-1",
+        "title": "Release chat",
+        "created_at_utc": "2026-07-29T00:00:00Z",
+        "updated_at_utc": "2026-07-29T00:00:00Z",
+        "is_archived": False,
+    }
+
+
+def _conversation_detail_payload() -> dict[str, object]:
+    return {
+        "conversation": _conversation_payload(),
+        "messages": [],
+        "summary": None,
+    }
+
+
+def _conversation_turn_payload() -> dict[str, object]:
+    return {
+        "user_message": {
+            "message_id": "message-1",
+            "conversation_id": "conversation-1",
+            "sequence_number": 1,
+            "role": "user",
+            "content": "What changed?",
+            "created_at_utc": "2026-07-29T00:00:00Z",
+            "trace_id": None,
+        },
+        "assistant_message": {
+            "message_id": "message-2",
+            "conversation_id": "conversation-1",
+            "sequence_number": 2,
+            "role": "assistant",
+            "content": "Grounded answer [C1].",
+            "created_at_utc": "2026-07-29T00:00:01Z",
+            "trace_id": "trace-1",
+        },
+        "answer": _query_payload(),
+        "context_estimated_tokens": 20,
+        "context_budget_tokens": 100,
+        "summarized_through_sequence": 0,
     }
