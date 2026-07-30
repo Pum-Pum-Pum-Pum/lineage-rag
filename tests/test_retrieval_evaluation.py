@@ -155,6 +155,44 @@ def test_evaluate_retrieval_results_supports_expected_failure_case() -> None:
     assert evaluation.outcome_as_expected is True
 
 
+def test_evaluate_retrieval_results_requires_all_coverage_markers() -> None:
+    case = RetrievalEvalCase(
+        case_id="multi_fact_case",
+        query="current teller and branch report counts",
+        filters=RetrievalEvalFilters(release_label="R24"),
+        expectation=RetrievalEvalExpectation(
+            expected_text_contains_all=[
+                "Currently a total of 23 reports",
+                "T-2 and T-3 will be consolidated into T-1",
+                "B-17 PNB Group Employee Transaction Report",
+            ],
+        ),
+    )
+    incomplete_results = [
+        QdrantSearchResult(
+            point_id="existing",
+            score=0.9,
+            payload={
+                "release_label": "R24",
+                "text": "Currently a total of 23 reports",
+            },
+        ),
+        QdrantSearchResult(
+            point_id="teller",
+            score=0.8,
+            payload={
+                "release_label": "R24",
+                "text": "T-2 and T-3 will be consolidated into T-1",
+            },
+        ),
+    ]
+
+    evaluation = evaluate_retrieval_results(case, incomplete_results)
+
+    assert evaluation.passed is False
+    assert "B-17 PNB Group Employee Transaction Report" in evaluation.failures[0]
+
+
 def test_evaluate_retrieval_results_flags_unsupported_marker_only_evidence() -> None:
     case = RetrievalEvalCase(
         case_id="unsupported_attachment_case",

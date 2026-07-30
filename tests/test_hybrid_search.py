@@ -47,6 +47,41 @@ def test_fuse_dense_and_lexical_results_respects_limit() -> None:
     assert len(results) == 2
 
 
+def test_rrf_keeps_r24_teller_and_branch_tables_in_final_top_five() -> None:
+    dense_results = [
+        _result("existing-counts", 0.63),
+        _result("requirements-summary", 0.59),
+        _result("document-title", 0.56),
+        _result("r2-background", 0.55),
+        _result("traceability-matrix", 0.46),
+    ]
+    lexical_results = [
+        _result("branch-realignment-table", 28.0),
+        _result("teller-realignment-table", 23.0),
+        _result("existing-counts", 20.8),
+        _result("business-requirements-table", 18.0),
+        _result("requirements-summary", 17.4),
+        _result("r2-background", 17.0),
+        _result("document-title", 11.2),
+    ]
+
+    results = fuse_dense_and_lexical_results(
+        dense_results=dense_results,
+        lexical_results=lexical_results,
+        limit=5,
+        dense_weight=0.4,
+        lexical_weight=0.6,
+    )
+
+    result_ids = [result.payload["unit_id"] for result in results]
+    assert "branch-realignment-table" in result_ids
+    assert "teller-realignment-table" in result_ids
+    assert "traceability-matrix" not in result_ids
+    assert all(0.0 <= result.score <= 1.0 for result in results)
+    assert results[0].payload["fusion_method"] == "weighted_rrf"
+    assert "raw_rrf_score" in results[0].payload
+
+
 def test_fuse_dense_and_lexical_results_rejects_invalid_inputs() -> None:
     try:
         fuse_dense_and_lexical_results([], [], limit=0)

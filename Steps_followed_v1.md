@@ -1,3 +1,9 @@
+--FastAPI::
+python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000 --reload
+
+--Streamlit::
+python -m streamlit run app/ui/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+
 # Steps Followed
 
 ## Step 1 — Project setup and architecture foundation

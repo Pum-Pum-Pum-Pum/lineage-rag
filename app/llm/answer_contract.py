@@ -23,6 +23,8 @@ class GroundedAnswerRequest:
     retrieved_results: list[QdrantSearchResult]
     sufficiency: EvidenceSufficiencyDecision
     conversation_context: str | None = None
+    current_state_requested: bool = False
+    effective_release_label: str | None = None
 
 
 @dataclass(frozen=True)

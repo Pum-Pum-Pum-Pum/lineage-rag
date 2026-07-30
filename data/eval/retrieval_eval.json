@@ -81,6 +81,25 @@
     }
   },
   {
+    "case_id": "r24_current_teller_and_branch_report_state",
+    "query": "Give me a summary: how many teller and branch reports are there currently?",
+    "filters": {
+      "release_label": "R24"
+    },
+    "expectation": {
+      "expected_to_pass": true,
+      "min_results": 4,
+      "expected_release_label": "R24",
+      "expected_top1_contains_any": ["Currently a total of 23 reports", "Existing Functionality"],
+      "expected_text_contains_all": [
+        "Currently a total of 23 reports",
+        "Existing Teller reports T-2 and T-3 will be consolidated into T-1 report",
+        "B-17 PNB Group Employee Transaction Report"
+      ]
+    },
+    "notes": "Requires baseline, teller realignment, and branch realignment evidence together so the latest deployed R24 state can be derived as 2 teller and 4 branch reports."
+  },
+  {
     "case_id": "r24_assumptions_extraction_logic_same",
     "query": "what is the assumption about extraction logic of reports",
     "filters": {

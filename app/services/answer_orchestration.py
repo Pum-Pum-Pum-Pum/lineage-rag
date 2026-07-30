@@ -11,7 +11,12 @@ from app.retrieval.evidence_sufficiency import (
     EvidenceSufficiencyDecision,
     assess_evidence_sufficiency,
 )
+from app.retrieval.hybrid_search import DEFAULT_RRF_RANK_CONSTANT
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
+from app.retrieval.temporal_query import (
+    build_temporal_query_plan,
+    scope_results_to_temporal_plan,
+)
 from app.services.answer_generation import generate_grounded_answer
 from app.services.answer_trace import AnswerTrace, build_answer_trace, write_answer_trace
 from app.services.query_retrieval import retrieve_query_evidence
@@ -59,20 +64,34 @@ def run_grounded_answer_query(
     one tested answer path.
     """
 
+    temporal_plan = build_temporal_query_plan(
+        query_text,
+        requested_release_label=release_label,
+        conversation_context=conversation_context,
+    )
+    retrieval_limit = (
+        max(limit, retrieval_config.hybrid_candidate_limit)
+        if temporal_plan.is_current_state
+        else limit
+    )
     routed = retrieve_query_evidence(
         qdrant_client=qdrant_client,
         collection_name=collection_name,
-        query_text=query_text,
+        query_text=temporal_plan.retrieval_query,
         embedding_model=embedding_model,
         embedding_client=embedding_client,
         retrieval_config=retrieval_config,
         lexical_artifact_directory=lexical_artifact_directory,
-        limit=limit,
+        limit=retrieval_limit,
         document_family=document_family,
-        release_label=release_label,
+        release_label=temporal_plan.effective_release_label,
         source_kind=source_kind,
     )
-    retrieval_results = routed.results
+    retrieval_results, temporal_plan = scope_results_to_temporal_plan(
+        routed.results,
+        temporal_plan,
+        limit=limit,
+    )
 
     sufficiency = assess_evidence_sufficiency(
         retrieval_results,
@@ -89,6 +108,12 @@ def run_grounded_answer_query(
     }
     if conversation_context is not None:
         answer_kwargs["conversation_context"] = conversation_context
+    if temporal_plan.is_current_state:
+        answer_kwargs["current_state_requested"] = True
+    if temporal_plan.effective_release_label is not None:
+        answer_kwargs["effective_release_label"] = (
+            temporal_plan.effective_release_label
+        )
     answer_response = generate_grounded_answer(
         **answer_kwargs,
     )
@@ -97,7 +122,7 @@ def run_grounded_answer_query(
         query=query_text,
         filters={
             "document_family": document_family,
-            "release_label": release_label,
+            "release_label": temporal_plan.effective_release_label,
             "source_kind": source_kind,
         },
         sufficiency=sufficiency,
@@ -109,7 +134,15 @@ def run_grounded_answer_query(
             "hybrid_dense_weight": retrieval_config.hybrid_dense_weight,
             "hybrid_lexical_weight": retrieval_config.hybrid_lexical_weight,
             "hybrid_candidate_limit": retrieval_config.hybrid_candidate_limit,
+            "hybrid_fusion_method": "weighted_rrf",
+            "hybrid_rrf_rank_constant": DEFAULT_RRF_RANK_CONSTANT,
             "limit": limit,
+            "retrieval_candidate_limit": retrieval_limit,
+            "original_query": temporal_plan.original_query,
+            "retrieval_query": temporal_plan.retrieval_query,
+            "current_state_requested": temporal_plan.is_current_state,
+            "effective_release_label": temporal_plan.effective_release_label,
+            "release_source": temporal_plan.release_source,
             "min_results": min_results,
             "min_top_score": min_top_score,
         },

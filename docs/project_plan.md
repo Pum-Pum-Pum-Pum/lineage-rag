@@ -994,11 +994,21 @@ The remaining work should proceed in this order, one practical step at a time:
    and multi-turn message submission.
 6. **Completed:** Streamlit multi-turn chat UI with conversation controls,
    durable history, citations/debug details, readiness state, and safe errors.
-7. Add end-to-end and evaluation coverage for follow-up resolution,
+7. **Completed:** Separate complete token-bounded LLM prompt evidence from short
+   API/UI citation previews, with safe oversized-unit refusal and BOR/B-04
+   regression protection.
+8. **Completed:** Replace normalized-score hybrid fusion with weighted RRF,
+   require multi-unit evidence coverage in evaluation, and preserve decisive
+   teller/branch tables for the demonstrated R24 ranking pattern.
+9. **Completed:** Add production-deployed latest-release temporal semantics,
+   conversation-aware release scoping, expanded current-state evidence
+   candidates, and answer-level assertions for the R24 current state of
+   2 teller and 4 branch reports.
+10. Add end-to-end and evaluation coverage for follow-up resolution,
    conversation isolation, summary drift, context overflow, abstention, and
    evidence grounding.
-8. Add security, audit, observability, and native Oracle-compatible deployment
+11. Add security, audit, observability, and native Oracle-compatible deployment
    packaging without Docker.
-9. Keep codebase retrieval, MCP integrations, and Oracle persistence/vector
+12. Keep codebase retrieval, MCP integrations, and Oracle persistence/vector
    adapters as future modular extensions after the core conversation experience
    is stable and measured.

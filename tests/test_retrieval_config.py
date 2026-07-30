@@ -16,12 +16,12 @@ class _FakeSettings:
     hybrid_candidate_limit: int = 10
 
 
-def test_settings_defaults_use_provisional_hybrid_configuration() -> None:
+def test_settings_defaults_use_rrf_hybrid_configuration() -> None:
     settings = Settings(_env_file=None)
 
     assert settings.retrieval_mode == "hybrid"
-    assert settings.hybrid_dense_weight == 0.60
-    assert settings.hybrid_lexical_weight == 0.40
+    assert settings.hybrid_dense_weight == 0.40
+    assert settings.hybrid_lexical_weight == 0.60
     assert settings.hybrid_candidate_limit == 10
 
 

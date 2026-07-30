@@ -297,6 +297,11 @@ readable but cannot receive new messages.
 ## Important operational notes
 
 - Dense and hybrid retrieval require a Qdrant collection.
+- Hybrid retrieval combines dense and lexical ordinal ranks with weighted
+  Reciprocal Rank Fusion (`0.40` dense, `0.60` lexical by default) rather than
+  adding incompatible normalized score scales. Result payloads retain raw
+  retriever scores, ranks, RRF contributions, and a bounded final hybrid score
+  for debugging.
 - Lexical-only retrieval uses local `.retrieval_ready.json` artifacts and does not require a Qdrant collection check.
 - `/health` is a cheap liveness/config check; `/ready` is a dependency/artifact readiness check.
 - If dense/hybrid mode is active and the Qdrant collection is missing, `POST /query` returns `503`.
@@ -306,6 +311,21 @@ readable but cannot receive new messages.
 - Answer traces are written locally for debugging and reproducibility.
 - Conversation summaries are context, not evidence, and never replace fresh
   retrieval or citation validation.
+- This corpus treats indexed functional releases as production-deployed.
+  Questions containing current/latest/now use the resulting state after the
+  highest relevant retrieved release. An `Existing Functionality` section in
+  that release is treated as its pre-change baseline.
+- Current-state queries retrieve a wider candidate set once, resolve release
+  labels numerically (`R24` after `R2`), remove older-release evidence, and then
+  pass the requested top-k evidence to generation. Referential conversation
+  queries such as “summarize it” may inherit an explicit release from bounded
+  conversation memory, but all factual claims still require fresh evidence.
+- LLM prompt evidence uses complete selected retrieval units; the 240-character
+  citation previews returned to API/UI clients are display metadata only and
+  are never used as the model's evidence.
+- Prompt evidence is admitted as whole ranked units within the reserved
+  evidence-token budget. If the highest-ranked unit cannot fit, generation
+  stops with a safe refusal instead of silently truncating the evidence.
 - A failed conversation turn may contain a persisted user message without an
   assistant message; clients should render this as retryable rather than assume
   strict user/assistant pairing.
@@ -332,6 +352,14 @@ Full regression suite:
 
 ```bash
 uv run --locked pytest -q
+```
+
+Evaluate a persisted answer trace against the R24 current-state contract:
+
+```bash
+uv run --locked python scripts/evaluate_answer_trace.py \
+  --trace data/exports/answer_runs/<trace-id>.json \
+  --case-id r24_current_teller_and_branch_report_state
 ```
 
 ## Continuous integration

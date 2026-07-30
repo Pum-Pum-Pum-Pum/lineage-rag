@@ -47,14 +47,14 @@ def test_run_grounded_answer_query_orchestrates_answer_flow(monkeypatch, tmp_pat
             results=[retrieved_result],
         )
 
-    def fake_generate_grounded_answer(query, retrieved_results, sufficiency, llm_client=None, model=None):
-        captured["answer_query"] = query
-        captured["answer_results"] = retrieved_results
-        captured["answer_sufficiency"] = sufficiency
-        captured["llm_client"] = llm_client
-        captured["llm_model"] = model
+    def fake_generate_grounded_answer(**kwargs):
+        captured["answer_query"] = kwargs["query"]
+        captured["answer_results"] = kwargs["retrieved_results"]
+        captured["answer_sufficiency"] = kwargs["sufficiency"]
+        captured["llm_client"] = kwargs["llm_client"]
+        captured["llm_model"] = kwargs["model"]
         return GroundedAnswerResponse(
-            query=query,
+            query=kwargs["query"],
             answer="Grounded answer [C1].",
             is_answered=True,
             refusal_reason=None,
@@ -151,3 +151,109 @@ def test_run_grounded_answer_query_refuses_when_evidence_is_insufficient(monkeyp
     assert trace_payload["request_id"] == "insufficient-request"
     assert trace_payload["retrieval_metadata"]["retrieval_mode"] == "lexical"
     assert trace_payload["answer_response"]["is_answered"] is False
+
+
+def test_current_query_expands_candidates_scopes_latest_release_and_marks_answer(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_retrieve_query_evidence(**kwargs):
+        captured["retrieve_kwargs"] = kwargs
+        return RoutedRetrievalResult(
+            retrieval_mode="hybrid",
+            results=[
+                QdrantSearchResult(
+                    point_id="r2",
+                    score=0.9,
+                    payload={
+                        "unit_id": "r2",
+                        "text": "Older R2 evidence",
+                        "release_label": "R2",
+                        "source_kind": "paragraph",
+                    },
+                ),
+                QdrantSearchResult(
+                    point_id="r24-teller",
+                    score=0.8,
+                    payload={
+                        "unit_id": "r24-teller",
+                        "text": "R24 teller realignment",
+                        "release_label": "R24",
+                        "source_kind": "table",
+                    },
+                ),
+                QdrantSearchResult(
+                    point_id="r24-branch",
+                    score=0.7,
+                    payload={
+                        "unit_id": "r24-branch",
+                        "text": "R24 branch realignment",
+                        "release_label": "R24",
+                        "source_kind": "table",
+                    },
+                ),
+            ],
+        )
+
+    def fake_generate_grounded_answer(**kwargs):
+        captured["answer_kwargs"] = kwargs
+        return GroundedAnswerResponse(
+            query=kwargs["query"],
+            answer="There are currently 2 teller and 4 branch reports [C1][C2].",
+            is_answered=True,
+            refusal_reason=None,
+            citations=[],
+        )
+
+    monkeypatch.setattr(
+        answer_orchestration,
+        "retrieve_query_evidence",
+        fake_retrieve_query_evidence,
+    )
+    monkeypatch.setattr(
+        answer_orchestration,
+        "generate_grounded_answer",
+        fake_generate_grounded_answer,
+    )
+
+    result = run_grounded_answer_query(
+        qdrant_client=object(),
+        collection_name="lineage_chunks",
+        query_text=(
+            "Give me a summary: how many teller and branch reports are "
+            "there currently?"
+        ),
+        embedding_model="test-embedding-model",
+        retrieval_config=RetrievalRuntimeConfig(
+            retrieval_mode="hybrid",
+            hybrid_dense_weight=0.4,
+            hybrid_lexical_weight=0.6,
+            hybrid_candidate_limit=10,
+        ),
+        lexical_artifact_directory=tmp_path / "processed",
+        trace_output_directory=tmp_path / "answer_runs",
+        limit=5,
+        min_top_score=0.3,
+        request_id="current-state-request",
+    )
+
+    retrieve_kwargs = captured["retrieve_kwargs"]
+    assert retrieve_kwargs["limit"] == 10
+    assert "resulting production state" in retrieve_kwargs["query_text"]
+    assert [item.point_id for item in result.retrieval_results] == [
+        "r24-teller",
+        "r24-branch",
+    ]
+    answer_kwargs = captured["answer_kwargs"]
+    assert answer_kwargs["current_state_requested"] is True
+    assert answer_kwargs["effective_release_label"] == "R24"
+    trace_payload = json.loads(
+        result.trace_output_path.read_text(encoding="utf-8")
+    )
+    assert trace_payload["filters"]["release_label"] == "R24"
+    assert (
+        trace_payload["retrieval_metadata"]["release_source"]
+        == "retrieved_candidates"
+    )

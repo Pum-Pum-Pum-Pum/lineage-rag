@@ -24,6 +24,7 @@ class RetrievalEvalExpectation:
     expected_marker_contains_any: list[str] | None = None
     expected_top1_contains_any: list[str] | None = None
     expected_text_contains_any: list[str] | None = None
+    expected_text_contains_all: list[str] | None = None
     unsupported_evidence_contains_any: list[str] | None = None
 
 
@@ -123,6 +124,22 @@ def evaluate_retrieval_results(
             failures.append(
                 "None of the expected text markers were found: "
                 f"{expectation.expected_text_contains_any}"
+            )
+
+    if expectation.expected_text_contains_all:
+        combined_text = "\n".join(
+            str(result.payload.get("text", ""))
+            for result in results
+        )
+        missing_text = [
+            expected_text
+            for expected_text in expectation.expected_text_contains_all
+            if expected_text not in combined_text
+        ]
+        if missing_text:
+            failures.append(
+                "Required evidence coverage markers were missing: "
+                f"{missing_text}"
             )
 
     if expectation.expected_marker_contains_any:

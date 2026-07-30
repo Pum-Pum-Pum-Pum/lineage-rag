@@ -1,4 +1,7 @@
+from types import SimpleNamespace
+
 from app.retrieval.evidence_sufficiency import EvidenceSufficiencyDecision
+from app.services import answer_generation
 from app.services.answer_generation import generate_grounded_answer
 from app.vectorstore.qdrant_search import QdrantSearchResult
 
@@ -124,3 +127,36 @@ def test_generate_grounded_answer_refuses_when_llm_returns_invalid_citation() ->
     assert response.is_answered is False
     assert response.refusal_reason is not None
     assert "Citation validation failed" in response.refusal_reason
+
+
+def test_generate_grounded_answer_refuses_without_llm_when_evidence_unit_exceeds_budget(
+    monkeypatch,
+) -> None:
+    fake_client = FakeOpenAIClient()
+    monkeypatch.setattr(
+        answer_generation,
+        "get_settings",
+        lambda: SimpleNamespace(
+            conversation_reserved_evidence_tokens=1,
+            llm_input_cost_per_1k_tokens=0.0,
+            llm_output_cost_per_1k_tokens=0.0,
+        ),
+    )
+
+    response = generate_grounded_answer(
+        query="What changed in branch reports?",
+        retrieved_results=[_result()],
+        sufficiency=EvidenceSufficiencyDecision(
+            is_sufficient=True,
+            reason="Evidence passed.",
+            result_count=1,
+            top_score=0.75,
+        ),
+        llm_client=fake_client,
+        model="test-model",
+    )
+
+    assert response.is_answered is False
+    assert "rather than silently truncate evidence" in response.answer
+    assert "token budget" in response.refusal_reason
+    assert fake_client.chat.completions.calls == []

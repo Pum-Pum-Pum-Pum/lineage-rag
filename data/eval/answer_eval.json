@@ -1,0 +1,31 @@
+[
+  {
+    "case_id": "r24_current_teller_and_branch_report_state",
+    "query": "Give me summary of it, how many teller and branch reports are there currently?",
+    "expectation": {
+      "required_answer_regex_all": [
+        "baseline|pre-change|before R24",
+        "6[^\\n]*Teller|Teller[^\\n]*6",
+        "17[^\\n]*(Branch|BO)|(Branch|BO)[^\\n]*17",
+        "(Teller reports (now|currently)|current Teller reports)[^\\n]*2",
+        "(Branch( \\(BO\\))? reports (now|currently)|current Branch reports)[^\\n]*4",
+        "\\bT-1\\b",
+        "\\bT-2\\b",
+        "\\bB-01\\b",
+        "\\bB-02\\b",
+        "\\bB-03\\b",
+        "\\bB-04\\b"
+      ],
+      "required_citation_release_label": "R24",
+      "required_citation_unit_contains_all": [
+        "chunk_3",
+        "table_chunk_6",
+        "table_chunk_7"
+      ],
+      "forbidden_answer_regex_any": [
+        "(currently|now)[^\\n]*(6[^\\n]*Teller|Teller[^\\n]*6)[^\\n]*(17[^\\n]*(Branch|BO)|(Branch|BO)[^\\n]*17)"
+      ]
+    },
+    "notes": "All indexed releases are deployed. Current therefore means the resulting state after R24, while 6 teller and 17 branch reports are historical baseline context."
+  }
+]
