@@ -362,6 +362,104 @@ uv run --locked python scripts/evaluate_answer_trace.py \
   --case-id r24_current_teller_and_branch_report_state
 ```
 
+The same evaluator also has an explicit abstention contract:
+
+```bash
+uv run --locked python scripts/evaluate_answer_trace.py \
+  --trace data/exports/answer_runs/<trace-id>.json \
+  --case-id unsupported_mobile_login_abstention
+```
+
+Conversation reliability coverage uses deterministic dependency doubles while
+exercising the real FastAPI, SQLite, context, grounding, and persistence
+boundaries:
+
+```bash
+uv run --locked pytest \
+  tests/test_conversation_rag_reliability_e2e.py \
+  tests/test_conversation_reliability_evaluation.py -q
+```
+
+This suite covers follow-up context, conversation isolation, summary identifier
+drift, safe context overflow behavior, abstention persistence, and invalid
+citation suppression. It is not a substitute for load, browser, live-model,
+semantic-entailment, or cross-browser evaluation.
+
+## API request correlation and safe audit events
+
+Every API response includes a validated `X-Request-ID`. Clients may supply an
+ID containing only letters, digits, `.`, `_`, `:`, or `-` up to 128 characters;
+invalid values are replaced with a generated UUID before logging. Query answer
+traces store this value as `correlation_id`, separately from the unique trace
+ID and filename.
+
+The `api_audit` logger emits one compact JSON event per request containing only:
+
+- event name
+- request ID
+- HTTP method
+- route template rather than concrete resource IDs
+- response status
+- elapsed milliseconds
+
+Request/response bodies, query text, conversation titles, credentials, client
+IP addresses, exception details, and concrete conversation IDs are excluded.
+Responses also set `Cache-Control: no-store`, `X-Content-Type-Options:
+nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a
+restricted `Permissions-Policy`.
+
+These controls improve correlation, log safety, and defensive API behavior.
+They do not provide authentication, authorization, rate limiting, transport
+TLS, centralized log retention, or tamper-evident auditing; those belong at the
+application identity layer and production platform boundary.
+
+## Native deployment bundle
+
+Docker is intentionally not required. Build a deterministic Python 3.12 runtime
+bundle for an approved native process supervisor:
+
+```bash
+python scripts/build_native_deployment.py
+```
+
+The default artifact is
+`data/exports/deployment/lineage-rag-native.zip`. It contains application and
+operational Python code, `pyproject.toml`, `uv.lock`, `.env.example`, the
+runtime process contract, and a SHA-256 manifest for every bundled file. ZIP
+ordering, metadata, and timestamps are fixed so identical source produces an
+identical archive hash.
+
+The package deliberately excludes `.env`, credentials, certificates, raw
+documents, processed retrieval artifacts, Qdrant state, conversations, traces,
+logs, virtual environments, tests, and generated exports. Mutable state must be
+provisioned and backed up separately.
+
+After extracting the bundle and injecting configuration through the approved
+secret mechanism:
+
+```bash
+uv sync --locked --no-dev
+uv run --locked --no-dev python scripts/check_deployment_preflight.py
+```
+
+For local validation only, a development environment label can be allowed:
+
+```bash
+python scripts/check_deployment_preflight.py --allow-development
+```
+
+Preflight checks Python 3.12, locked project files, a non-development
+environment label, presence—not values—of model configuration, retrieval state
+required by the active mode, and writable conversation/trace locations. It
+does not call embedding, chat, or vector services and never prints secret
+values.
+
+[`deployment/native_runtime.json`](deployment/native_runtime.json) records the
+locked install, preflight, FastAPI, and Streamlit command contracts. An
+Oracle-approved systemd, Windows Service, or other native supervisor must add
+restart policy, service identity, resource limits, TLS/reverse proxy,
+centralized logs, and secret injection after the actual target is selected.
+
 ## Continuous integration
 
 GitHub Actions runs the full Python 3.12 regression suite for every push and

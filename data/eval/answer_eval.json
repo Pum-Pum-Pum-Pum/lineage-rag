@@ -27,5 +27,17 @@
       ]
     },
     "notes": "All indexed releases are deployed. Current therefore means the resulting state after R24, while 6 teller and 17 branch reports are historical baseline context."
+  },
+  {
+    "case_id": "unsupported_mobile_login_abstention",
+    "query": "What is the mobile app login flow?",
+    "expectation": {
+      "required_answer_regex_all": [
+        "could not find sufficient evidence"
+      ],
+      "expected_is_answered": false,
+      "required_refusal_reason_regex": "below.*threshold|insufficient"
+    },
+    "notes": "An unrelated unsupported question must produce an explicit, machine-readable abstention rather than a plausible functional answer."
   }
 ]

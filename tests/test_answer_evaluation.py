@@ -73,3 +73,34 @@ def test_r24_current_state_answer_case_rejects_r2_or_missing_table_citations() -
     assert result.passed is False
     assert any("unexpected releases" in item for item in result.failures)
     assert any("Required citation units" in item for item in result.failures)
+
+
+def test_abstention_case_requires_refusal_state_and_reason() -> None:
+    cases = {
+        case.case_id: case
+        for case in load_answer_eval_cases("data/eval/answer_eval.json")
+    }
+    case = cases["unsupported_mobile_login_abstention"]
+
+    passing = evaluate_serialized_answer(
+        case,
+        answer=(
+            "I could not find sufficient evidence in the indexed documents "
+            "to answer this confidently."
+        ),
+        citations=[],
+        is_answered=False,
+        refusal_reason="Top score is below the required threshold.",
+    )
+    failing = evaluate_serialized_answer(
+        case,
+        answer="The mobile login uses an OTP.",
+        citations=[],
+        is_answered=True,
+        refusal_reason=None,
+    )
+
+    assert passing.passed is True
+    assert failing.passed is False
+    assert any("Answer state" in item for item in failing.failures)
+    assert any("Refusal reason" in item for item in failing.failures)

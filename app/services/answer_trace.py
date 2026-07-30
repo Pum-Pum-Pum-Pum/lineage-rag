@@ -22,6 +22,7 @@ class AnswerTrace:
     answer_response: GroundedAnswerResponse
     retrieval_results: list[dict]
     retrieval_metadata: dict[str, Any] | None = None
+    correlation_id: str | None = None
 
 
 def build_answer_trace(
@@ -32,6 +33,7 @@ def build_answer_trace(
     retrieval_results: list[QdrantSearchResult],
     request_id: str | None = None,
     retrieval_metadata: dict[str, Any] | None = None,
+    correlation_id: str | None = None,
 ) -> AnswerTrace:
     """Build a trace object for one answer-generation run."""
 
@@ -51,6 +53,7 @@ def build_answer_trace(
             for result in retrieval_results
         ],
         retrieval_metadata=retrieval_metadata,
+        correlation_id=correlation_id,
     )
 
 

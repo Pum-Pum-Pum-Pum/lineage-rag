@@ -46,6 +46,8 @@ def main() -> None:
         cases[args.case_id],
         answer=str(response["answer"]),
         citations=list(response.get("citations", [])),
+        is_answered=response.get("is_answered"),
+        refusal_reason=response.get("refusal_reason"),
     )
     print(json.dumps(asdict(result), indent=2))
     if not result.passed:

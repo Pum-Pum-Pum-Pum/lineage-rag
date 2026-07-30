@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.core.request_observability import get_request_id
 from app.retrieval.retrieval_config import build_retrieval_runtime_config
 from app.schemas.query_api import (
     CitationResponse,
@@ -79,6 +80,7 @@ def execute_query_request(
             release_label=request.release_label,
             source_kind=request.source_kind,
             conversation_context=conversation_context,
+            correlation_id=get_request_id(),
         )
         return _build_query_response(orchestration_result)
     except HTTPException:

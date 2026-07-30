@@ -45,4 +45,37 @@ def test_build_and_write_answer_trace(tmp_path: Path) -> None:
     assert payload["query"] == "branch reports realignment"
     assert payload["filters"]["release_label"] == "R24"
     assert payload["answer_response"]["is_answered"] is True
-    assert payload["retrieval_results"][0]["payload"]["unit_id"] == "doc::chunk_1"
+    assert (
+        payload["retrieval_results"][0]["payload"]["unit_id"]
+        == "doc::chunk_1"
+    )
+
+
+def test_answer_trace_keeps_correlation_separate_from_unique_trace_id(
+    tmp_path: Path,
+) -> None:
+    trace = build_answer_trace(
+        query="What changed?",
+        filters={},
+        sufficiency=EvidenceSufficiencyDecision(
+            is_sufficient=False,
+            reason="Insufficient evidence.",
+            result_count=0,
+            top_score=None,
+        ),
+        answer_response=GroundedAnswerResponse(
+            query="What changed?",
+            answer="I cannot answer.",
+            is_answered=False,
+            refusal_reason="Insufficient evidence.",
+            citations=[],
+        ),
+        retrieval_results=[],
+        correlation_id="api-request-123",
+    )
+
+    output = write_answer_trace(trace, tmp_path / "answer_runs")
+    payload = json.loads(output.read_text(encoding="utf-8"))
+
+    assert payload["correlation_id"] == "api-request-123"
+    assert payload["request_id"] != payload["correlation_id"]

@@ -13,6 +13,8 @@ class AnswerEvalExpectation:
     required_citation_release_label: str | None = None
     required_citation_unit_contains_all: list[str] | None = None
     forbidden_answer_regex_any: list[str] | None = None
+    expected_is_answered: bool | None = None
+    required_refusal_reason_regex: str | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +50,8 @@ def evaluate_serialized_answer(
     *,
     answer: str,
     citations: Sequence[dict[str, Any]],
+    is_answered: bool | None = None,
+    refusal_reason: str | None = None,
 ) -> AnswerEvalResult:
     failures: list[str] = []
     expectation = case.expectation
@@ -102,6 +106,27 @@ def evaluate_serialized_answer(
         if missing_units:
             failures.append(
                 f"Required citation units were missing: {missing_units}"
+            )
+
+    if (
+        expectation.expected_is_answered is not None
+        and is_answered is not expectation.expected_is_answered
+    ):
+        failures.append(
+            "Answer state did not match expectation: "
+            f"expected is_answered={expectation.expected_is_answered}, "
+            f"received {is_answered}."
+        )
+
+    if expectation.required_refusal_reason_regex:
+        if not refusal_reason or re.search(
+            expectation.required_refusal_reason_regex,
+            refusal_reason,
+            flags=re.IGNORECASE | re.DOTALL,
+        ) is None:
+            failures.append(
+                "Refusal reason did not match required pattern: "
+                f"{expectation.required_refusal_reason_regex}"
             )
 
     return AnswerEvalResult(

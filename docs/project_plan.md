@@ -1004,11 +1004,19 @@ The remaining work should proceed in this order, one practical step at a time:
    conversation-aware release scoping, expanded current-state evidence
    candidates, and answer-level assertions for the R24 current state of
    2 teller and 4 branch reports.
-10. Add end-to-end and evaluation coverage for follow-up resolution,
+10. **Completed:** Add end-to-end and evaluation coverage for follow-up resolution,
    conversation isolation, summary drift, context overflow, abstention, and
    evidence grounding.
-11. Add security, audit, observability, and native Oracle-compatible deployment
-   packaging without Docker.
+11. **In progress:** Add security, audit, observability, and native
+   Oracle-compatible deployment packaging without Docker.
+   - **Completed:** privacy-safe structured API audit events, validated request
+     correlation, defensive response headers, and answer-trace correlation.
+   - **Remaining:** identity-aware authentication/authorization and rate
+     controls once the deployment identity boundary is selected; centralized
+     audit retention.
+   - **Completed:** deterministic native Python 3.12 deployment bundle,
+     per-file SHA-256 manifest, external mutable-state contract, and offline
+     deployment preflight. OS service installation remains target-specific.
 12. Keep codebase retrieval, MCP integrations, and Oracle persistence/vector
    adapters as future modular extensions after the core conversation experience
    is stable and measured.

@@ -125,6 +125,7 @@ def test_query_endpoint_calls_orchestration_and_formats_response(monkeypatch, tm
 
     response = TestClient(create_app()).post(
         "/query",
+        headers={"X-Request-ID": "query-correlation-123"},
         json={
             "query": "What changed in branch reports?",
             "limit": 3,
@@ -159,6 +160,11 @@ def test_query_endpoint_calls_orchestration_and_formats_response(monkeypatch, tm
     assert orchestration_kwargs["document_family"] == "ASNB"
     assert orchestration_kwargs["release_label"] == "R24"
     assert orchestration_kwargs["source_kind"] == "paragraph"
+    assert (
+        orchestration_kwargs["correlation_id"]
+        == "query-correlation-123"
+    )
+    assert response.headers["X-Request-ID"] == "query-correlation-123"
     assert fake_client.collection_exists_calls == ["lineage_chunks"]
     assert fake_client.closed is True
 

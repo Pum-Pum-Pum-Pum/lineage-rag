@@ -54,6 +54,7 @@ def run_grounded_answer_query(
     source_kind: str | None = None,
     request_id: str | None = None,
     conversation_context: str | None = None,
+    correlation_id: str | None = None,
 ) -> AnswerOrchestrationResult:
     """Run the reusable retrieval -> sufficiency -> answer -> trace flow.
 
@@ -129,6 +130,7 @@ def run_grounded_answer_query(
         answer_response=answer_response,
         retrieval_results=retrieval_results,
         request_id=request_id,
+        correlation_id=correlation_id,
         retrieval_metadata={
             "retrieval_mode": routed.retrieval_mode,
             "hybrid_dense_weight": retrieval_config.hybrid_dense_weight,
