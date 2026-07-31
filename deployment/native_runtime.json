@@ -48,6 +48,7 @@
       "data/processed",
       "data/qdrant_local",
       "data/exports",
+      "data/exports/audit/api_audit.jsonl",
       "data/conversations.sqlite3"
     ]
   },

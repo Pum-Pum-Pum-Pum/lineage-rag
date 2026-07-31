@@ -9,6 +9,8 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
 
+from app.core.audit_journal import ApiAuditEvent
+from app.core.audit_sink import AuditSink
 from app.core.logging import get_logger
 
 
@@ -21,7 +23,10 @@ _request_id: ContextVar[str | None] = ContextVar(
 logger = get_logger("api_audit")
 
 
-def install_request_observability(app: FastAPI) -> None:
+def install_request_observability(
+    app: FastAPI,
+    audit_sink: AuditSink | None = None,
+) -> None:
     """Install request correlation, safe audit logging, and API headers."""
 
     @app.middleware("http")
@@ -43,20 +48,29 @@ def install_request_observability(app: FastAPI) -> None:
         finally:
             duration_ms = round((perf_counter() - started) * 1000, 3)
             route = request.scope.get("route")
-            route_template = getattr(route, "path", request.url.path)
-            logger.info(
-                json.dumps(
-                    {
-                        "event": "api_request_completed",
-                        "request_id": request_id,
-                        "method": request.method,
-                        "route": route_template,
-                        "status_code": status_code,
-                        "duration_ms": duration_ms,
-                    },
-                    separators=(",", ":"),
-                )
+            route_template = getattr(route, "path", "<unmatched>")
+            event = ApiAuditEvent(
+                event="api_request_completed",
+                request_id=request_id,
+                method=request.method,
+                route=route_template,
+                status_code=status_code,
+                duration_ms=duration_ms,
             )
+            logger.info(json.dumps(event.__dict__, separators=(",", ":")))
+            if audit_sink is not None:
+                try:
+                    audit_sink.append(event)
+                except Exception:
+                    logger.critical(
+                        json.dumps(
+                            {
+                                "event": "audit_journal_write_failed",
+                                "request_id": request_id,
+                            },
+                            separators=(",", ":"),
+                        )
+                    )
             _request_id.reset(token)
 
 

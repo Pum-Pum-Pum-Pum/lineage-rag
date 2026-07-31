@@ -413,6 +413,78 @@ They do not provide authentication, authorization, rate limiting, transport
 TLS, centralized log retention, or tamper-evident auditing; those belong at the
 application identity layer and production platform boundary.
 
+## Tamper-evident local audit journal
+
+The API can persist the same fixed-schema request events to a durable
+HMAC-SHA256 chained JSONL journal:
+
+```text
+AUDIT_JOURNAL_ENABLED=true
+AUDIT_SINK_BACKEND=hmac_jsonl
+AUDIT_JOURNAL_PATH=/approved/mutable-state/api_audit.jsonl
+AUDIT_HMAC_KEY=<secret containing at least 32 UTF-8 bytes>
+```
+
+The key must come from the approved secret store and must not be committed or
+placed beside the journal. Each record contains a sequence number, UTC
+timestamp, safe request event, previous-record HMAC, and record HMAC. The
+writer flushes and calls `fsync` before reporting success. If persistence fails,
+the request remains available and a content-free critical event is emitted;
+operations must alert on that event because the audit trail has a gap.
+
+Verify the chain without printing request events:
+
+```bash
+python scripts/verify_audit_journal.py
+```
+
+For suffix-deletion detection, provide a final HMAC and record count previously
+stored in a separate trusted system:
+
+```bash
+python scripts/verify_audit_journal.py \
+  --expected-record-count 1000 \
+  --expected-final-hmac <trusted-checkpoint>
+```
+
+An HMAC chain detects edits, insertion, and reordering while its key remains
+secret. It cannot detect deletion of a valid suffix without an external trusted
+checkpoint, and an attacker who obtains both journal and key can forge a new
+chain. The writer rejects a journal changed by another writer; the current
+native contract is therefore one API process. Centralized append-only
+retention, checkpoint custody, key rotation, multi-host ordering, access
+review, and retention deletion remain platform controls.
+
+FastAPI depends on an `AuditSink` protocol rather than directly on the JSONL
+file writer. The currently supported `hmac_jsonl` adapter declares
+`durable_on_return`, meaning its `append()` returns only after flush and
+`fsync`. The configured path may be a local path, mounted volume, or reachable
+network-filesystem path, but remote `fsync` durability and failure behavior must
+be validated for the actual filesystem and mount options.
+
+Future database, central collector, or grouped-commit adapters should be added
+behind this boundary. A buffered adapter must declare
+`accepted_not_durable` when returning before its batch is committed and must
+define queue limits, flush triggers, shutdown draining, backpressure, loss
+window, and health reporting. No such buffered adapter is enabled yet.
+
+Measure the local per-record HMAC, append, flush, and `fsync` cost before
+selecting a durability policy:
+
+```bash
+python scripts/benchmark_audit_journal.py \
+  --events 200 \
+  --warmup-events 10
+```
+
+The report is written to
+`data/exports/audit_benchmarks/audit-journal-benchmark.json`. The benchmark
+uses synthetic metadata, an ephemeral in-memory key, and a temporary journal
+that is removed afterward. It reports append p50/p95/p99/max latency, measured
+single-writer throughput, storage bytes per record, and full-chain verification
+time. It does not call retrieval or model services and is not an end-to-end
+capacity, concurrency, or production SLO test.
+
 ## Native deployment bundle
 
 Docker is intentionally not required. Build a deterministic Python 3.12 runtime
@@ -450,9 +522,10 @@ python scripts/check_deployment_preflight.py --allow-development
 
 Preflight checks Python 3.12, locked project files, a non-development
 environment label, presence—not values—of model configuration, retrieval state
-required by the active mode, and writable conversation/trace locations. It
-does not call embedding, chat, or vector services and never prints secret
-values.
+required by the active mode, a strong enabled audit-journal configuration, and
+writable conversation/trace locations. Development package validation may
+explicitly leave the journal disabled. Preflight does not call embedding, chat,
+or vector services and never prints secret values.
 
 [`deployment/native_runtime.json`](deployment/native_runtime.json) records the
 locked install, preflight, FastAPI, and Streamlit command contracts. An

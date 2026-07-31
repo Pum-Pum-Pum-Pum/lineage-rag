@@ -90,3 +90,21 @@ def test_audit_event_uses_route_template_and_excludes_request_body(
     assert event["duration_ms"] >= 0
     assert created["conversation_id"] not in caplog.text
     assert "private-title-must-not-be-logged" not in caplog.text
+
+
+def test_unmatched_route_does_not_log_attacker_controlled_path(
+    caplog,
+    tmp_path: Path,
+) -> None:
+    caplog.set_level(logging.INFO, logger="api_audit")
+    unsafe_path = "/missing/private-customer-identifier"
+    with SqliteConversationStore(tmp_path / "chat.sqlite3") as store:
+        response = _client(store).get(
+            unsafe_path,
+            headers={"X-Request-ID": "unmatched-1"},
+        )
+
+    assert response.status_code == 404
+    event = json.loads(caplog.records[-1].message)
+    assert event["route"] == "<unmatched>"
+    assert unsafe_path not in caplog.text

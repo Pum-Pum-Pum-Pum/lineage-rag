@@ -163,3 +163,296 @@ The bundle is not a signed supply-chain artifact and does not configure TLS,
 authentication, process restart, resource limits, centralized logging,
 backups, or zero-downtime rollout. Those controls belong to the confirmed
 deployment platform and release pipeline.
+
+## Step 101 - Tamper-evident local audit journal and verification boundary
+
+### Goal
+Persist the existing privacy-safe API request events in a durable integrity
+chain that can be verified locally and exported to a future approved central
+audit platform, without claiming that local mutable storage is immutable.
+
+### Files touched
+- `app/core/audit_journal.py`
+- `app/core/config.py`
+- `app/core/request_observability.py`
+- `app/api/main.py`
+- `app/deployment/preflight.py`
+- `scripts/verify_audit_journal.py`
+- `tests/test_audit_journal.py`
+- `tests/test_request_observability.py`
+- `tests/test_deployment_preflight.py`
+- `.env.example`
+- `deployment/native_runtime.json`
+- `README.md`
+- `docs/project_plan.md`
+- `Steps_followed.md`
+- `interview-questions.md`
+
+### Python/code pattern used
+```python
+unsigned = {
+    "sequence": sequence,
+    "event": asdict(safe_event),
+    "previous_hmac": previous_hmac,
+}
+record_hmac = hmac.new(
+    secret_key,
+    canonical_json(unsigned),
+    hashlib.sha256,
+).hexdigest()
+journal.write(canonical_json({**unsigned, "hmac_sha256": record_hmac}))
+journal.flush()
+os.fsync(journal.fileno())
+```
+
+### What the code does
+- Persists only the Step 99 fixed safe event schema, never request bodies,
+  prompts, titles, credentials, concrete resource IDs, IPs, or raw errors.
+- Chains each canonical JSONL record to the prior HMAC using a secret containing
+  at least 32 UTF-8 bytes.
+- Verifies schema, contiguous sequence, chain links, and every record HMAC on
+  startup or through an offline CLI.
+- Accepts an externally trusted final HMAC and count so verification can detect
+  deletion of an otherwise valid suffix.
+- Flushes and `fsync`s each record for a durability-first audit policy.
+- Rejects a file changed by another writer rather than silently forking the
+  chain.
+- Keeps API responses available on journal write failure and emits a minimal
+  critical event that must be alerted.
+- Requires enabled, strong, writable audit configuration in production
+  preflight while allowing explicit local development validation without it.
+
+### Why it is implemented this way
+A plain SHA-256 chain can be recomputed by anyone who can edit the journal.
+HMAC makes undetected rewriting depend on access to a separately held secret.
+Canonical JSON makes signing and verification deterministic. Sequence and
+previous-HMAC fields expose insertion, edits, and reordering.
+
+`fsync` favors audit durability over peak throughput. Fail-open request behavior
+avoids turning a log-volume failure into a total RAG outage, but it creates an
+audit gap; therefore the critical failure event is an operational page, not a
+harmless warning.
+
+### Production interpretation
+The final HMAC and record count are checkpoint material, not business evidence.
+They should be shipped to a separately controlled platform along with the
+journal. The HMAC key belongs in the approved secret store with access control
+and rotation procedures. Current retrieval evidence and validated citations
+remain the authority for functional answers; audit integrity does not make an
+answer grounded.
+
+The journal is a local integrity/export boundary, not centralized retention or
+WORM storage. The present native API command uses one process. Multi-worker or
+multi-host ordering should be delegated to the selected central audit service
+rather than approximated with one shared local file.
+
+### Failure-mode testing
+- Modified event content invalidates the HMAC and blocks writer startup.
+- Malformed UTF-8 returns a safe verification failure without echoing bytes.
+- Valid suffix deletion passes internal chain validation but fails when checked
+  against an externally trusted final count/HMAC.
+- A stale second writer is rejected instead of creating a silent fork.
+- An attacker-controlled unmatched URL path is recorded as `<unmatched>`.
+- A weak HMAC key fails production preflight without printing the key.
+- Simulated journal I/O failure leaves the API response available, emits only a
+  safe critical event, and does not expose the internal exception.
+
+### Validation
+- Focused audit/observability/deployment/package/docs suite: 20 passed.
+- Final core audit/observability/deployment suite after verifier hardening:
+  14 passed.
+- A first full run exposed 12 health/readiness failures because older settings
+  doubles did not define the new optional flag. App creation now uses a
+  backward-compatible disabled default; the affected suite then passed 25/25.
+- Final full regression suite: 316 passed.
+- One existing non-failing upstream Starlette `TestClient`/HTTPX deprecation
+  warning remains.
+- Two consecutive deployment builds were identical: 99 files, SHA-256
+  `8891058ce848c1ed2c66e2a61064c39a2b317dec90c676311893f4f323f78439`.
+- The bundle manifest includes `app/core/audit_journal.py` and
+  `scripts/verify_audit_journal.py`.
+
+## Step 102 - Measure local audit durability cost
+
+### Goal
+Measure the actual local cost of the Step 101 per-request HMAC, append, flush,
+and `fsync` policy before deciding whether production should use synchronous
+durability, grouped commits, or a central durable collector.
+
+### Files touched
+- `app/core/audit_benchmark.py`
+- `scripts/benchmark_audit_journal.py`
+- `tests/test_audit_benchmark.py`
+- `README.md`
+- `docs/project_plan.md`
+- `Steps_followed.md`
+- `interview-questions.md`
+
+### Python/code pattern used
+```python
+started = perf_counter_ns()
+journal.append(synthetic_event)
+latencies_ms.append((perf_counter_ns() - started) / 1_000_000)
+
+verification_started = perf_counter_ns()
+verification = verify_audit_journal(journal_path, ephemeral_key)
+verification_ms = (perf_counter_ns() - verification_started) / 1_000_000
+```
+
+### What the code does
+- Generates only synthetic request IDs and the fixed `/benchmark` route.
+- Creates a random ephemeral benchmark HMAC key in memory rather than reading or
+  exposing the production key.
+- Writes warm-up events, then measures individual durable append latency for a
+  configurable number of events.
+- Reports linearly interpolated p50, p95, p99, maximum latency, measured
+  single-writer throughput, journal size, average bytes per record, and
+  full-chain verification time.
+- Verifies the generated HMAC chain before accepting the measurement.
+- Removes the temporary journal and persists only an aggregate local JSON
+  report under `data/exports/audit_benchmarks/`.
+
+### Why it is implemented this way
+Durability policy should be based on measured storage behavior and the
+business's acceptable audit-loss window. Averages hide tail latency, so the
+report emphasizes percentiles and maximum latency. Warm-up operations reduce
+first-write noise. The temporary journal prevents synthetic events from
+contaminating the real audit trail.
+
+The benchmark does not disable `fsync` for comparison because the current
+production candidate is the durability-first writer. Grouped commit would be a
+separate implementation with a defined loss window and must not be simulated by
+silently weakening the existing writer.
+
+### Local result
+For 200 measured events after 10 warm-up events on the current Windows
+filesystem and Python 3.12.13:
+
+- p50 append latency: `3.392300 ms`
+- p95 append latency: `6.351130 ms`
+- p99 append latency: `7.638621 ms`
+- maximum append latency: `28.502300 ms`
+- measured single-writer throughput: `256.203 events/second`
+- average storage: `406.390 bytes/record`
+- verification time for 210 records: `10.213200 ms`
+
+Report:
+`data/exports/audit_benchmarks/audit-journal-benchmark.json`
+
+### Production interpretation
+On this one local run, synchronous audit durability adds several milliseconds
+to the request path and shows a materially higher maximum. That may be small
+relative to LLM latency, but health checks, refusals, cached operations, and
+future low-latency endpoints may feel the overhead more strongly.
+
+The `256 events/second` figure is not API capacity. It is a single-writer local
+journal result without concurrent requests, model calls, retrieval, central
+shipping, antivirus variation, production disks, or repeated-trial confidence
+intervals. Production selection still requires representative end-to-end load,
+p95/p99 SLOs, event volume, storage-growth projections, and an explicit maximum
+acceptable loss window.
+
+### Failure-mode testing
+- Empty or negative latency samples are rejected.
+- Zero measured events and negative warm-up counts fail before creating work.
+- The real benchmark verifies its chain before returning metrics.
+- Temporary synthetic journals are removed after the run.
+- The persisted report is checked not to contain HMAC key fields or query
+  content.
+
+### Validation
+- Focused audit benchmark/journal suite: 13 passed.
+- Full regression suite: 323 passed.
+- Existing non-failing upstream Starlette `TestClient`/HTTPX warning remains.
+- Two consecutive native bundle builds were identical: 101 files, SHA-256
+  `5d8fd5c25585bb1db2a8e34b0e20e69b75e494b47bf4d90d5bd6a8931fbc31c8`.
+- The bundle includes `app/core/audit_benchmark.py` and
+  `scripts/benchmark_audit_journal.py`.
+
+## Step 103 - Extract a storage-neutral audit sink boundary
+
+### Goal
+Decouple FastAPI request auditing from the local JSONL implementation so the
+storage target can later become a mounted/network filesystem, database, central
+collector, or grouped-commit writer without changing request middleware or
+copying privacy logic.
+
+### Files touched
+- `app/core/audit_sink.py`
+- `app/core/config.py`
+- `app/core/request_observability.py`
+- `app/api/main.py`
+- `app/deployment/preflight.py`
+- `tests/test_audit_sink.py`
+- `tests/test_deployment_preflight.py`
+- `.env.example`
+- `README.md`
+- `docs/project_plan.md`
+- `Steps_followed.md`
+- `interview-questions.md`
+
+### Python/code pattern used
+```python
+class AuditSink(Protocol):
+    backend: str
+    durability: Literal["durable_on_return", "accepted_not_durable"]
+
+    def append(self, event: ApiAuditEvent) -> AuditAppendResult: ...
+
+audit_sink = build_audit_sink(settings)
+install_request_observability(app, audit_sink)
+```
+
+### What the code does
+- Introduces an `AuditSink` protocol containing only the privacy-safe event
+  append contract and explicit durability semantics.
+- Wraps the existing `AuditJournal` in `HmacJsonlAuditSink` without weakening
+  its HMAC, flush, `fsync`, verification, or failure behavior.
+- Declares the current adapter `durable_on_return` and returns a checkpoint in
+  a storage-neutral result object.
+- Moves backend construction into one factory, leaving FastAPI unaware of file
+  paths, JSONL serialization, HMAC keys, or future database clients.
+- Adds `AUDIT_SINK_BACKEND=hmac_jsonl`; disabled audit still builds no sink.
+- Rejects unsupported production backends before service startup/preflight.
+
+### Why it is implemented this way
+Changing the existing path already supports another local directory, mounted
+volume, or syntactically valid network path. That does not make a network share
+equivalent to a local durable disk: remote caching, acknowledgements, mount
+options, disconnects, locking, and server failure change what `fsync` means.
+
+A database adapter should own its transaction, schema, integrity, retry, and
+idempotency behavior. A grouped adapter should own its queue, batch commit,
+backpressure, shutdown, and loss-window contract. Keeping those policies behind
+one protocol prevents storage-specific code from entering request middleware.
+
+### Production interpretation
+The boundary improves maintainability; it does not prove that every future
+adapter is safe. `durable_on_return` means the current call has completed local
+flush/`fsync` under the filesystem's contract. `accepted_not_durable` is
+reserved for a future buffered adapter whose acknowledged events can still be
+lost before batch commit.
+
+The next grouped-commit experiment must compare performance and failure loss
+against the Step 102 synchronous baseline. It must not silently change the
+production default or claim remote durability without deployment-specific
+evidence.
+
+### Failure-mode testing
+- Disabled auditing produces no sink and performs no storage initialization.
+- The HMAC JSONL adapter persists and verifies a valid chain through the new
+  boundary.
+- Unknown backend configuration fails without echoing the attacker-controlled
+  backend value.
+- Production preflight rejects unsupported backends with a safe message.
+- Existing middleware, audit failure, health, readiness, and deployment tests
+  confirm the refactor preserves current behavior.
+
+### Validation
+- Focused sink/journal/observability/preflight/health/readiness suite: 30 passed.
+- Full regression suite: 327 passed.
+- One existing non-failing upstream Starlette `TestClient`/HTTPX deprecation
+  warning remains.
+- Two consecutive native bundles were identical: 102 files, SHA-256
+  `3ffa4df318a23c164570bc65c41f0bc03bc5a427cc343c7452754ea6cfc07059`.
+- The bundle contains `app/core/audit_sink.py`.

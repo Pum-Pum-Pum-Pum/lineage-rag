@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,22 @@ class Settings(BaseSettings):
     cache_dir: Path = ROOT_DIR / "data" / "cache"
     eval_dir: Path = ROOT_DIR / "data" / "eval"
     exports_dir: Path = ROOT_DIR / "data" / "exports"
+    audit_journal_enabled: bool = Field(
+        default=False,
+        alias="AUDIT_JOURNAL_ENABLED",
+    )
+    audit_sink_backend: str = Field(
+        default="hmac_jsonl",
+        alias="AUDIT_SINK_BACKEND",
+    )
+    audit_journal_path: Path = Field(
+        default=ROOT_DIR / "data" / "exports" / "audit" / "api_audit.jsonl",
+        alias="AUDIT_JOURNAL_PATH",
+    )
+    audit_hmac_key: SecretStr = Field(
+        default=SecretStr(""),
+        alias="AUDIT_HMAC_KEY",
+    )
     conversation_db_path: Path = Field(
         default=ROOT_DIR / "data" / "conversations.sqlite3",
         alias="CONVERSATION_DB_PATH",

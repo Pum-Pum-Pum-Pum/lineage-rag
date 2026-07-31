@@ -46,6 +46,7 @@ def run_deployment_preflight(
         _required_files_check(root),
         _environment_check(settings, allow_development),
         _model_configuration_check(settings),
+        _audit_integrity_check(settings, allow_development),
         _retrieval_state_check(settings),
         _writable_runtime_parent_check(settings),
     ]
@@ -116,6 +117,62 @@ def _model_configuration_check(settings: Any) -> DeploymentCheck:
             if not missing
             else "Missing required model configuration: " + ", ".join(missing)
         ),
+    )
+
+
+def _audit_integrity_check(
+    settings: Any,
+    allow_development: bool,
+) -> DeploymentCheck:
+    enabled = bool(getattr(settings, "audit_journal_enabled", False))
+    backend = str(
+        getattr(settings, "audit_sink_backend", "hmac_jsonl")
+    ).strip().lower()
+    environment = str(getattr(settings, "environment", "")).strip().lower()
+    is_development = environment in {"dev", "development", "test"}
+    secret = getattr(settings, "audit_hmac_key", "")
+    if hasattr(secret, "get_secret_value"):
+        secret = secret.get_secret_value()
+    key_is_strong = len(str(secret).encode("utf-8")) >= 32
+    path = Path(
+        getattr(
+            settings,
+            "audit_journal_path",
+            Path(settings.exports_dir) / "audit" / "api_audit.jsonl",
+        )
+    )
+    parent = path.parent
+    parent_is_writable = parent.exists() and os.access(parent, os.W_OK)
+
+    if allow_development and is_development and not enabled:
+        return DeploymentCheck(
+            name="audit_integrity",
+            passed=True,
+            detail=(
+                "Audit journal is disabled only for local package validation."
+            ),
+        )
+    backend_is_supported = backend == "hmac_jsonl"
+    passed = (
+        enabled
+        and backend_is_supported
+        and key_is_strong
+        and parent_is_writable
+    )
+    if not enabled:
+        detail = "Enable the audit journal for a deployed environment."
+    elif not backend_is_supported:
+        detail = "Configure a supported audit sink backend."
+    elif not key_is_strong:
+        detail = "Configure an audit HMAC key of at least 32 UTF-8 bytes."
+    elif not parent_is_writable:
+        detail = "Audit journal parent path is missing or not writable."
+    else:
+        detail = "Audit journal integrity configuration is present."
+    return DeploymentCheck(
+        name="audit_integrity",
+        passed=passed,
+        detail=detail,
     )
 
 

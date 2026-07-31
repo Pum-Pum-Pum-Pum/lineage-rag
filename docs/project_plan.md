@@ -1011,12 +1011,119 @@ The remaining work should proceed in this order, one practical step at a time:
    Oracle-compatible deployment packaging without Docker.
    - **Completed:** privacy-safe structured API audit events, validated request
      correlation, defensive response headers, and answer-trace correlation.
+   - **Completed:** optional durable HMAC-chained local audit journal, offline
+     integrity verification, trusted checkpoint support for suffix-deletion
+     detection, and production preflight enforcement.
+   - **Completed:** synthetic privacy-safe local benchmark for per-record
+     HMAC/append/flush/fsync latency, single-writer throughput, storage growth,
+     and chain-verification cost.
+   - **Completed:** storage-neutral `AuditSink` boundary with explicit durability
+     semantics and a synchronous HMAC-JSONL adapter; future grouped, database,
+     network collector, and centralized adapters remain separate choices.
    - **Remaining:** identity-aware authentication/authorization and rate
      controls once the deployment identity boundary is selected; centralized
-     audit retention.
+     append-only audit shipping/retention, checkpoint custody, and key rotation.
    - **Completed:** deterministic native Python 3.12 deployment bundle,
      per-file SHA-256 manifest, external mutable-state contract, and offline
      deployment preflight. OS service installation remains target-specific.
 12. Keep codebase retrieval, MCP integrations, and Oracle persistence/vector
    adapters as future modular extensions after the core conversation experience
    is stable and measured.
+
+---
+
+## 19. Approved knowledge-expansion roadmap after Step 103
+
+### Current verified baseline
+
+- The active corpus contains two deployed delta FDDs.
+- The system supports release-aware grounded RAG, cumulative current-state
+  synthesis, conversation-scoped memory, weighted-RRF hybrid retrieval,
+  validated citations, safe refusals, and local answer traces.
+- FastAPI request auditing is decoupled behind a storage-neutral `AuditSink`;
+  the current HMAC-JSONL adapter remains synchronous and
+  `durable_on_return`.
+- The full regression suite passes 327 tests with one existing non-failing
+  upstream Starlette `TestClient`/HTTPX deprecation warning.
+- The latest deterministic native bundle contains 102 files and has SHA-256
+  `3ffa4df318a23c164570bc65c41f0bc03bc5a427cc343c7452754ea6cfc07059`.
+- Security and deployment hardening is paused after Step 103. Grouped audit
+  commits, authentication, authorization, centralized audit retention,
+  platform supervision, and production deployment work are deferred until the
+  knowledge capabilities below are stable and evaluated.
+
+### Architecture decision
+
+Continue as one modular product with shared API, UI, conversation,
+observability, and evaluation foundations. Keep FDDs, custom code, Oracle
+schema metadata, and SQL examples in separate knowledge lanes with their own
+ingestion, indexes, retrieval thresholds, citations, and evaluation suites.
+Do not create three independent applications or prematurely split the system
+into microservices.
+
+### Phase 1 - Expand FDD lineage RAG
+
+- Add 3-5 deployed delta FDDs.
+- Preserve cumulative release semantics and current-state synthesis.
+- Build versioned staging artifacts and indexes before activation, retaining
+  the prior active version for rollback.
+- Require SME-reviewed document-specific, cross-release, conflict, abstention,
+  and citation evaluation cases.
+- Gate progression on valid ingestion, retrieval recall@10 of at least `0.90`,
+  correct release selection, valid citations, safe refusals, and at least `90%`
+  SME-reviewed answer correctness.
+
+### Phase 2 - Custom JavaScript and PL/SQL understanding
+
+- Ingest only FDD-linked custom modules from manual TortoiseSVN exports pinned
+  to repository revisions.
+- Generate deterministic content manifests and identify added, modified,
+  deleted, and renamed files between snapshots.
+- Index an explicit JavaScript and PL/SQL source allowlist. Exclude hidden
+  kernel Java, generated, minified, vendor, binary, credential, and
+  secret-bearing configuration files.
+- Parse JavaScript with Tree-sitter and PL/SQL with a pinned ANTLR grammar.
+  Preserve parser versions and diagnostics, and use conservative file/line
+  fallback chunks when syntax is unsupported.
+- Store symbols, dependency edges, snapshot IDs, SVN revisions, repository
+  paths, content hashes, and line ranges.
+- Maintain curated FDD-release to SVN-snapshot mappings as the authority for
+  cross-source version alignment.
+- Support evidence-backed explanation and impact analysis only. Do not generate
+  code changes at this stage.
+- Treat hidden Java kernel behavior and unresolved dynamic SQL as explicit
+  unknowns rather than inferred implementation evidence.
+
+### Phase 2B - Combined and bounded agentic analysis
+
+- Keep FDD and code indexes, retrieval thresholds, citations, and evaluation
+  suites separate.
+- Add explicit `fdd`, `code`, and `combined` user modes.
+- In combined mode, retrieve each evidence type independently and present
+  separate documented-functionality and visible-custom-implementation sections.
+- Introduce bounded FDD-search, code-search, and impact-graph tools only after
+  the deterministic combined workflow passes evaluation.
+- Do not enable automatic routing initially.
+
+### Phase 3 - Oracle Text-to-SQL
+
+- Run a separate MCP metadata service using approved application schemas from
+  the test Oracle database.
+- Expose schema metadata only. Do not expose arbitrary query execution, DDL,
+  DML, row access, or unrestricted database tools.
+- Maintain separate versioned Oracle schema and curated SQL-example stores.
+- Use more than 50 SME-reviewed natural-language intent and Oracle `SELECT`
+  examples with leakage-resistant retrieval, development, and held-out test
+  partitions.
+- Generate, explain, cite, and validate exactly one Oracle `SELECT` statement
+  without executing it.
+- Validate statement type, approved objects, identifiers, joins, ambiguity,
+  synonyms, and prompt-injection cases.
+- Defer fine-tuning until retrieval, prompting, schema linking, and held-out
+  error analysis demonstrate a persistent model behavior gap.
+
+### Phase sequencing and gates
+
+Proceed sequentially: FDD expansion, code retrieval, deterministic combined
+analysis, bounded tool orchestration, and then Text-to-SQL. Each phase must
+pass its evaluation gate before implementation begins on the next phase.

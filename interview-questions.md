@@ -198,3 +198,367 @@ rollback testing, and load/failure validation.
 
 #### Gate
 Step 100 interview gate accepted.
+
+## Step 101 - Tamper-evident local audit journal and verification boundary
+
+### Questions asked
+1. Why is a keyed HMAC chain materially stronger than a plain SHA-256 chain for
+   a mutable local audit file, and what attacker can still forge it?
+2. Why can a completely valid internal chain fail to reveal deletion of its
+   last records, and what exact external checkpoint closes that gap?
+3. The API deliberately fails open when `fsync` or journal writing fails. What
+   availability benefit and compliance/reliability risk does that create, and
+   what operational response is required?
+4. Why does the current local journal reject a stale second writer, and how
+   should multi-worker or multi-host audit ordering be solved in production?
+5. Does a valid audit HMAC prove that a RAG answer is factually correct and
+   grounded? Explain the separate evidence controls still required.
+
+### Correct answer key
+1. A plain hash chain can be recalculated after modification by anyone with
+   write access. HMAC verification requires a separately protected secret.
+   An attacker who obtains both journal write access and the HMAC key can forge
+   a replacement chain; key custody, access controls, rotation, and external
+   checkpoints remain necessary.
+2. Removing a valid suffix leaves the earlier sequence and HMAC links internally
+   consistent. Compare both the final HMAC and record count with a checkpoint
+   previously stored in a separate trusted, append-only system.
+3. Fail-open preserves query availability and prevents an audit disk outage
+   from becoming a total service outage. It permits an audit gap, so a safe
+   critical event must page operations; traffic may need to be drained or the
+   service placed in a governed degraded mode according to policy. Capacity,
+   permissions, recovery, and reconciliation must be tested.
+4. Independent writers can start from the same previous HMAC and fork or
+   interleave the chain. The local boundary therefore detects an external
+   change and is limited to one writer. Production multi-process/host events
+   should be shipped independently to an approved centralized append-only
+   service that supplies ordering, durable ingestion, retention, and integrity
+   controls.
+5. No. HMAC proves integrity/authenticity of recorded metadata under the key
+   assumptions, not truth or semantic entailment. Functional claims still need
+   fresh retrieval, current-release planning, sufficient complete evidence,
+   validated citations, safe abstention, and answer/evidence evaluation.
+
+### Gate
+Step 101 implementation is complete. Await the user's answers before selecting
+the next step.
+
+### User answer evaluation - Step 101 - 2026-07-30
+
+#### Overall verdict
+Partial pass; gate not yet accepted. The user correctly located audit creation
+around the FastAPI request boundary, distinguished the main local artifacts,
+identified the privacy-minimized event fields, and explained `flush` versus
+`fsync`. The operational conclusion about disabling audit because the tool is
+internal is not sufficiently risk-based, and memory/context overflow was
+incorrectly mixed with audit-storage failure.
+
+#### What was strong
+- Q1 correctly says the audit layer records the API operation rather than RAG
+  message and evidence contents.
+- Q2 broadly separates conversation continuity, answer debugging/evaluation,
+  and request-level operational records.
+- Q3 correctly identifies request metadata and deliberate content omission.
+- Q4 accurately separates Python-buffer flushing from OS durability and names
+  the per-request latency tradeoff.
+
+#### Required corrections
+- The middleware surrounds every FastAPI request; audit creation is not merely
+  "at the call to FastAPI."
+- Conversation summaries supply conversational context only. They are not
+  functional-spec retrieval evidence, and cannot replace fresh retrieval and
+  validated citations.
+- The audit identifier is a validated correlation/request ID, not a business
+  primary key. The event records the route template, not the concrete URL.
+- Conversation token-memory overflow is unrelated to audit persistence.
+  Relevant audit failures include full/unavailable disk, permissions, corrupt
+  journal, concurrent writer, missing/weak key, and failed central shipping.
+- Internal users can still make unauthorized, mistaken, or disputed actions.
+  Audit requirements follow data sensitivity, action impact, regulation, and
+  incident-response needs, not simply whether users are external.
+- Disabling the journal removes durable local integrity evidence; the ordinary
+  structured logger event remains, but it is not equivalent to a verified
+  audit chain.
+- `fsync` policy should be selected from measured latency/throughput and loss
+  tolerance. Alternatives such as grouped commits or a durable collector reduce
+  request-path cost but introduce a defined loss window or another dependency.
+
+#### Stronger interview-quality answer
+The FastAPI middleware surrounds each HTTP request and records a fixed,
+privacy-safe completion event after endpoint processing. It stays outside the
+retrieval and LLM layers so request auditing does not duplicate prompts,
+evidence, answers, or sensitive conversation content.
+
+Conversation SQLite stores durable chat turns and summaries for conversational
+context; summaries never replace fresh functional-spec retrieval. Answer traces
+store retrieval, sufficiency, answer, citation, and correlation details for RAG
+debugging and evaluation. The audit journal stores a request/correlation ID,
+method, route template, status, duration, timestamp, sequence, and HMAC chain.
+
+`flush` transfers Python-buffered bytes to the OS, while `fsync` requests
+durable filesystem persistence. Per-request `fsync` minimizes the acknowledged
+record-loss window but adds disk latency and limits throughput. The policy must
+be chosen from measured SLO impact and the maximum acceptable audit-loss
+window, not from an unsupported assumption that internal users need no audit.
+
+Audit storage can fail through disk exhaustion, permissions, corruption,
+concurrent writers, bad key configuration, or failed central shipping.
+Fail-open preserves RAG availability but creates an audit gap that must alert
+operations. Disabling the journal is acceptable only as an explicitly accepted
+environment risk; it leaves ordinary logs but no local tamper-evident chain.
+
+#### Follow-up gate
+Answer the focused follow-up questions in chat before Step 101 is accepted.
+
+### Follow-up answer evaluation - Step 101 - 2026-07-30
+
+#### Overall verdict
+Pass. The user now clearly separates generated conversation memory from
+source-of-truth retrieval evidence, justifies internal audit controls with
+realistic authorization and abuse scenarios, selects durability policy from
+measured SLO and loss-window requirements, and gives a governed response to an
+audit gap.
+
+#### What was strong
+- Q1 precisely identifies omission, misunderstanding, and staleness risks in
+  generated summaries and preserves the fresh-retrieval/citation boundary.
+- Q2 gives both an authorization incident and an availability/abuse incident;
+  neither requires an external attacker.
+- Q3 names workload, storage, latency, and crash-loss measurements and maps
+  them correctly to per-request durability, grouped commits, and development
+  disablement.
+- Q4 treats fail-open as an operationally visible degraded state rather than a
+  harmless logging warning. It includes restriction of sensitive operations,
+  evidence preservation, repair, trusted-checkpoint verification, and gap
+  reconciliation.
+
+#### Precision improvements
+- Audit-event rate normally follows all HTTP traffic, including health and
+  invalid-route requests, not just successful RAG request volume.
+- Large or malformed-query abuse should also be controlled through request-size
+  limits, timeouts, concurrency/rate controls, and capacity isolation; auditing
+  records and supports investigation but does not prevent abuse.
+- A missing checkpoint and a journal write failure are different signals:
+  write failure is detected on the request path, while checkpoint mismatch is
+  detected during verification or central reconciliation.
+- Key restoration must follow an explicit rotation/chain-boundary procedure;
+  silently replacing the key mid-chain would invalidate verification.
+
+#### Stronger interview-quality answer
+Conversation summaries are generated, lossy context artifacts that may omit,
+distort, or retain stale details. They can help resolve conversational
+references but cannot substantiate functional claims; those require fresh
+retrieval from approved documents, sufficient complete evidence, and validated
+citations.
+
+Internal audit scenarios include unauthorized access attempts to restricted
+release/domain information and repeated oversized or malformed requests that
+consume capacity. Audit evidence supports detection and investigation, while
+authorization, request limits, timeouts, and rate/concurrency controls provide
+prevention.
+
+Choose durability from measured total HTTP event rate, disk and `fsync`
+latency, p95/p99 response SLOs, throughput, storage growth, and the maximum
+acceptable record-loss window. Use per-request `fsync` for near-zero
+acknowledged-event loss, grouped commits for a documented bounded loss window,
+and disable the integrity journal only in explicitly accepted non-production
+or no-audit-risk environments.
+
+On fail-open, alert on the safe write-failure event and detect checkpoint/gap
+problems through verification and reconciliation. Apply policy-based traffic
+restriction, preserve evidence, repair capacity/permissions, restore the
+correct key through a governed rotation or chain-boundary process, verify from
+the last trusted checkpoint, and document the unrecoverable gap.
+
+#### Gate
+Step 101 interview gate accepted.
+
+## Step 102 - Measure local audit durability cost
+
+### Questions asked
+1. Why are p95, p99, and maximum append latency more useful than only average
+   latency when evaluating synchronous `fsync` on an API request path?
+2. Why does the measured `256.203 events/second` not prove that the FastAPI RAG
+   service can handle 256 concurrent or end-to-end requests per second?
+3. At approximately `406.390 bytes/record`, what additional inputs are needed
+   to estimate daily storage and retention cost?
+4. Why does an LLM endpoint's high model latency not automatically make a
+   several-millisecond synchronous audit cost irrelevant?
+5. What evidence would justify replacing per-request `fsync` with grouped
+   commits, and what new failure guarantee must be documented?
+
+### Correct answer key
+1. Tail percentiles expose slow storage operations that affect user-visible
+   SLOs and can accumulate under queueing; an average can hide intermittent
+   flush, filesystem, antivirus, or device stalls. Maximum is diagnostic but
+   needs enough repeated samples before it is treated as stable.
+2. The benchmark serially measures only `AuditJournal.append` on one local
+   filesystem. It excludes HTTP handling, concurrency and lock contention,
+   retrieval, model latency, conversation SQLite, central shipping, CPU/memory
+   saturation, and production infrastructure.
+3. Estimate total HTTP events per day across success, error, health, readiness,
+   and unmatched routes; schema/identifier size distribution; retention days;
+   indexes/metadata and replication overhead; rotation/compression; backup or
+   WORM copies; growth margin; and central-platform ingestion/storage pricing.
+4. Audit cost applies to every endpoint and adds directly to latency. It matters
+   more for health, cached, refused, or otherwise fast requests; synchronous
+   storage can also serialize writers and create queueing or an outage coupling
+   under disk degradation.
+5. Use representative repeated load tests showing synchronous audit causes an
+   unacceptable SLO/capacity impact, together with business approval for a
+   bounded loss window. Grouped commits must document maximum events/time that
+   can be lost on process or host failure, flush triggers, backpressure,
+   shutdown behavior, monitoring, and recovery/reconciliation.
+
+### Gate
+Step 102 implementation is complete. Await the user's answers before selecting
+the next step.
+
+### User answer evaluation - Step 102 - 2026-07-31
+
+#### Overall verdict
+Pass. All five answers are concise, technically correct, and appropriately
+bounded. The user distinguishes tail behavior from averages, microbenchmark
+throughput from service capacity, raw record size from retained-platform cost,
+LLM latency from cross-endpoint audit overhead, and performance evidence from
+the business decision to accept a bounded audit-loss window.
+
+#### What was strong
+- Q1 explains why tail latency exposes intermittent storage stalls and avoids
+  treating a small-sample maximum as a stable capacity statistic.
+- Q2 lists the major excluded service layers and production pressures rather
+  than extrapolating `AuditJournal.append` throughput to FastAPI throughput.
+- Q3 covers workload, representation, retention, operational copies, growth,
+  and platform pricing needed for defensible storage planning.
+- Q4 recognizes that audit cost applies to fast endpoints as well as slow LLM
+  requests and identifies serialization and disk-failure coupling.
+- Q5 requires both repeated representative testing and business approval, then
+  names the essential grouped-commit operating contract.
+
+#### Precision improvements
+- Repeated tests should report run-to-run dispersion or confidence intervals,
+  not merely increase the sample count within one run.
+- End-to-end load should include the expected mix of query, conversation,
+  health/readiness, refusal, invalid, and error responses because all create
+  audit events.
+- Storage projections should distinguish logical JSONL bytes from filesystem,
+  central-index, replication, backup, and retention-tier billable bytes.
+- Grouped-commit guarantees should state both a maximum time window and maximum
+  event count at risk, including process crash, host crash, and forced shutdown.
+
+#### Stronger interview-quality answer
+Tail percentiles show the storage stalls that affect user-visible SLOs and
+queueing while an average can hide them; maximum latency is diagnostic only
+after repeated representative trials establish its variability. The measured
+throughput applies solely to serial local `AuditJournal.append` operations and
+cannot represent HTTP, concurrency, retrieval, model, SQLite, shipping, or
+production resource behavior.
+
+Storage planning requires the complete HTTP event mix and daily volume,
+identifier/schema size distribution, retention, rotation/compression,
+filesystem and index overhead, replication, backups/WORM copies, growth margin,
+and platform ingestion/storage pricing. Audit latency applies to every endpoint
+and can dominate otherwise fast paths or introduce queueing and disk-failure
+coupling.
+
+Replacing per-request `fsync` requires repeated representative end-to-end load
+evidence with run-to-run variability, an SLO or capacity problem attributable
+to synchronous durability, and business approval of a bounded loss window. The
+new contract must specify maximum time and event count at risk, flush triggers,
+backpressure, graceful and forced shutdown behavior, monitoring, recovery, and
+reconciliation.
+
+#### Gate
+Step 102 interview gate accepted.
+
+## Step 103 - Extract a storage-neutral audit sink boundary
+
+### Questions asked
+1. Why is changing `AUDIT_JOURNAL_PATH` sufficient for another filesystem path
+   but insufficient for replacing JSONL with a database?
+2. What does `durable_on_return` mean for the current adapter, and why must a
+   grouped writer normally declare `accepted_not_durable`?
+3. Why does successful `fsync()` on a network-mounted path not automatically
+   prove the same failure durability as a local disk?
+4. Which responsibilities belong inside a future database audit adapter rather
+   than FastAPI middleware?
+5. What lifecycle and failure controls must a grouped-commit adapter implement
+   before it can safely replace the synchronous adapter?
+
+### Correct answer key
+1. A path change preserves the file API, JSONL schema, HMAC chain, and filesystem
+   semantics. A database needs a client/connection lifecycle, schema,
+   transactions, uniqueness/idempotency, integrity model, retries, and health
+   behavior, so it requires another adapter behind the common event boundary.
+2. `durable_on_return` means the adapter reports success only after its defined
+   durable commit operation completes. A grouped writer commonly returns after
+   enqueueing; until the batch commits, process or host failure can lose the
+   event, so acceptance must not be mislabeled as durability.
+3. Network filesystems vary in client caching, server acknowledgement, stable
+   storage guarantees, mount options, locking, failover, and partition behavior.
+   Validate the actual protocol, configuration, server, and failure scenarios.
+4. Connection pooling, schema/migrations, transactions, ordering, idempotency,
+   HMAC or platform integrity controls, retry classification, timeouts,
+   backpressure, health, credentials, and safe errors belong in the adapter.
+   Middleware should create the safe event and invoke the sink only.
+5. Define bounded queue capacity, batch size/time triggers, one ordering model,
+   maximum time/event loss window, backpressure or fail policy, commit retry and
+   idempotency, health/metrics, graceful drain, forced-shutdown behavior, and
+   recovery/reconciliation. Then prove the tradeoff under representative load
+   and injected failures.
+
+### Gate
+Step 103 implementation is complete. Await the user's answers before starting
+the grouped-commit experiment.
+
+### User answer evaluation - Step 103 - 2026-07-31
+
+#### Overall verdict
+Pass. All five answers preserve the storage abstraction, distinguish acceptance
+from durability, avoid assuming local-disk semantics for a network filesystem,
+assign database concerns to the adapter, and define the controls required for a
+grouped-commit lifecycle.
+
+#### What was strong
+- Q1 correctly separates a file-location change from a storage-technology
+  change with different lifecycle and transactional semantics.
+- Q2 defines durability at the adapter-return boundary and does not mislabel
+  enqueue success as committed persistence.
+- Q3 identifies the network protocol, caching, acknowledgement, locking,
+  failover, and partition variables that invalidate generic `fsync` claims.
+- Q4 keeps privacy-safe event creation in middleware while assigning storage
+  lifecycle, correctness, credentials, and failure handling to the adapter.
+- Q5 covers bounded resources, commit triggers, loss guarantees, pressure,
+  retries, observability, shutdown, recovery, and proof under load/failure.
+
+#### Precision improvements
+- A database migration must preserve audit-verification continuity or document
+  a governed chain boundary and trusted checkpoint; moving rows alone does not
+  preserve the old integrity claim.
+- Retry idempotency needs a stable event identity or uniqueness rule so an
+  uncertain commit cannot silently duplicate records.
+- A grouped adapter needs both readiness status and an explicit policy for a
+  full queue: block, reject, spill durably, or fail open with a visible gap.
+- Network-filesystem testing should include client and server crashes plus a
+  partition after acknowledgement, not only a clean disconnect.
+
+#### Stronger interview-quality answer
+Changing a path preserves the file API, JSONL schema, and HMAC-chain behavior;
+changing to a database introduces connection lifecycle, migrations,
+transactions, ordering, stable event identity, idempotency, integrity
+continuity, retry classification, credentials, and health semantics owned by a
+separate adapter. Middleware should only construct the safe event and invoke
+the selected sink.
+
+`durable_on_return` means the adapter's defined durable commit completed before
+success. A grouped writer that returns after enqueue must declare
+`accepted_not_durable` and specify maximum time and event count at risk. It also
+needs bounded queues, batch triggers, full-queue policy, backpressure, commit
+retry/idempotency, readiness and metrics, graceful drain, forced-shutdown
+behavior, recovery, and reconciliation. Network and database guarantees must be
+validated under partitions, uncertain acknowledgements, and client/server
+crashes before production claims are made.
+
+#### Gate
+Step 103 interview gate accepted. The project is paused at the storage-neutral
+sink boundary; the grouped-commit experiment has not started.
