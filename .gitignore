@@ -49,6 +49,9 @@ data/processed/*
 !data/processed/.gitkeep
 data/exports/*
 !data/exports/.gitkeep
+data/docs_embedded/
+data/raw_specs/
+
 
 # Evaluation outputs
 data/eval/generated/*
@@ -60,6 +63,7 @@ data/qdrant_local/
 *.sqlite
 *.sqlite3
 *.db
+
 
 .env.example
 .clinerules

@@ -22,6 +22,7 @@ class EmbeddingRecord:
     embedding_model: str
     embedding_status: str
     vector: list[float] | None = None
+    document_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -100,6 +101,7 @@ def build_embedding_batch_contract(
                 embedding_model=embedding_model,
                 embedding_status="pending",
                 vector=None,
+                document_id=unit.document_id or artifact.document_name.rsplit(".", 1)[0],
             )
         )
 

@@ -456,3 +456,313 @@ evidence.
 - Two consecutive native bundles were identical: 102 files, SHA-256
   `3ffa4df318a23c164570bc65c41f0bc03bc5a427cc343c7452754ea6cfc07059`.
 - The bundle contains `app/core/audit_sink.py`.
+
+## Step 104 – Portable master FDD ingestion and verified archival
+
+### Objective
+
+Provide one portable command that processes all reviewed FDD DOCX files in
+`data/raw_specs/` through the existing ingestion, embedding, Qdrant indexing,
+and verification stages, then archives only verified source files.
+
+### Files added or changed
+
+- `scripts/master_ingestion_embedding_docs.py`
+- `scripts/run_embedding_smoke_test.py`
+- `scripts/check_qdrant_index.py`
+- `app/embeddings/client.py`
+- `app/core/config.py`
+- `docs/Steps_for_FDD_Ingestion.md`
+- `.env.example`
+- `tests/test_master_ingestion_embedding_docs.py`
+- `tests/test_qdrant_index_verification.py`
+- `tests/test_embedding_client.py`
+
+### Python/code pattern used
+
+```python
+commands = build_pipeline_commands(
+    documents=documents,
+    cache_directory=settings.cache_dir / "embeddings",
+    request_batch_size=args.request_batch_size,
+)
+for command in commands:
+    subprocess.run(command, cwd=ROOT_DIR, check=True)
+
+verify_embedding_artifacts(
+    client=client,
+    collection_name=collection_name,
+    artifact_paths=artifact_paths,
+)
+archive_documents(documents, settings.embedded_docs_dir)
+```
+
+### What the code does
+
+- Adds the portable master command:
+  `uv run --locked python scripts/master_ingestion_embedding_docs.py`.
+- Reuses existing child scripts rather than duplicating DOCX extraction,
+  OpenAI embedding, Qdrant indexing, or Qdrant inspection logic.
+- Adds `--all-units` to the existing per-document embedding script and splits
+  uncached retrieval units into bounded OpenAI embedding requests (64 by
+  default, configurable with `--request-batch-size`).
+- Extends Qdrant inspection to verify every deterministic point ID and its
+  identifying payload metadata from the specific embedding artifacts.
+- Adds `EMBEDDED_DOCS_DIR`, defaulting to `data/docs_embedded/`.
+- Supports `--dry-run`, which lists selected documents and exact child commands
+  without API, Qdrant, or file-move actions.
+- Archives only after every child command, including exact Qdrant verification,
+  has succeeded. Archive-destination conflicts stop the batch before child
+  stages begin.
+
+### Why it is implemented this way
+
+A `.bat` file would be Windows-only and difficult to test; the Python command
+works with the pinned project interpreter on Windows, Linux, CI, and future
+cloud environments. The master contains orchestration only. Existing scripts
+continue to own their individual stage behavior.
+
+A collection-level count is not proof that a new FDD was indexed. Exact
+deterministic IDs plus `unit_id`, release, document-family, content-hash, and
+cache-key payload checks prevent an unsupported archival claim.
+
+### Production interpretation
+
+The master processes documents sequentially but bounds one embedding API call
+by retrieval units, not by documents. Smaller request batches reduce the blast
+radius of a transient API failure but increase requests, latency, and possibly
+cost. Repeated runs reuse unchanged cached vectors; altered text, chunking,
+artifact version, or embedding model requires re-embedding.
+
+The workflow is not an all-or-nothing transaction across OpenAI, Qdrant, and
+filesystem archival. A failure before archival leaves source DOCX files in
+`data/raw_specs/`; Qdrant/cache artifacts may be partially written but are
+safe to reconcile through deterministic IDs and exact verification before any
+archive move. A filesystem failure during a multi-file archive can leave an
+already-verified batch partly archived and requires operator reconciliation.
+
+### Failure-mode testing
+
+- A missing `data/raw_specs/` batch fails before external actions.
+- Dry run invokes no child process and moves no source document.
+- A simulated Qdrant-stage subprocess failure leaves the DOCX in
+  `data/raw_specs/`.
+- An existing archive destination blocks all stages and avoids overwriting a
+  prior source document.
+- A missing Qdrant point fails exact verification.
+- Non-positive embedding API batch size is rejected.
+
+### Validation
+
+- Focused embedding/Qdrant/master tests: 18 passed.
+- Actual `--dry-run` with the current empty `data/raw_specs/` directory failed
+  safely before API, Qdrant, or archive actions.
+- Full regression suite: 336 passed; one existing non-failing Starlette/HTTPX
+  deprecation warning remains.
+- No live OpenAI embedding request, Qdrant write, or source-document move was
+  performed for this implementation step.
+
+## Step 105 – Duplicate-content embedding safety and explicit Qdrant rebuild
+
+### Objective
+
+Correct the runtime failure found during the first full R21 ingestion: identical
+chunk content created one embedding cache key but persisted different vectors,
+which also exposed that Qdrant point IDs were not citeable-unit unique.
+
+### Files added or changed
+
+- `app/embeddings/client.py`
+- `app/vectorstore/qdrant_upsert.py`
+- `scripts/run_embedding_smoke_test.py`
+- `scripts/run_qdrant_indexing.py`
+- `scripts/master_ingestion_embedding_docs.py`
+- `docs/Steps_for_FDD_Ingestion.md`
+- `tests/test_embedding_client.py`
+- `tests/test_embedding_artifact_quarantine.py`
+- `tests/test_qdrant_upsert.py`
+- `tests/test_qdrant_script_client_cleanup.py`
+- `tests/test_master_ingestion_embedding_docs.py`
+
+### Python/code pattern used
+
+```python
+grouped_records = _group_uncached_records_by_cache_key(uncached_records)
+for _, representative, matching_records in unique_request_records:
+    vector = embed(representative.text)
+    for index, record in matching_records:
+        updated_records[index] = replace(record, vector=vector)
+
+point_id = uuid5(
+    NAMESPACE_URL,
+    json.dumps({"cache_key": record.cache_key, "unit_id": record.unit_id}),
+)
+```
+
+### What the code does
+
+- Deduplicates identical uncached content before calling the embedding API and
+  copies the one resulting vector to every matching retrieval unit.
+- Retains a content-based cache key for cost-efficient reuse, but builds each
+  Qdrant point ID from both cache identity and `unit_id` so duplicate text in
+  separate chunks/releases remains separately citeable.
+- Keeps persisted cache-conflict detection strict; it does not silently choose
+  between conflicting stored vectors.
+- Adds `--replace-existing-artifact`, which quarantines a specifically selected
+  prior artifact outside the active cache glob rather than deleting it.
+- Adds destructive Qdrant rebuild support only behind both `--rebuild` and
+  `--confirm-rebuild`; the master exposes this only as `--rebuild-qdrant`.
+- Documents the explicit, reviewable recovery command with dry-run first.
+
+### Why it is implemented this way
+
+Embedding-vector reuse and vector-store identity serve different purposes.
+Identical content can share one vector to reduce cost, but each document/release
+occurrence needs independent payload metadata, retrieval filtering, and
+citations. A point ID based only on content can overwrite another occurrence
+and create a false lineage claim.
+
+The original R21 artifact contains three records with one cache key and three
+different vector fingerprints. Selecting one silently would hide an integrity
+incident. Explicit quarantine plus regeneration makes the recovery visible and
+preserves the artifact for investigation.
+
+### Production interpretation
+
+Changing the deterministic point-ID scheme requires a Qdrant rebuild; otherwise
+old point IDs remain and may produce duplicate or stale retrieval evidence. The
+rebuild is deliberately opt-in because it deletes only the configured local
+collection. It never deletes FDD source, processed artifacts, active embedding
+cache, or quarantined conflicting artifacts.
+
+Before executing recovery, back up or otherwise retain the local Qdrant state
+if operational policy requires it, review the dry-run command, and confirm that
+the selected raw FDD batch is the intended scope. The actual recovery will make
+new OpenAI embedding requests and therefore has cost.
+
+### Failure-mode testing
+
+- Three duplicate-content units make one API request and receive the same
+  resulting vector in deterministic tests.
+- Duplicate-content units create distinct Qdrant point IDs and persist as two
+  points rather than overwriting one payload.
+- The artifact quarantine preserves the original file outside the active cache.
+- `--rebuild` without `--confirm-rebuild` exits before collection access.
+- The real R21 recovery dry run lists artifact replacement and Qdrant rebuild
+  commands without API calls, Qdrant writes, or source moves.
+
+### Validation
+
+- Focused duplicate-content/cache/Qdrant/master suite: 35 passed.
+- Real rebuild-guard and master recovery dry-run checks: passed without
+  mutation.
+- Full regression suite: 343 passed; one existing non-failing Starlette/HTTPX
+  deprecation warning remains.
+- The live R21 recovery command was not run and awaits explicit user approval.
+
+## Step 106 – Preserve duplicate evidence units and version the Qdrant collection
+
+### Objective
+
+Correct the second R21 runtime failure: the Qdrant indexer reused the
+content-cache dictionary and therefore discarded five repeated-content evidence
+units before upsert. Correct the unsafe embedded-Qdrant rebuild assumption and
+separate full document identity from lineage family/release metadata.
+
+### Evidence from the failed live run
+
+- The R21 artifact had 149 records, 149 unique `unit_id` values, and 149 unique
+  point IDs, so filename/release parsing did not cause the missing IDs.
+- R21 had 145 unique content cache keys. Exactly five units were absent from
+  Qdrant because the indexer loaded one record per cache key.
+- A disposable persistent-Qdrant probe inserted one old point, deleted and
+  recreated the collection, then inserted one new point; it still counted two
+  points. Embedded local Qdrant delete-and-recreate cannot support a truthful
+  in-place rebuild guarantee.
+
+### Files added or changed
+
+- `app/embeddings/embedding_cache.py`
+- `app/embeddings/embedding_contract.py`
+- `app/ingestion/filename_parser.py`
+- `app/ingestion/retrieval_ready_artifact.py`
+- `app/vectorstore/qdrant_indexer.py`
+- `app/vectorstore/qdrant_upsert.py`
+- `app/llm/answer_contract.py`
+- `scripts/check_qdrant_index.py`
+- `scripts/run_qdrant_indexing.py`
+- `scripts/master_ingestion_embedding_docs.py`
+- `docs/Steps_for_FDD_Ingestion.md`
+- parser, artifact, embedding-cache, Qdrant-indexer, Qdrant-script, and master
+  regression tests.
+
+### Python/code pattern used
+
+```python
+# Cache lookup: one canonical vector per exact content key.
+cache = {record.cache_key: record for record in load_embedding_records(path)}
+
+# Indexing: retain every citeable occurrence, including repeated text.
+records = load_embedding_records(path)
+
+document_id = full_filename_without_docx
+document_family = cross_release_lineage_family
+release_label = "R21"
+```
+
+### What the code does
+
+- Adds `load_embedding_records`, which validates vector consistency but returns
+  every usable record. Cache lookup remains deduplicated; Qdrant indexing no
+  longer is.
+- Adds `document_id` as the full filename without `.docx` to new ingestion,
+  embedding, Qdrant payload, and citation metadata while preserving
+  `document_family` and `release_label`.
+- Makes Qdrant verification include the document identifier for newly generated
+  artifacts.
+- Disables `--rebuild` and `--rebuild-qdrant` with a safe error before any
+  collection access.
+- Documents a versioned-collection migration: set a new
+  `QDRANT_COLLECTION_NAME`, build/verify it, then point the API/UI to it.
+
+### Why it is implemented this way
+
+Content-vector reuse and evidence occurrence indexing have different identity
+requirements. A dictionary keyed by content is appropriate for cache lookup but
+wrong for a citation-bearing vector index. Each occurrence must survive upsert.
+
+Multiple FDDs can share one R21 release. Replacing `document_family` with the
+full filename would prevent valid cross-release lineage grouping; a distinct
+`document_id` retains full-source identity without collapsing the other axes.
+
+### Production interpretation
+
+The old `functional_specs` collection is now considered legacy/stale because it
+contains mixed point-ID generations. Preserve it for investigation and rollback
+but do not use it for new grounded answers. Create a new versioned collection,
+such as `functional_specs_v2`, through the `.env` configuration and validate it
+before switching application traffic.
+
+Existing old embedding artifacts do not yet contain the new optional
+`document_id`; their `unit_id` still retains the full filename. Reprocessing a
+source document upgrades its artifact and payload without requiring semantic
+guesses. Do not claim complete metadata migration until all intended source
+documents have been reprocessed.
+
+### Failure-mode testing
+
+- Duplicate-content records remain distinct in the Qdrant indexing batch and
+  become distinct points.
+- Legacy rebuild CLI flags fail before collection access.
+- A disposable persistent-Qdrant probe demonstrates old-point retention after
+  delete-and-recreate, proving why versioned collections are required.
+- Full filename identity is present separately from family and release in new
+  retrieval-ready artifacts.
+
+### Validation
+
+- Focused identity/cache/indexing/master suite: 40 passed.
+- Full regression suite: 345 passed; one existing non-failing Starlette/HTTPX
+  deprecation warning remains.
+- No additional live OpenAI call, Qdrant upsert, archive action, or `.env`
+  collection-name change was performed after the failed recovery run.

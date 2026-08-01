@@ -5,7 +5,11 @@ from docx import Document
 
 from app.embeddings.client import embed_batch
 from app.embeddings.embedding_artifact_writer import write_embedding_batch_to_json
-from app.embeddings.embedding_contract import EmbeddingBatch, build_embedding_batch_contract
+from app.embeddings.embedding_contract import (
+    EmbeddingBatch,
+    EmbeddingRecord,
+    build_embedding_batch_contract,
+)
 from app.ingestion.chunker import chunk_normalized_artifact
 from app.ingestion.docx_ingestion_artifact import ingest_docx_file
 from app.ingestion.normalized_artifact import build_normalized_artifact
@@ -171,3 +175,86 @@ def test_embed_batch_reuses_cached_records_and_embeds_only_uncached(tmp_path: Pa
     assert embedded_batch.records[1].embedding_status == "embedded"
     assert embedded_batch.records[1].vector == [0.0, 0.5]
     assert fake_client.embeddings.calls == [[batch.records[1].text]]
+
+
+def test_embed_batch_splits_uncached_records_into_bounded_requests() -> None:
+    records = [
+        EmbeddingRecord(
+            unit_id=f"unit-{index}",
+            unit_index=index,
+            source_kind="paragraph",
+            document_family="FS_ASNB",
+            release_label="R25",
+            content_hash=f"hash-{index}",
+            artifact_version="v1",
+            cache_key=f"cache-{index}",
+            text=f"Text {index}",
+            embedding_model="text-embedding-3-large",
+            embedding_status="pending",
+        )
+        for index in range(5)
+    ]
+    batch = EmbeddingBatch(
+        document_name="example.docx",
+        total_records=len(records),
+        records=records,
+    )
+    fake_client = FakeOpenAIClient()
+
+    embedded_batch = embed_batch(
+        batch,
+        client=fake_client,
+        request_batch_size=2,
+    )
+
+    assert fake_client.embeddings.calls == [
+        ["Text 0", "Text 1"],
+        ["Text 2", "Text 3"],
+        ["Text 4"],
+    ]
+    assert embedded_batch.embedded_count == 5
+    assert all(record.embedding_status == "embedded" for record in embedded_batch.records)
+
+
+def test_embed_batch_rejects_non_positive_request_batch_size() -> None:
+    batch = EmbeddingBatch(
+        document_name="example.docx",
+        total_records=0,
+        records=[],
+    )
+
+    try:
+        embed_batch(batch, client=FakeOpenAIClient(), request_batch_size=0)
+    except ValueError as exc:
+        assert "request_batch_size" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for non-positive request_batch_size")
+
+
+def test_embed_batch_reuses_one_new_vector_for_duplicate_content() -> None:
+    first = EmbeddingRecord(
+        unit_id="FS_ASNB_R21::chunk_1",
+        unit_index=1,
+        source_kind="paragraph",
+        document_family="FS_ASNB",
+        release_label="R21",
+        content_hash="same-content-hash",
+        artifact_version="v1",
+        cache_key="same-cache-key",
+        text="Repeated document boilerplate.",
+        embedding_model="text-embedding-3-large",
+        embedding_status="pending",
+    )
+    second = replace(first, unit_id="FS_ASNB_R21::chunk_2", unit_index=2)
+    batch = EmbeddingBatch(
+        document_name="FS_ASNB_R21.docx",
+        total_records=2,
+        records=[first, second],
+    )
+    fake_client = FakeOpenAIClient()
+
+    embedded_batch = embed_batch(batch, client=fake_client, request_batch_size=1)
+
+    assert fake_client.embeddings.calls == [["Repeated document boilerplate."]]
+    assert embedded_batch.embedded_count == 2
+    assert embedded_batch.records[0].vector == embedded_batch.records[1].vector

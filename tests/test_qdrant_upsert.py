@@ -1,4 +1,5 @@
 import pytest
+from dataclasses import replace
 
 from app.embeddings.embedding_contract import EmbeddingBatch, EmbeddingRecord
 from app.vectorstore.qdrant_schema import (
@@ -34,6 +35,14 @@ def test_build_qdrant_point_id_is_deterministic() -> None:
     record = _record("unit-1", [0.1, 0.2])
 
     assert build_qdrant_point_id(record) == build_qdrant_point_id(record)
+
+
+def test_build_qdrant_point_id_distinguishes_duplicate_content_units() -> None:
+    first = _record("unit-1", [0.1, 0.2])
+    second = replace(first, unit_id="unit-2")
+
+    assert first.cache_key == second.cache_key
+    assert build_qdrant_point_id(first) != build_qdrant_point_id(second)
 
 
 def test_embedding_record_to_qdrant_point_preserves_payload() -> None:
@@ -92,3 +101,24 @@ def test_upsert_embedding_batch_indexes_only_vector_records() -> None:
     assert len(points) == 1
     assert points[0].payload["unit_id"] == "unit-1"
     assert points[0].vector == pytest.approx([0.4472135955, 0.894427191])
+
+
+def test_upsert_embedding_batch_keeps_duplicate_content_units_separate() -> None:
+    client = create_local_qdrant_client()
+    config = QdrantCollectionConfig(
+        collection_name="test_functional_specs",
+        vector_size=2,
+    )
+    ensure_collection(client, config)
+    first = _record("unit-1", [0.1, 0.2])
+    second = replace(first, unit_id="unit-2", unit_index=1)
+    batch = EmbeddingBatch(
+        document_name="example.docx",
+        total_records=2,
+        records=[first, second],
+    )
+
+    summary = upsert_embedding_batch(client, config.collection_name, batch)
+
+    assert summary.upserted_points == 2
+    assert client.count(config.collection_name).count == 2

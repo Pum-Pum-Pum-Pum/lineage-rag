@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from uuid import NAMESPACE_URL, uuid5
 
 from qdrant_client import QdrantClient
@@ -18,9 +19,22 @@ class QdrantUpsertSummary:
 
 
 def build_qdrant_point_id(record: EmbeddingRecord) -> str:
-    """Build a deterministic UUID point ID from the embedding cache key."""
+    """Build a deterministic point ID for one citeable retrieval unit.
 
-    return str(uuid5(NAMESPACE_URL, record.cache_key))
+    ``cache_key`` identifies reusable vector content. It is not sufficient as a
+    vector-store identity because identical text can legitimately occur in two
+    chunks or releases that need distinct payload metadata and citations.
+    """
+
+    identity = json.dumps(
+        {
+            "cache_key": record.cache_key,
+            "unit_id": record.unit_id,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return str(uuid5(NAMESPACE_URL, identity))
 
 
 def embedding_record_to_qdrant_point(record: EmbeddingRecord) -> PointStruct:
@@ -38,6 +52,7 @@ def embedding_record_to_qdrant_point(record: EmbeddingRecord) -> PointStruct:
         "content_hash": record.content_hash,
         "artifact_version": record.artifact_version,
         "cache_key": record.cache_key,
+        "document_id": record.document_id,
         "embedding_model": record.embedding_model,
         "embedding_status": record.embedding_status,
         "text": record.text,

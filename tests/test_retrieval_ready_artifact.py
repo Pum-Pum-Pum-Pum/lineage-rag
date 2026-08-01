@@ -34,9 +34,11 @@ def test_build_retrieval_ready_artifact_combines_paragraph_and_table_units(tmp_p
     )
 
     assert retrieval_ready.document_family == "FS_FCIS_14.7.0.0.0$ASNB"
+    assert retrieval_ready.document_id == "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0"
     assert retrieval_ready.release_label == "R24"
     assert retrieval_ready.total_units == 3
     assert retrieval_ready.units[0].source_kind == "paragraph"
+    assert retrieval_ready.units[0].document_id == retrieval_ready.document_id
     assert retrieval_ready.units[1].source_kind == "paragraph"
     assert retrieval_ready.units[2].source_kind == "table"
     assert retrieval_ready.units[2].text == (

@@ -22,12 +22,17 @@ def embed_batch(
     batch: EmbeddingBatch,
     client: OpenAI | None = None,
     cache_directory: str | Path | None = None,
+    request_batch_size: int | None = None,
 ) -> EmbeddingBatch:
     """Embed all records in an embedding batch.
 
-    This baseline implementation embeds each retrieval-ready unit and returns a
-    new batch with vectors filled in and status updated.
+    Cached records are reused. Uncached records are sent in bounded API
+    requests when ``request_batch_size`` is supplied, then returned in their
+    original order with vectors filled in and status updated.
     """
+
+    if request_batch_size is not None and request_batch_size <= 0:
+        raise ValueError("request_batch_size must be greater than 0 when provided")
 
     if not batch.records:
         return EmbeddingBatch(
@@ -59,25 +64,34 @@ def embed_batch(
     if uncached_records:
         settings = get_settings()
         embedding_client = client or get_embedding_client()
-        texts = [record.text for _, record in uncached_records]
+        grouped_records = _group_uncached_records_by_cache_key(uncached_records)
+        unique_request_records = [
+            (cache_key, records[0][1], records)
+            for cache_key, records in grouped_records.items()
+        ]
+        resolved_batch_size = request_batch_size or len(unique_request_records)
 
-        response = embedding_client.embeddings.create(
-            model=settings.openai_embedding_model,
-            input=texts,
-        )
-
-        if len(response.data) != len(uncached_records):
-            raise RuntimeError(
-                "Embedding response count does not match input record count: "
-                f"expected={len(uncached_records)}, received={len(response.data)}"
+        for start in range(0, len(unique_request_records), resolved_batch_size):
+            request_records = unique_request_records[start : start + resolved_batch_size]
+            texts = [representative.text for _, representative, _ in request_records]
+            response = embedding_client.embeddings.create(
+                model=settings.openai_embedding_model,
+                input=texts,
             )
 
-        for (index, record), response_item in zip(uncached_records, response.data):
-            updated_records[index] = replace(
-                record,
-                embedding_status="embedded",
-                vector=response_item.embedding,
-            )
+            if len(response.data) != len(request_records):
+                raise RuntimeError(
+                    "Embedding response count does not match input record count: "
+                    f"expected={len(request_records)}, received={len(response.data)}"
+                )
+
+            for (_, _, matching_records), response_item in zip(request_records, response.data):
+                for index, record in matching_records:
+                    updated_records[index] = replace(
+                        record,
+                        embedding_status="embedded",
+                        vector=response_item.embedding,
+                    )
 
     finalized_records = [record for record in updated_records if record is not None]
 
@@ -89,3 +103,33 @@ def embed_batch(
         embedded_count=len(uncached_records),
         cache_miss_count=len(uncached_records),
     )
+
+
+def _group_uncached_records_by_cache_key(
+    uncached_records: list[tuple[int, EmbeddingRecord]],
+) -> dict[str, list[tuple[int, EmbeddingRecord]]]:
+    """Group identical embedding inputs so one vector is reused consistently.
+
+    The cache key represents normalized text, embedding model, and artifact
+    version. If two records have the same key but disagree on those fields, the
+    cache identity itself is invalid and embedding must stop rather than merge
+    unrelated evidence.
+    """
+
+    grouped: dict[str, list[tuple[int, EmbeddingRecord]]] = {}
+    for index, record in uncached_records:
+        records = grouped.setdefault(record.cache_key, [])
+        if records:
+            representative = records[0][1]
+            if (
+                record.content_hash != representative.content_hash
+                or record.embedding_model != representative.embedding_model
+                or record.artifact_version != representative.artifact_version
+                or record.text != representative.text
+            ):
+                raise RuntimeError(
+                    "Embedding cache-key collision across non-identical retrieval units: "
+                    f"{record.cache_key}"
+                )
+        records.append((index, record))
+    return grouped

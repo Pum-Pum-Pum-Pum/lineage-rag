@@ -5,6 +5,7 @@ def test_parse_document_filename_valid_case() -> None:
     parsed = parse_document_filename("FS_FCIS_14.4.0.0.0$ASNB_R12.docx")
 
     assert parsed.document_name == "FS_FCIS_14.4.0.0.0$ASNB_R12.docx"
+    assert parsed.document_id == "FS_FCIS_14.4.0.0.0$ASNB_R12"
     assert parsed.document_family == "FS_FCIS_14.4.0.0.0$ASNB"
     assert parsed.release_label == "R12"
     assert parsed.release_number == 12

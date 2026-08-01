@@ -14,6 +14,7 @@ FILENAME_PATTERN = re.compile(
 @dataclass(frozen=True)
 class ParsedDocumentName:
     document_name: str
+    document_id: str
     document_family: str
     release_label: str
     release_number: int
@@ -46,6 +47,7 @@ def parse_document_filename(file_path: str | Path) -> ParsedDocumentName:
 
     return ParsedDocumentName(
         document_name=path.name,
+        document_id=stem,
         document_family=document_family,
         release_label=release_label,
         release_number=release_number,

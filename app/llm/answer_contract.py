@@ -15,6 +15,7 @@ class Citation:
     source_kind: str | None
     score: float
     text_preview: str
+    document_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,7 @@ def build_citations_from_results(
                 source_kind=payload.get("source_kind"),
                 score=result.score,
                 text_preview=text[:preview_chars],
+                document_id=payload.get("document_id"),
             )
         )
 

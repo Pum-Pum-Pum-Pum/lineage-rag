@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -28,13 +29,19 @@ from app.ingestion.table_chunker import chunk_tables_from_artifact
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run a tiny real embedding smoke test on retrieval-ready units."
+        description="Embed a sample or all retrieval-ready units from one FDD."
     )
-    parser.add_argument(
+    selection_group = parser.add_mutually_exclusive_group()
+    selection_group.add_argument(
         "--limit",
         type=int,
         default=2,
         help="Maximum number of retrieval-ready units to embed. Default: 2.",
+    )
+    selection_group.add_argument(
+        "--all-units",
+        action="store_true",
+        help="Embed every retrieval-ready unit in the selected document.",
     )
     parser.add_argument(
         "--document",
@@ -47,6 +54,20 @@ def parse_args() -> argparse.Namespace:
         choices=["paragraph", "table"],
         default=None,
         help="Optional retrieval unit source kind to smoke test: paragraph or table.",
+    )
+    parser.add_argument(
+        "--request-batch-size",
+        type=int,
+        default=64,
+        help="Maximum uncached retrieval units per OpenAI embedding API request. Default: 64.",
+    )
+    parser.add_argument(
+        "--replace-existing-artifact",
+        action="store_true",
+        help=(
+            "Quarantine the selected document's prior embedding artifact before "
+            "rebuilding it. Use only for an explicitly diagnosed artifact conflict."
+        ),
     )
     return parser.parse_args()
 
@@ -71,8 +92,12 @@ def main() -> None:
     embedding_cache_dir = settings.cache_dir / "embeddings"
 
     logger.info("Selected document: %s", selected_file.file_name)
-    logger.info("Embedding smoke-test limit: %s", args.limit)
+    logger.info(
+        "Embedding selection: %s",
+        "all units" if args.all_units else f"first {args.limit} units",
+    )
     logger.info("Source-kind filter: %s", args.source_kind or "none")
+    logger.info("Embedding API request batch size: %s", args.request_batch_size)
     logger.info("Embedding cache directory: %s", embedding_cache_dir)
 
     raw_artifact = ingest_docx_file(selected_file.file_path)
@@ -99,12 +124,25 @@ def main() -> None:
             f"with source_kind={args.source_kind!r}."
         )
 
-    smoke_batch = limit_embedding_batch(filtered_batch, limit=args.limit)
-    embedded_batch = embed_batch(
-        smoke_batch,
-        cache_directory=embedding_cache_dir,
+    selected_batch = filtered_batch if args.all_units else limit_embedding_batch(
+        filtered_batch,
+        limit=args.limit,
     )
     output_suffix = f".{args.source_kind}" if args.source_kind else ""
+    existing_artifact = (
+        embedding_cache_dir
+        / f"{Path(selected_batch.document_name).stem}{output_suffix}.embeddings.json"
+    )
+    if args.replace_existing_artifact:
+        quarantined = quarantine_embedding_artifact(existing_artifact)
+        if quarantined is not None:
+            logger.warning("Quarantined prior embedding artifact: %s", quarantined)
+
+    embedded_batch = embed_batch(
+        selected_batch,
+        cache_directory=embedding_cache_dir,
+        request_batch_size=args.request_batch_size,
+    )
     embedding_output = write_embedding_batch_to_json(
         embedded_batch,
         embedding_cache_dir,
@@ -131,6 +169,18 @@ def main() -> None:
         summary.cache_hit_rate,
         first_vector_length,
     )
+
+
+def quarantine_embedding_artifact(artifact_path: Path) -> Path | None:
+    """Preserve a diagnosed conflicting artifact outside the active cache glob."""
+
+    if not artifact_path.exists():
+        return None
+
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    quarantined = artifact_path.with_name(f"{artifact_path.name}.conflict-{timestamp}")
+    artifact_path.rename(quarantined)
+    return quarantined
 
 
 if __name__ == "__main__":

@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     root_dir: Path = ROOT_DIR
     data_dir: Path = ROOT_DIR / "data"
     raw_specs_dir: Path = ROOT_DIR / "data" / "raw_specs"
+    embedded_docs_dir: Path = Field(
+        default=ROOT_DIR / "data" / "docs_embedded",
+        alias="EMBEDDED_DOCS_DIR",
+    )
     processed_dir: Path = ROOT_DIR / "data" / "processed"
     cache_dir: Path = ROOT_DIR / "data" / "cache"
     eval_dir: Path = ROOT_DIR / "data" / "eval"

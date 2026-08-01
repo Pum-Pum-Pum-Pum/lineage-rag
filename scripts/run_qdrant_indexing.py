@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -11,6 +12,21 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.vectorstore.qdrant_indexer import index_embedding_cache_directory
 from app.vectorstore.qdrant_schema import QdrantCollectionConfig, create_persistent_qdrant_client
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Index local embedding artifacts into the configured Qdrant collection."
+    )
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help=(
+            "Deprecated and intentionally unsupported for embedded local Qdrant. "
+            "Use a new versioned QDRANT_COLLECTION_NAME instead."
+        ),
+    )
+    return parser.parse_args()
 
 
 def main() -> None:
@@ -49,4 +65,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    args = parse_args()
+    if args.rebuild:
+        raise SystemExit(
+            "--rebuild is unsupported for embedded local Qdrant because delete-and-recreate "
+            "can retain old points. Set QDRANT_COLLECTION_NAME to a new versioned collection instead."
+        )
     main()

@@ -16,15 +16,24 @@ def load_embedding_cache(cache_directory: str | Path) -> dict[str, EmbeddingReco
     have usable vectors. Pending or incomplete records are ignored.
     """
 
+    cache: dict[str, EmbeddingRecord] = {}
+    for record in load_embedding_records(cache_directory):
+        cache.setdefault(record.cache_key, record)
+
+    return cache
+
+
+def load_embedding_records(cache_directory: str | Path) -> list[EmbeddingRecord]:
+    """Load all citeable records while validating content-cache consistency."""
+
     directory = Path(cache_directory)
     if not directory.exists():
-        return {}
+        return []
 
-    cache: dict[str, EmbeddingRecord] = {}
-
+    records: list[EmbeddingRecord] = []
+    canonical_by_cache_key: dict[str, EmbeddingRecord] = {}
     for embedding_file in sorted(directory.glob("*.embeddings.json")):
         payload = json.loads(embedding_file.read_text(encoding="utf-8"))
-
         for record_payload in payload.get("records", []):
             if record_payload.get("embedding_status") not in USABLE_EMBEDDING_STATUSES:
                 continue
@@ -32,16 +41,16 @@ def load_embedding_cache(cache_directory: str | Path) -> dict[str, EmbeddingReco
                 continue
 
             record = EmbeddingRecord(**record_payload)
-            existing = cache.get(record.cache_key)
+            existing = canonical_by_cache_key.get(record.cache_key)
             if existing is not None and existing.vector != record.vector:
                 raise RuntimeError(
                     "Conflicting cached embeddings found for cache_key="
                     f"{record.cache_key}"
                 )
+            canonical_by_cache_key.setdefault(record.cache_key, record)
+            records.append(record)
 
-            cache[record.cache_key] = record
-
-    return cache
+    return records
 
 
 def find_cached_embedding(

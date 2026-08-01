@@ -562,3 +562,146 @@ crashes before production claims are made.
 #### Gate
 Step 103 interview gate accepted. The project is paused at the storage-neutral
 sink boundary; the grouped-commit experiment has not started.
+
+## Step 104 – Portable master FDD ingestion and verified archival
+
+### Interview questions
+
+1. Why is a Qdrant collection point count insufficient evidence to archive a
+   specific newly ingested FDD?
+2. Why does `--request-batch-size=64` limit retrieval units per OpenAI request,
+   rather than the number of FDD documents in the batch?
+3. If the master command fails after embedding some documents but before the
+   Qdrant verification command succeeds, what state may exist and what must the
+   operator do before archiving anything?
+4. Why is `--dry-run` valuable before a real ingestion batch, even though it
+   cannot prove that OpenAI or Qdrant will succeed?
+5. Why must an existing file in `data/docs_embedded/` stop the master command
+   rather than be overwritten?
+
+### Correct-answer rubric
+
+1. A point count can include old, unrelated, partial, or stale points. The
+   archive decision needs the expected deterministic point IDs and identifying
+   payload metadata for the exact embedding artifact.
+2. One document can generate many retrieval units of variable token size. API
+   risk and limits apply to the request payload, so the bound must be on units
+   (and later token-aware batching), while documents are processed sequentially.
+3. The source files remain in `data/raw_specs/`, while cache artifacts and
+   possibly partial Qdrant points can exist. Diagnose the failing stage, retain
+   evidence, rerun idempotently, and archive only after exact verification
+   passes for the intended batch.
+4. Dry run proves document discovery, ordering, archive-destination safety, and
+   command construction without cost or mutation. It cannot validate external
+   credentials, API availability, model behavior, storage capacity, or Qdrant
+   availability.
+5. Overwriting destroys the prior source-of-truth archive and hides whether the
+   same release was reprocessed, changed, or duplicated. Stop, compare hashes
+   and release metadata, then make an explicit reconciliation decision.
+
+### User answer evaluation
+
+1. Partly correct. Qdrant point IDs enforce uniqueness, but the key point is
+   that duplicate text must not collapse distinct citeable evidence. Reusing the
+   vector saves embedding cost; distinct point IDs preserve each chunk's source,
+   release, path, and citation metadata.
+2. Needed explanation. A persisted vector conflict means the system cannot
+   prove which candidate represents the cache key. Arbitrary selection makes
+   retrieval and citations non-reproducible, can hide model/API or artifact
+   corruption, and could attach a result to the wrong release/chunk payload.
+3. Needed explanation. Lineage answers must cite the exact release and chunk
+   that supports a statement. Identical text can appear in different releases
+   with different business meaning, applicability, or current-state effect;
+   point identity must retain that evidence boundary.
+4. Correct direction. Rebuild the Qdrant collection after validating scope and
+   backing up if required, rather than deleting it automatically. A destructive
+   operation with the wrong configuration or incomplete cache could erase useful
+   retrieval evidence.
+
+### Stronger interview-quality answer
+
+An embedding cache key answers, “Can this exact content reuse a vector?” A
+Qdrant point ID answers, “Which specific evidence unit may be retrieved and
+cited?” Identical text may reuse one vector, but it requires separate point IDs
+because its document, release, chunk, and citation metadata differ. If stored
+vectors conflict for one cache key, silently choosing one is unsafe because the
+system cannot prove deterministic retrieval or grounded lineage attribution.
+After a point-ID schema change, rebuild Qdrant deliberately from validated
+artifacts; do not automatically delete a collection without scope checks,
+backup/recovery policy, and explicit approval.
+
+## Step 105 – Duplicate-content embedding safety and explicit Qdrant rebuild
+
+### Interview questions
+
+1. Why is it correct to reuse one vector for identical content but incorrect to
+   reuse one Qdrant point for every occurrence of that content?
+2. What business and RAG risks would remain if we only deduplicated API calls
+   but kept point IDs based solely on `cache_key`?
+3. Why is artifact quarantine preferable to deleting the failed R21 embedding
+   artifact before investigating it?
+4. What exact assets does the explicit Qdrant rebuild delete, and which local
+   artifacts does it deliberately preserve?
+5. Why must the recovery be dry-run reviewed and explicitly approved even after
+   deterministic tests pass?
+
+### Correct-answer rubric
+
+1. One vector represents content similarity and can be reused for cost and
+   consistency. One Qdrant point carries occurrence-specific payload/citation
+   metadata, so each unit needs its own stable identity.
+2. Distinct chunks/releases with identical text would overwrite each other,
+   losing lineage metadata, creating incomplete retrieval coverage, and risking
+   citations to the wrong evidence occurrence.
+3. Quarantine preserves the failed artifact, its vector fingerprints, and its
+   diagnostics for audit and debugging while removing it from the active cache;
+   deletion destroys that evidence.
+4. It deletes and recreates only the configured local Qdrant collection. It
+   preserves source DOCX files, processed artifacts, active embeddings, and
+   quarantined artifacts.
+5. Tests prove designed cases, not live credentials, model availability, API
+   cost, local storage capacity, real cache state, or operator intent. Dry run
+   proves scope/command construction; explicit approval authorizes the paid and
+   destructive live action.
+
+## Step 106 – Preserve duplicate evidence units and version the Qdrant collection
+
+### Correction to Step 105
+
+The Step 105 in-place rebuild design is superseded. A disposable embedded local
+Qdrant probe proved that delete-and-recreate retained old points. `--rebuild`
+and `--rebuild-qdrant` now fail safely; use a new versioned collection through
+`QDRANT_COLLECTION_NAME` instead.
+
+### Interview questions
+
+1. Why must `load_embedding_cache` return one canonical vector per content key,
+   while `load_embedding_records` returns every occurrence for Qdrant indexing?
+2. Why would replacing `document_family` with the full filename break valid
+   cross-release lineage analysis?
+3. What is the role of `document_id`, and why can multiple R21 FDDs still have
+   different `document_id` values?
+4. Why does a successful delete API response not prove that a local embedded
+   vector store is safe to rebuild in place?
+5. What must be validated before changing `QDRANT_COLLECTION_NAME` from
+   `functional_specs` to `functional_specs_v2` for the API/UI?
+
+### Correct-answer rubric
+
+1. Cache lookup avoids repeat API work for identical content, so one canonical
+   vector is correct. Qdrant must preserve every document/chunk occurrence for
+   metadata filters, retrieval coverage, and citations, even when vectors match.
+2. A family represents the logical FDD stream across R2, R21, R24, and later
+   releases. A full filename is one document occurrence and would split related
+   releases into unrelated groups.
+3. `document_id` is the complete filename stem and identifies one exact FDD
+   source. Release is not globally unique; several distinct R21 FDDs can each
+   have their own document ID while sharing a family/release context where
+   appropriate.
+4. The probe showed stale points survive recreation. API acknowledgement covers
+   the method call, not a verified physical-state guarantee. Reusing the name
+   risks mixed schema/data and ungrounded retrieval.
+5. Confirm the intended new name and config source, artifact/index coverage,
+   point count and exact per-document verification, vector dimension, grounded
+   retrieval/citation evaluation, API readiness, and rollback plan before
+   directing the UI/API to the new collection.

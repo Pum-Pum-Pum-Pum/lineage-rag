@@ -1,4 +1,6 @@
 from pathlib import Path
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -55,6 +57,18 @@ def test_qdrant_indexing_closes_client_when_indexing_fails(
         run_qdrant_indexing.main()
 
     assert fake_client.closed is True
+
+
+def test_qdrant_indexing_rejects_legacy_rebuild_cli_before_collection_access() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/run_qdrant_indexing.py", "--rebuild"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "unsupported for embedded local Qdrant" in result.stderr
 
 
 def test_qdrant_index_check_closes_client_when_collection_is_missing(

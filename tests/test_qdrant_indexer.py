@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from app.embeddings.embedding_artifact_writer import write_embedding_batch_to_json
 from app.embeddings.embedding_contract import EmbeddingBatch, EmbeddingRecord
 from app.vectorstore.qdrant_indexer import (
@@ -66,4 +68,29 @@ def test_index_embedding_cache_directory_indexes_cached_vectors(tmp_path) -> Non
     assert summary.attempted_records == 2
     assert summary.upserted_points == 2
     assert summary.skipped_records == 0
+    assert client.count(config.collection_name).count == 2
+
+
+def test_index_embedding_cache_directory_preserves_duplicate_content_units(tmp_path) -> None:
+    cache_dir = tmp_path / "embeddings"
+    first = _record("unit-1", [1.0, 0.0])
+    second = replace(first, unit_id="unit-2", unit_index=1)
+    write_embedding_batch_to_json(
+        EmbeddingBatch(
+            document_name="example.docx",
+            total_records=2,
+            records=[first, second],
+        ),
+        cache_dir,
+    )
+    client = create_local_qdrant_client()
+    config = QdrantCollectionConfig(
+        collection_name="test_functional_specs",
+        vector_size=2,
+    )
+
+    summary = index_embedding_cache_directory(client, config, cache_dir)
+
+    assert summary.attempted_records == 2
+    assert summary.upserted_points == 2
     assert client.count(config.collection_name).count == 2

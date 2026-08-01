@@ -1,8 +1,13 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from app.embeddings.embedding_artifact_writer import write_embedding_batch_to_json
-from app.embeddings.embedding_cache import find_cached_embedding, load_embedding_cache
+from app.embeddings.embedding_cache import (
+    find_cached_embedding,
+    load_embedding_cache,
+    load_embedding_records,
+)
 from app.embeddings.embedding_contract import EmbeddingBatch, EmbeddingRecord
 
 
@@ -99,3 +104,26 @@ def test_load_embedding_cache_raises_on_conflicting_duplicate_cache_key(tmp_path
         assert "Conflicting cached embeddings" in str(exc)
     else:
         raise AssertionError("Expected RuntimeError for conflicting duplicate cache key")
+
+
+def test_load_embedding_records_preserves_duplicate_content_occurrences(tmp_path: Path) -> None:
+    cache_dir = tmp_path / "embeddings"
+    first = _record("same-key", "embedded", [0.1, 0.2])
+    second = replace(first, unit_id="unit::same-key-second", unit_index=1)
+    write_embedding_batch_to_json(
+        EmbeddingBatch(
+            document_name="example.docx",
+            total_records=2,
+            records=[first, second],
+        ),
+        cache_dir,
+    )
+
+    records = load_embedding_records(cache_dir)
+    cache = load_embedding_cache(cache_dir)
+
+    assert [record.unit_id for record in records] == [
+        "unit::same-key",
+        "unit::same-key-second",
+    ]
+    assert len(cache) == 1

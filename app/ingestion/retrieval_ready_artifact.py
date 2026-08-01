@@ -15,6 +15,7 @@ class RetrievalReadyUnit:
     text: str
     document_family: str
     release_label: str
+    document_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class RetrievalReadyArtifact:
     release_label: str
     total_units: int
     units: list[RetrievalReadyUnit]
+    document_id: str = ""
 
 
 def build_retrieval_ready_artifact(
@@ -48,6 +50,7 @@ def build_retrieval_ready_artifact(
                 text=chunk.text,
                 document_family=paragraph_chunks.document_family,
                 release_label=paragraph_chunks.release_label,
+                document_id=normalized_artifact.raw_artifact.parsed_name.document_id,
             )
         )
 
@@ -60,6 +63,7 @@ def build_retrieval_ready_artifact(
                 text=table_chunk.text,
                 document_family=table_chunks.document_family,
                 release_label=table_chunks.release_label,
+                document_id=normalized_artifact.raw_artifact.parsed_name.document_id,
             )
         )
 
@@ -69,4 +73,5 @@ def build_retrieval_ready_artifact(
         release_label=normalized_artifact.raw_artifact.parsed_name.release_label,
         total_units=len(units),
         units=units,
+        document_id=normalized_artifact.raw_artifact.parsed_name.document_id,
     )
