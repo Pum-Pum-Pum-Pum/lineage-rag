@@ -167,14 +167,23 @@ def _ensure_archive_destinations_are_available(
     documents: Sequence[DiscoveredDocxFile],
     archive_directory: Path,
 ) -> None:
+    if not archive_directory.is_dir():
+        return
+
+    archived_files_by_casefolded_name = {
+        path.name.casefold(): path
+        for path in archive_directory.iterdir()
+        if path.is_file()
+    }
     conflicts = [
-        str(archive_directory / document.file_name)
+        str(archived_files_by_casefolded_name[document.file_name.casefold()])
         for document in documents
-        if (archive_directory / document.file_name).exists()
+        if document.file_name.casefold() in archived_files_by_casefolded_name
     ]
     if conflicts:
         raise FileExistsError(
-            "Refusing to ingest because archive destinations already exist: "
+            "Refusing to ingest duplicate FDD filename(s) already present in "
+            "the embedded-documents archive: "
             + ", ".join(conflicts)
         )
 

@@ -766,3 +766,295 @@ documents have been reprocessed.
   deprecation warning remains.
 - No additional live OpenAI call, Qdrant upsert, archive action, or `.env`
   collection-name change was performed after the failed recovery run.
+
+### Live recovery result
+
+After setting a new local `QDRANT_COLLECTION_NAME` and reviewing the dry run,
+the user ran `scripts/master_ingestion_embedding_docs.py` successfully. The
+master workflow completed as expected on the new versioned collection. This
+establishes the collection cutover/build path; it does not itself replace the
+separate SME-reviewed retrieval and citation evaluation required before wider
+FDD expansion.
+
+## Step 107 — Four-FDD batch preflight and safe rejection
+
+### Objective
+
+Validate the newly staged four-FDD R1 batch before any paid embedding request,
+Qdrant write, source archival move, or API/UI collection change.
+
+### Staged batch
+
+- `FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1.docx`
+- `FS_FCIS_14.4.0.0.0$ASNB_R1_FinancialPlan_v1.1.docx`
+- `FS_FCIS_14.4.0.0.0$ASNB_R1_Fund_Rule_v1.2.docx`
+- `FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx`
+
+### Python/code used
+
+```python
+from pathlib import Path
+from app.ingestion.filename_parser import parse_document_filename
+
+documents = sorted(Path("data/raw_specs").glob("*.docx"))
+assert len(documents) == 4
+
+seen_document_ids: set[str] = set()
+for path in documents:
+    parsed = parse_document_filename(path)
+    assert parsed.document_id not in seen_document_ids
+    seen_document_ids.add(parsed.document_id)
+    print(parsed.document_id, parsed.document_family, parsed.release_label)
+```
+
+The read-only master plan was also executed with:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts/master_ingestion_embedding_docs.py --dry-run
+```
+
+### What the preflight proved
+
+- Four DOCX files are staged and each has a unique full-source `document_id`.
+- All four map to `FS_FCIS_14.4.0.0.0$ASNB` and release `R1`; same-release,
+  same-family FDDs are valid when `document_id` remains distinct.
+- The master will ingest the batch, embed all units per document, index the
+  resulting active artifacts, exact-verify all four artifacts, and archive a
+  source only after those checks succeed.
+- The dry run made no OpenAI request, Qdrant write, or source move.
+
+### Failure-mode test
+
+```python
+parse_document_filename("FS_FCIS_14.4.0.0.0$ASNB_RX_Invalid.docx")
+```
+
+This raised the expected `ValueError` before ingestion. It proves a malformed
+release label cannot silently enter a release-aware lineage index.
+
+### Production interpretation
+
+The four FDDs will be separate citeable document occurrences even though they
+share a family and release. This prevents one R1 module from overwriting or
+being cited as another. Dry-run review contains no cost or storage guarantee;
+the live run will call the embedding provider for cache misses and may archive
+only fully verified source files.
+
+### Gate
+
+Preflight accepted. Await the user's interview answers before authorizing the
+live master ingestion command.
+
+## Step 108 — Clean versioned-collection reconstruction from cached embeddings
+
+### Objective
+
+Correct the discovered collection-routing error without repeating paid
+embeddings: build a clean `functional_specs_v2` from all active local embedding
+artifacts and prove exact structural coverage.
+
+### Configuration correction
+
+The live four-FDD run showed `functional_specs` because the local `.env`
+explicitly configured that legacy name. The prior versioned collection did not
+exist. The local setting was changed to:
+
+```env
+QDRANT_COLLECTION_NAME=functional_specs_v2
+```
+
+The effective runtime setting was then printed from `get_settings()` and
+confirmed as `functional_specs_v2` before indexing.
+
+### Python/code used
+
+```powershell
+# Reuse existing artifacts: no DOCX parsing and no embedding API call.
+& .\.venv\Scripts\python.exe scripts/run_qdrant_indexing.py
+
+# Verify every active artifact, not only the four newest ones.
+$artifactPaths = Get-ChildItem data\cache\embeddings -Filter '*.embeddings.json'
+$verifyArgs = foreach ($artifactPath in $artifactPaths) {
+    '--embedding-artifact'; $artifactPath.FullName
+}
+& .\.venv\Scripts\python.exe scripts/check_qdrant_index.py @verifyArgs
+```
+
+### Result
+
+- `functional_specs_v2` was created/updated with 579 attempted and 579
+  upserted evidence occurrences.
+- Exact verification passed for all 9 active embedding artifacts and all 579
+  expected records.
+- The new collection has 579 points, 3072-dimensional vectors, and cosine
+  distance.
+- No OpenAI request, DOCX re-ingestion, or source archive move was needed for
+  this reconstruction.
+- The legacy `functional_specs` collection remains preserved with 591 points
+  and is not the configured target.
+
+### Failure-mode test
+
+```powershell
+$env:QDRANT_COLLECTION_NAME = 'functional_specs_negative_verification_test'
+& .\.venv\Scripts\python.exe scripts/check_qdrant_index.py `
+  --embedding-artifact data\cache\embeddings\FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1.embeddings.json
+```
+
+The verifier returned exit code 1 with `Qdrant collection does not exist;
+cannot verify the requested embedding artifacts.` No replacement collection was
+created. This demonstrates fail-closed verification.
+
+### Production interpretation
+
+The point count alone is insufficient; exact artifact-to-point verification
+proves all intended source occurrences are present in the selected collection.
+The application processes must be restarted before they pick up the changed
+environment configuration. Structural verification does not prove answer
+correctness, citation entailment, or current-state synthesis; those require the
+next retrieval and SME-reviewed evaluation step.
+
+### Gate
+
+Step 108 implementation is complete. Await the user's interview answers before
+restarting clients or running answer-quality evaluation.
+
+## Step 109 — Duplicate raw-versus-archive source guard
+
+### Objective
+
+Prevent a reviewed FDD that has already been successfully archived from being
+accidentally copied back into `data/raw_specs/` and triggering duplicate
+ingestion, embedding cost, or duplicate evidence occurrences.
+
+### Python/code change
+
+```python
+archived_files_by_casefolded_name = {
+    path.name.casefold(): path
+    for path in archive_directory.iterdir()
+    if path.is_file()
+}
+conflicts = [
+    archived_files_by_casefolded_name[document.file_name.casefold()]
+    for document in documents
+    if document.file_name.casefold() in archived_files_by_casefolded_name
+]
+if conflicts:
+    raise FileExistsError("Refusing to ingest duplicate FDD filename(s) ...")
+```
+
+The pre-existing master preflight was strengthened to compare raw and archive
+filenames case-insensitively. It runs before command construction and before
+the `--dry-run` return, so no child process can ingest, embed, index, verify,
+or move a colliding source.
+
+### Failure-mode testing
+
+```python
+master_ingestion_embedding_docs.main(["--dry-run"])
+```
+
+The regression creates a raw DOCX and an archive DOCX with the same filename
+but different casing. It expects `FileExistsError`, asserts the raw source
+remains in place, and makes any attempted child process fail the test.
+
+### Validation
+
+- Focused master-ingestion regression suite: 7 passed.
+- `git diff --check`: passed; only existing LF-to-CRLF working-tree warnings
+  were emitted.
+- The runbook now tells operators to remove an accidental raw duplicate or
+  investigate the archive; it never instructs overwriting archived source.
+
+### Production interpretation
+
+Filename identity is a low-cost idempotency boundary for this manual-drop
+workflow. It prevents a common operator error, but it is not a content-hash or
+SVN-revision identity system: a genuinely revised FDD needs a distinct reviewed
+filename/release and will be handled by the planned manifest-based FDD/code
+work.
+
+### Next bounded plan
+
+1. Restart API and UI processes so they load `functional_specs_v2`.
+2. Run one known retrieval/citation smoke query per newly added R1 FDD plus one
+   unsupported query to verify refusal behavior.
+3. Create a small SME-reviewed, document-specific evaluation set that includes
+   cross-document confusion and citation checks; do not rely on generic R1
+   questions.
+4. Run retrieval and answer-trace evaluation, analyse failures, and only then
+   stage the next 3–5 deployed delta FDDs across additional releases.
+
+No interview questions were requested for this validation-only step.
+
+## Step 110 — Versioned FDD grounded-evaluation runner and draft gate
+
+### Objective
+
+Turn the 30-case `data/evaluations/fdd_grounded_eval_v1.jsonl` asset into a
+repeatable evaluation run that uses the real retrieval-to-grounded-answer path,
+records local answer traces, deterministically checks response/citation
+contracts, and leaves semantic claim correctness to SME review.
+
+### Manifest preflight
+
+```python
+records = [json.loads(line) for line in eval_file.read_text().splitlines() if line]
+assert len(records) == 30
+assert len({record["case_id"] for record in records}) == len(records)
+```
+
+- The file contains 30 consistent JSONL cases and 6 abstention cases.
+- It covers R1, R2, R18, R21, and R24 evidence expectations.
+- All cases currently have `sme_reviewed=false` and
+  `review_status=pending_sme_approval`; it is a draft baseline, not a release
+  quality gate.
+
+### Files added
+
+- `app/llm/fdd_grounded_evaluation.py`
+- `scripts/run_fdd_grounded_eval.py`
+- `tests/test_fdd_grounded_evaluation.py`
+- `tests/test_fdd_grounded_eval_script.py`
+
+### Python/code pattern
+
+```python
+require_reviewed_cases(cases, allow_unreviewed=args.allow_unreviewed)
+orchestration = run_grounded_answer_query(..., limit=10)
+result = evaluate_fdd_grounded_response(case, orchestration.answer_response)
+```
+
+The runner validates JSONL fields and abstention shape, refuses unreviewed
+cases by default, executes the same grounded-answer orchestration used by the
+application only when authorized, writes isolated answer traces and a report,
+and checks answer/refusal state plus required `document_id` and release
+citations. It reports expected claims for an SME to review but never calls an
+LLM judge or treats string matching as factual entailment.
+
+### Failure-mode testing
+
+Running an unreviewed case without `--allow-unreviewed` exits with the expected
+rejection. Running with `--allow-unreviewed --dry-run --max-cases 3` prints the
+three planned cases against `functional_specs_v2` without any OpenAI or Qdrant
+call.
+
+### Validation
+
+- Focused grounded-evaluation tests: 6 passed.
+- `git diff --check`: passed; only existing LF-to-CRLF working-tree warnings
+  were emitted.
+
+### Production interpretation
+
+An explicit draft flag prevents an operator from presenting unreviewed expected
+claims as an acceptance metric. The runner can measure citation/abstention
+contract regressions deterministically; only SME review can confirm that the
+answer entails all intended claims and omits unsupported ones.
+
+### Gate
+
+Await the user's decision: mark all cases SME-approved and run the quality gate,
+or authorize `--allow-unreviewed` for a clearly labelled, non-gating draft
+baseline. No live 30-case model evaluation has been executed yet.

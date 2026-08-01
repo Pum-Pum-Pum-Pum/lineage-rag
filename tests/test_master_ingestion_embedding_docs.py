@@ -100,8 +100,29 @@ def test_master_rejects_existing_archive_destination_before_running_stages(
     monkeypatch.setattr(master_ingestion_embedding_docs, "get_settings", lambda: settings)
     monkeypatch.setattr(master_ingestion_embedding_docs.subprocess, "run", fail_if_called)
 
-    with pytest.raises(FileExistsError, match="archive destinations"):
+    with pytest.raises(FileExistsError, match="duplicate FDD filename"):
         master_ingestion_embedding_docs.main([])
+
+    assert source.is_file()
+
+
+def test_master_dry_run_rejects_case_insensitive_archived_filename_before_stages(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    settings = _settings(tmp_path)
+    source = _write_docx_placeholder(settings.raw_specs_dir, "FS_ASNB_R25_Duplicate.docx")
+    settings.embedded_docs_dir.mkdir(parents=True)
+    _write_docx_placeholder(settings.embedded_docs_dir, source.name.upper())
+
+    def fail_if_called(*args, **kwargs) -> None:
+        raise AssertionError("Archive duplicate must block all child stages")
+
+    monkeypatch.setattr(master_ingestion_embedding_docs, "get_settings", lambda: settings)
+    monkeypatch.setattr(master_ingestion_embedding_docs.subprocess, "run", fail_if_called)
+
+    with pytest.raises(FileExistsError, match="duplicate FDD filename"):
+        master_ingestion_embedding_docs.main(["--dry-run"])
 
     assert source.is_file()
 

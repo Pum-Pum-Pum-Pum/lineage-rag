@@ -705,3 +705,214 @@ and `--rebuild-qdrant` now fail safely; use a new versioned collection through
    point count and exact per-document verification, vector dimension, grounded
    retrieval/citation evaluation, API readiness, and rollback plan before
    directing the UI/API to the new collection.
+
+### User answer evaluation
+
+Pass. All five answers are production-ready.
+
+- Q1 correctly separates cost-efficient content-vector reuse from preserving
+  every citeable document/chunk occurrence in Qdrant.
+- Q2 correctly keeps the family as the cross-release lineage stream and the
+  full filename as one source occurrence.
+- Q3 correctly identifies the full-source document ID as distinct from a
+  release label that can be shared by multiple FDDs.
+- Q4 correctly relies on the observed persistent-Qdrant probe rather than a
+  delete API acknowledgement when deciding against in-place rebuild.
+- Q5 covers configuration source, coverage, exact validation, vector contract,
+  grounded evaluation, readiness, and rollback before routing API/UI traffic.
+
+### Stronger interview-quality answer
+
+The embedding cache de-duplicates exact content to control API cost, whereas
+Qdrant must preserve each evidence occurrence because citation, filtering, and
+lineage semantics depend on document and chunk identity. `document_family`
+groups one logical stream across releases, `release_label` identifies the
+release, and `document_id` identifies one exact FDD source; multiple R21 FDDs
+therefore remain distinct without breaking cross-release grouping. Because the
+embedded-Qdrant probe retained old points after recreation, migration must use
+a new versioned collection, validated for artifact coverage, exact points,
+dimensions, grounded retrieval/citations, readiness, and rollback before the
+API/UI switches configuration.
+
+### Gate
+
+Step 106 interview gate accepted. Await the user's local `.env` update to a
+new versioned Qdrant collection name and the master-command dry-run result
+before any live collection build or API/UI switch.
+
+### Live recovery confirmation
+
+The user confirmed that the reviewed
+`master_ingestion_embedding_docs.py` command completed successfully against
+the new versioned collection. Step 106 is complete.
+
+### Post-recovery interview evaluation
+
+1. Partly correct. Preserve `functional_specs` as a recoverable prior index
+   generation, not as an additional source to query beside v2. Its mixed old
+   point-ID generations make it unsafe for current grounded answers; it may be
+   useful for investigation or rollback while retained under its own name.
+2. Needs correction. Release labels and current-state facts do not prove index
+   coverage. Compare the active embedding-artifact occurrence count with the
+   new collection's exact verified point count, then validate each deterministic
+   point ID and payload (`document_id`, family, release, unit ID, vector
+   dimension) using `check_qdrant_index.py`. Run retrieval/citation evaluation
+   separately after structural coverage passes.
+3. Correct. A UI/API still configured to the legacy collection can return stale
+   or incomplete evidence, causing citations and current-state answers to be
+   misleading even though v2 was built successfully.
+4. Correct. Ingestion/indexing proves data movement and structure, whereas
+   grounded answer quality also depends on retrieval, ranking, synthesis,
+   citation validity, abstention, and reviewed correctness.
+5. Needs explanation. Rollback means changing the API/UI configuration back to
+   the previously validated, preserved collection name, restarting the
+   processes, and recording the reason and affected time window. Do this only
+   if that prior collection is known safe for the intended scope; a stale or
+   mixed legacy collection is an investigation fallback, not an automatic
+   production rollback target.
+
+### Gate
+
+Step 106 is accepted with remediation: the user understands the core safety
+model and must retain the coverage-proof and rollback distinction for the next
+collection migration.
+
+## Step 107 — Four-FDD batch preflight and safe rejection
+
+### Interview questions
+
+1. Why is it valid for all four files to share `R1` and a document family, but
+   unsafe for them to share one `document_id`?
+2. Which operations in the master workflow can incur OpenAI cost or mutate
+   local state, and why does `--dry-run` prove neither occurred?
+3. If one FDD embeds successfully but exact Qdrant verification fails, what
+   must happen to all four raw DOCX files, and why?
+4. Why does a filename parser rejection improve grounded-RAG safety rather than
+   merely input hygiene?
+5. After this batch is indexed, why must the evaluation set include questions
+   that distinguish the four R1 document IDs rather than only generic R1
+   questions?
+
+### Correct-answer rubric
+
+1. Family/release support lineage grouping and release filtering; document ID
+   identifies the exact source occurrence. Sharing it would collapse citation,
+   payload, and audit identity across separate FDDs.
+2. Embedding cache misses call OpenAI. Ingestion, artifact creation, Qdrant
+   upsert, verification, and archival can write local state. Dry run prints the
+   constructed commands but does not execute child processes, so it cannot call
+   the provider, write Qdrant, or move source files.
+3. The failing source must remain in `data/raw_specs`; the master must not
+   archive an unverified document. Other sources should be handled only under
+   the documented per-document success policy, never falsely reported as a
+   fully verified batch.
+4. An unparseable release/family cannot be reliably filtered, selected as
+   current state, or cited in lineage answers. Rejecting it avoids evidence with
+   ambiguous temporal metadata entering the index.
+5. Generic release questions can pass while the system retrieves the wrong R1
+   module. Document-specific questions test metadata filters, ranking,
+   citations, cross-document confusion, and safe abstention when evidence is
+   absent.
+
+### User answer evaluation
+
+Pass. All five answers match the production rubric.
+
+1. Correctly separates lineage grouping from exact source identity and the
+   citation/audit collision risk.
+2. Correctly distinguishes paid embedding calls from local mutation and states
+   why a master dry run cannot perform either.
+3. Correctly retains an unverified source and avoids falsely reporting partial
+   success as a verified batch.
+4. Correctly connects parsing failure to unreliable temporal filtering,
+   current-state selection, and citation rather than treating it as formatting.
+5. Correctly identifies cross-module retrieval confusion that generic
+   release-level questions would hide.
+
+### Gate
+
+Step 107 interview gate accepted. The four-FDD live master run is authorized.
+
+## Step 108 — Clean versioned-collection reconstruction from cached embeddings
+
+### Interview questions
+
+1. Why was re-indexing from active embedding artifacts cheaper and safer than
+   rerunning the master ingestion workflow after the wrong collection target
+   was discovered?
+2. Why is `579` collection points alone not sufficient evidence that the new
+   collection is complete and correctly configured?
+3. The legacy collection has 591 points while v2 has 579. Why must we not use
+   the larger count as evidence that the legacy collection is better?
+4. What does the nonexistent-collection negative test prove, and what does it
+   not prove about retrieval quality?
+5. Why must API/UI processes be restarted after changing `.env`, and what
+   verification should occur before users rely on answers from v2?
+
+### Correct-answer rubric
+
+1. Existing artifacts already contain validated vectors and source metadata, so
+   re-indexing avoids OpenAI cost and avoids reparsing/moving source DOCX files.
+   It changes only the chosen vector-store generation.
+2. A count can include stale, duplicate, wrong-schema, or wrong-payload points.
+   Exact verification must compare all intended artifact records to their
+   deterministic IDs, document/release payload, and vector contract.
+3. The legacy collection is known to contain mixed point-ID generations;
+   additional points can be stale duplicates rather than valid evidence.
+   Correctness comes from the selected artifact manifest and exact validation,
+   not a larger number.
+4. It proves the verifier fails closed if its configured collection does not
+   exist and will not silently create/accept it. It does not prove query
+   relevance, ranking, citation entailment, abstention, or answer correctness.
+5. Settings are loaded into process memory at startup. Restarting applies the
+   new name; then verify effective configuration, readiness, a known retrieval
+   query, citations, and the reviewed evaluation set before user traffic.
+
+### User answer evaluation
+
+Pass. All five answers meet the Step 108 production rubric. The user correctly
+distinguished artifact reuse from re-embedding, structural coverage from a
+point count, stale legacy state from a validated manifest, fail-closed
+verification from retrieval quality, and startup configuration from user-ready
+validation.
+
+## Step 109 — Duplicate raw-versus-archive source guard
+
+No interview questions were requested. This was a narrowly scoped validation
+and maintainability improvement; its regression test demonstrates that a
+case-insensitive filename collision is rejected before every child stage.
+
+## Step 110 — Versioned FDD grounded-evaluation runner and draft gate
+
+### Interview questions
+
+1. Why is a benchmark with `sme_reviewed=false` useful for a draft baseline but
+   invalid as a release-quality gate, even if every automated check passes?
+2. Why must expected `document_id` citations be checked separately from release
+   labels, particularly when multiple FDDs share R1?
+3. Why does structural answer/citation evaluation not prove the expected claims
+   are entailed by the answer and evidence?
+4. What cost and state changes occur during a non-dry evaluation run, and which
+   local artifacts make a failure diagnosable later?
+5. If an abstention case returns citations but `is_answered=false` with a clear
+   refusal reason, why can that still be safe behavior?
+
+### Correct-answer rubric
+
+1. Draft cases can expose retrieval/citation regressions, but their expected
+   claims have not been accepted by a domain authority. Passing them cannot
+   justify a 90% SME-correctness claim or release decision.
+2. A release label groups multiple FDD occurrences. Document ID identifies the
+   exact cited source and catches cross-module confusion that release-only
+   checks would miss.
+3. Structural checks establish state and source identity, not whether wording
+   is complete, correctly qualified, non-contradictory, or actually supported
+   by the cited text. An SME must review claim entailment.
+4. Each case can make embedding and LLM calls, write answer traces/reports, and
+   consume local Qdrant reads. The run report, trace directory, request IDs,
+   retrieval metadata, citations, model usage, and cost estimates support later
+   diagnosis.
+5. A refusal may retain retrieved evidence to explain why the threshold was not
+   met. It is safe if it does not make a functional claim, has
+   `is_answered=false`, carries a machine-readable reason, and the UI presents
+   it as an abstention rather than an answer.

@@ -8,6 +8,11 @@ whose exact vectors have been verified in Qdrant.
 
 Copy one or more reviewed FDD DOCX files into `data/raw_specs/`.
 
+Do not copy a filename that is already present in `data/docs_embedded/`. The
+master command rejects that duplicate before it runs ingestion or embeddings;
+rename only when it is genuinely a distinct, reviewed FDD with its own source
+identity.
+
 ```powershell
 Copy-Item -LiteralPath 'C:\approved-fdds\FS_ASNB_R25_Teller_Change.docx' `
   -Destination 'data\raw_specs\FS_ASNB_R25_Teller_Change.docx'
@@ -74,6 +79,12 @@ If ingestion, OpenAI embedding, Qdrant indexing, or exact-Qdrant verification
 fails, the master command stops and does **not** archive the affected source
 DOCX files. Fix the reported problem and rerun; deterministic embedding cache
 keys and Qdrant point IDs make a safe rerun possible.
+
+If the same filename appears in both `data/raw_specs/` and
+`data/docs_embedded/`, the command also stops before every child stage,
+including `--dry-run`. This prevents accidental duplicate ingestion and repeat
+embedding cost. Remove the accidental raw copy or investigate the archived
+source before retrying; never overwrite the archived file.
 
 ### Explicit recovery for a duplicate-embedding cache conflict
 
