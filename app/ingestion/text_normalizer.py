@@ -62,6 +62,7 @@ class NormalizedTextResult:
     cleaned_paragraph_count: int
     removed_paragraph_count: int
     cleaned_paragraphs: list[str]
+    cleaned_paragraph_original_indexes: list[int]
     cleaned_full_text: str
 
 
@@ -82,11 +83,13 @@ def is_noise_paragraph(paragraph: str) -> bool:
 
 def normalize_ingested_text(artifact: IngestedDocxArtifact) -> NormalizedTextResult:
     original_paragraphs = artifact.extracted_text.paragraphs
-    cleaned_paragraphs = [
-        paragraph.strip()
-        for paragraph in original_paragraphs
+    cleaned_pairs = [
+        (index, paragraph.strip())
+        for index, paragraph in enumerate(original_paragraphs)
         if not is_noise_paragraph(paragraph)
     ]
+    cleaned_paragraphs = [paragraph for _, paragraph in cleaned_pairs]
+    cleaned_paragraph_original_indexes = [index for index, _ in cleaned_pairs]
 
     cleaned_full_text = "\n".join(cleaned_paragraphs)
     original_non_empty = artifact.extracted_text.non_empty_paragraph_count
@@ -97,5 +100,6 @@ def normalize_ingested_text(artifact: IngestedDocxArtifact) -> NormalizedTextRes
         cleaned_paragraph_count=cleaned_count,
         removed_paragraph_count=original_non_empty - cleaned_count,
         cleaned_paragraphs=cleaned_paragraphs,
+        cleaned_paragraph_original_indexes=cleaned_paragraph_original_indexes,
         cleaned_full_text=cleaned_full_text,
     )

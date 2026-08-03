@@ -17,6 +17,10 @@ from app.retrieval.evidence_sufficiency import EvidenceSufficiencyDecision
 from app.vectorstore.qdrant_search import QdrantSearchResult
 
 
+_ANSWER_DECISION_PREFIX = "DECISION: ANSWER"
+_REFUSE_DECISION_PREFIX = "DECISION: REFUSE"
+
+
 def generate_grounded_answer(
     query: str,
     retrieved_results: list[QdrantSearchResult],
@@ -73,13 +77,32 @@ def generate_grounded_answer(
         input_cost_per_1k_tokens=settings.llm_input_cost_per_1k_tokens,
         output_cost_per_1k_tokens=settings.llm_output_cost_per_1k_tokens,
     )
+    decision, answer = _parse_grounded_decision(completion.content)
     citations = prompt.citations
+    if decision is None:
+        return GroundedAnswerResponse(
+            query=query,
+            answer=(
+                "I could not validate that the indexed evidence directly supports "
+                "the requested answer, so I am refusing rather than presenting an "
+                "unsupported response."
+            ),
+            is_answered=False,
+            refusal_reason="Grounded answerability decision was missing or invalid.",
+            citations=citations,
+            usage=completion.usage,
+            cost=cost,
+        )
 
     response = GroundedAnswerResponse(
         query=query,
-        answer=completion.content,
-        is_answered=True,
-        refusal_reason=None,
+        answer=_ensure_refusal_follow_up(answer) if not decision else answer,
+        is_answered=decision,
+        refusal_reason=(
+            None
+            if decision
+            else "No direct evidence supports every material part of the requested answer."
+        ),
         citations=citations,
         usage=completion.usage,
         cost=cost,
@@ -101,3 +124,33 @@ def generate_grounded_answer(
         )
 
     return response
+
+
+def _parse_grounded_decision(content: str) -> tuple[bool | None, str]:
+    """Parse the model's required direct-support decision without guessing."""
+
+    lines = content.strip().splitlines()
+    if not lines:
+        return None, ""
+
+    decision_line = lines[0].strip().upper()
+    body = "\n".join(lines[1:]).strip()
+    if decision_line == _ANSWER_DECISION_PREFIX:
+        return True, body
+    if decision_line == _REFUSE_DECISION_PREFIX:
+        return False, body or (
+            "I could not find direct indexed evidence for the requested answer."
+        )
+    return None, ""
+
+
+def _ensure_refusal_follow_up(answer: str) -> str:
+    """Append a safe recovery prompt when a model refuses without one."""
+
+    if "suggested next question:" in answer.casefold():
+        return answer
+    return (
+        f"{answer.rstrip()}\n\n"
+        "Suggested next question: Ask about a named function, report, field, "
+        "or release explicitly described in the cited evidence."
+    )

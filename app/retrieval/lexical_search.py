@@ -46,6 +46,8 @@ class LexicalSearchDocument:
     document_family: str
     release_label: str
     text: str
+    retrieval_text: str = ""
+    parent_unit_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +106,8 @@ def load_retrieval_ready_documents(
                     document_family=str(unit.get("document_family", fallback_family)),
                     release_label=str(unit.get("release_label", fallback_release)),
                     text=str(unit.get("text", "")),
+                    retrieval_text=str(unit.get("retrieval_text") or unit.get("text", "")),
+                    parent_unit_id=unit.get("parent_unit_id"),
                 )
             )
 
@@ -137,7 +141,8 @@ def search_lexical_documents(
     scored_results: list[LexicalSearchResult] = []
 
     for document in candidates:
-        document_tokens = tokenize(document.text)
+        retrieval_text = document.retrieval_text or document.text
+        document_tokens = tokenize(retrieval_text)
         score, matched_terms = _score_document(
             query_terms=query_terms,
             document_tokens=document_tokens,
@@ -158,6 +163,8 @@ def search_lexical_documents(
                     "document_family": document.document_family,
                     "release_label": document.release_label,
                     "text": document.text,
+                    "retrieval_text": retrieval_text,
+                    "parent_unit_id": document.parent_unit_id,
                     "retrieval_method": "lexical",
                     "matched_query_terms": matched_terms,
                 },

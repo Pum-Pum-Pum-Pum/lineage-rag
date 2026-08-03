@@ -916,3 +916,244 @@ case-insensitive filename collision is rejected before every child stage.
    met. It is safe if it does not make a functional claim, has
    `is_answered=false`, carries a machine-readable reason, and the UI presents
    it as an abstention rather than an answer.
+
+### User answer evaluation
+
+Pass. All five answers meet the Step 110 production rubric.
+
+1. Correctly limits unreviewed cases to regression discovery rather than an
+   SME-backed release decision.
+2. Correctly separates release grouping from exact document-source identity and
+   cross-module confusion detection.
+3. Correctly identifies the factual-entailment limits of structural checking.
+4. Correctly covers live model cost, local traces/reports, Qdrant reads, and
+   the diagnostic value of run metadata.
+5. Correctly explains why evidence-bearing refusals are safe only when the
+   response remains explicitly non-answering and machine-readable.
+
+### Gate
+
+Step 110 implementation and interview gate accepted. Await the user's explicit
+choice: an `--allow-unreviewed` draft baseline or an SME-approved quality-gate
+run.
+
+### Draft-baseline result review
+
+The user executed the explicitly labelled draft baseline. It produced 14/30
+structural passes, 16/30 failures, and only 1/6 expected abstentions. The result
+is correctly treated as diagnostic evidence rather than a quality gate.
+
+### Follow-up interview questions
+
+1. Why is an empty `document_id` on an otherwise valid R2/R24 citation a
+   grounding defect rather than a cosmetic reporting issue?
+2. Why must we distinguish missing document-ID metadata from retrieval of the
+   wrong release before choosing a remediation?
+3. What safety/business risk is exposed when five unsupported questions are
+   answered instead of refused, even if the answers sound plausible?
+4. Why does `estimated_llm_cost=0.0` in this report not demonstrate that the
+   draft run had zero real provider cost?
+5. What evidence must a repaired rerun produce before we may mark the 30 cases
+   SME-approved and use them as a release-quality gate?
+
+### Correct-answer rubric
+
+1. Exact-source identity is necessary for filters, auditability, coverage, and
+   citations. A blank ID cannot prove which same-release FDD supported the
+   answer, so grounded lineage attribution is incomplete.
+2. Metadata backfill/re-indexing can repair a known correct point with absent
+   identity; wrong release retrieval requires investigation of query planning,
+   filters, ranking, corpus content, and evaluation expectations. Treating both
+   as one problem risks an ineffective fix.
+3. The system can fabricate functional guidance or lead users to act on a
+   nonexistent feature. This violates graceful failure and makes citations look
+   like support for a claim the corpus cannot ground.
+4. Cost reporting relies on configured per-token prices. Zero configuration
+   produces a zero estimate even when the embedding/LLM provider was called;
+   provider usage, invoices, or correctly configured price inputs are needed.
+5. The rerun must show exact document/release citations for supported cases,
+   safe abstention for unsupported cases, no unresolved retrieval confusion,
+   trace/retrieval evidence for every result, and SME review of claim
+entailment before approval.
+
+## Step 111 — Direct-support decision and six-case abstention rerun
+
+### Interview questions
+
+1. Why can a high retrieval score for “investment limit” still be insufficient
+   to answer a question about an “interest rate”?
+2. Why is a required `DECISION: ANSWER`/`DECISION: REFUSE` header safer than
+   inferring answer state from unconstrained model prose?
+3. What should happen when a model omits or misspells the decision header, and
+   why?
+4. Why is selecting explicit case IDs safer than a prefix `--max-cases` limit
+   when rerunning paid failure cases?
+5. The six cases now refuse safely but lack explicit follow-up questions. Why
+   is that a usability gap rather than a grounding-safety failure?
+
+### Correct-answer rubric
+
+1. Similar vocabulary/retrieval relevance does not establish the requested
+   attribute, value, entity, or relationship. Direct evidence must support the
+   actual material claim, not merely a nearby topic.
+2. A structured header gives the service a machine-readable, auditable state
+   that the UI, API, and evaluation can enforce. Free prose can appear hesitant
+   while the system still incorrectly marks it as answered.
+3. Refuse safely and do not return the unconstrained content. A malformed
+   contract cannot be trusted as grounded support; fail closed protects users.
+4. A prefix limit depends on ordering and can run unrelated cases or omit a
+   requested one. Explicit IDs provide reviewable scope and predictable cost.
+5. The system correctly avoids an unsupported claim and records a refusal, so
+   grounding safety holds. It still fails the user-assistance goal because the
+   user is not given a clear next question to ask.
+
+### User answer evaluation
+
+Pass. All five answers meet the Step 111 production rubric. The user correctly
+identified direct support as distinct from similarity, machine-readable
+decision-state control, fail-closed malformed-output handling, bounded paid-run
+scope, and the difference between safety and recovery usability.
+
+## Step 112 — Enforced helpful recovery guidance for refusals
+
+### Interview questions
+
+1. Why is a deterministic generic follow-up safer than having the application
+   generate a specific next question from details that are not in the evidence?
+2. Why must the below-score refusal path receive the same follow-up guidance as
+   the model-level `DECISION: REFUSE` path?
+3. What would be wrong with changing `is_answered=true` merely because a
+   refusal includes helpful related citations and a suggested question?
+4. Why must we inspect the persisted report rather than rely only on terminal
+   logs to confirm the six responses contain the new section?
+5. Which two independent defects from the original 30-case report remain after
+   the abstention repair, and why should they be investigated separately?
+
+### Correct-answer rubric
+
+1. Specific follow-ups can become unsupported recommendations or leak an
+   invented interpretation. A generic prompt directs users to documented scope
+   without asserting facts absent from evidence.
+2. Both paths are user-visible safe refusals. Inconsistent guidance creates a
+   confusing UX and leaves the common low-score failure path less usable.
+3. Answer state records whether the requested functional claim was supported,
+   not whether the response was helpful. Marking it answered would again break
+   API/UI semantics and evaluation safety.
+4. Logs report control flow but may truncate or omit generated content. The
+   persisted trace/report is the durable local artifact consumed by later
+   evaluation and audit, so it must contain the contract.
+5. Exact `document_id` payload/citation gaps in legacy R2/R24 evidence and
+   wrong-release retrieval in positive confusion/current-state cases remain.
+   Metadata backfill/re-indexing and retrieval/query-planning evaluation address
+   different root causes and need separate evidence.
+
+### User answer evaluation
+
+Pass. All five answers meet the Step 112 production rubric. The user correctly
+identified the safety boundary of generic guidance, consistent refusal behavior,
+answer-state semantics, persisted artifact verification, and the separate
+metadata versus retrieval-selection defects.
+
+### Gate
+
+Step 112 is accepted. The next investigation is limited to positive-case
+citation identity and release selection; the retrieval algorithm must not be
+changed until those failure classes are measured separately.
+
+## Step 113 — R21 table retrieval linkage diagnosis
+
+### Interview questions
+
+1. Why does the presence of `table_chunk_10` in the retrieval-ready artifact
+   prove table ingestion worked but not that the user query can retrieve it?
+2. Why is copying the entire preceding paragraph permanently into the cited
+   table text a weaker design than preserving original table text with separate
+   parent/section retrieval context?
+3. Why should the repair use a new versioned Qdrant collection rather than
+   mixing context-enriched table vectors into `functional_specs_v2`?
+4. What exact test would prove the repair fixed this question without merely
+   improving a lexical score?
+5. Why is a generic weighted-RRF tuning change premature given this evidence?
+
+### Correct-answer rubric
+
+1. Extraction proves the unit exists; retrieval also depends on query/unit
+   vocabulary, embedding representation, ranking, candidate limit, and context
+   linkage. A correct but isolated unit can rank too low.
+2. It blurs primary-source boundaries, duplicates prose across points, bloats
+   prompts, and can make citations misleading. Separate original display text
+   and structured retrieval context retain provenance.
+3. Changed retrieval text changes embeddings and deterministic point IDs. A new
+   generation prevents old and new evidence representations from mixing and
+   keeps rollback/evaluation honest.
+4. The exact R21 query must retrieve the context-linked table in the bounded
+   evidence set, answer all eleven supported fields, cite the R21 table unit,
+   and pass a negative query that still refuses unsupported attributes.
+5. The failure is localized to a known parent/table vocabulary disconnect.
+   Global ranking changes could regress unrelated queries and would not repair
+   the missing relationship; measure linkage first, then compare only if needed.
+
+### User answer evaluation
+
+Pass. All five answers meet the Step 113 production rubric. The user correctly
+identified retrieval as a contextual ranking process, protected citation
+provenance, required versioned activation, defined an end-to-end proof, and
+rejected premature global fusion tuning.
+
+## Step 114 — Deterministic parent-table retrieval relationship model
+
+### Interview questions
+
+1. Why must `retrieval_text` and citeable `text` remain separate fields rather
+   than replacing the table source text with enriched text everywhere?
+2. Why is an original DOCX paragraph index a more reliable parent-table link
+   than matching the table to whichever paragraph happens to have similar text?
+3. How does the backward-compatible fallback for old artifacts avoid breaking
+   current retrieval while still making their metadata limitations visible?
+4. Why does the R21 table improving from rank 244 to rank 2 in an in-memory
+   lexical probe prove a targeted mechanism but not authorize v2 activation?
+5. What must the controlled migration verify before API/UI traffic moves to a
+   new collection containing context-enriched table vectors?
+
+### Correct-answer rubric
+
+1. Retrieval enrichment is derived context, while citation text is the original
+   source evidence. Conflating them can misattribute prose, obscure what the
+   table actually says, and weaken auditability.
+2. Original order directly represents the source structure. Text similarity is
+   ambiguous, fails with repeated headings, and can attach an unrelated parent.
+3. Old artifacts keep their original search behavior through `text` fallback,
+   so they remain readable/indexable. Their missing relationship fields remain
+   explicit rather than fabricated, enabling planned migration and evaluation.
+4. It proves the context representation addresses this lexical candidate gap in
+   controlled memory. v2 still has old vectors/artifacts, and dense/hybrid,
+   citations, negative cases, collection integrity, and rollback remain
+   unverified.
+5. Reprocess intended archived sources with a recorded manifest, confirm source
+   hashes/unit counts/context links/embedding dimensions/exact Qdrant points,
+   run R21 positive and negative plus broader regression evaluation, verify API
+   configuration/readiness, and retain the prior collection for rollback.
+
+### User answer evaluation
+
+Pass. All five answers meet the Step 114 production rubric. The user correctly
+preserved citation provenance, preferred source-order identity, described
+backward compatibility, limited the in-memory result to its evidence, and
+defined a complete staged activation gate.
+
+### Gate
+
+Step 114 is accepted. Build a controlled archived-source staging workflow next;
+do not overwrite v2 artifacts or switch API/UI configuration during its setup.
+
+### User answer evaluation
+
+Pass. All five answers meet the Step 113 production rubric. The user correctly
+identified retrieval as a contextual ranking process, preserved citation
+provenance, required collection versioning for changed vectors, defined an
+end-to-end repair test, and rejected premature global fusion tuning.
+
+### Gate
+
+Step 113 is accepted. Implement explicit parent-table context relationships;
+do not modify the weighted-RRF algorithm in this step.

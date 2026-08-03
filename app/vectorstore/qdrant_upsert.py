@@ -55,7 +55,9 @@ def embedding_record_to_qdrant_point(record: EmbeddingRecord) -> PointStruct:
         "document_id": record.document_id,
         "embedding_model": record.embedding_model,
         "embedding_status": record.embedding_status,
-        "text": record.text,
+        "text": record.source_text or record.text,
+        "retrieval_text": record.text,
+        "parent_unit_id": record.parent_unit_id,
     }
 
     return PointStruct(

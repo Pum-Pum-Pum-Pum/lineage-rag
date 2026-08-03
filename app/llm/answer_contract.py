@@ -80,6 +80,7 @@ def build_insufficient_evidence_response(
     answer = (
         "I could not find sufficient evidence in the indexed documents to answer this confidently. "
         "The information may be missing from the indexed text/tables, or it may exist in unsupported content such as embedded attachments, screenshots, or files not currently extracted."
+        "\n\nSuggested next question: Ask about a named function, report, field, or release that is explicitly described in the cited indexed evidence."
     )
 
     return GroundedAnswerResponse(

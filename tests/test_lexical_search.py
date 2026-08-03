@@ -76,6 +76,43 @@ def test_search_lexical_documents_ranks_exact_identifier_match_first() -> None:
     assert results[0].score > results[1].score
 
 
+def test_search_lexical_documents_uses_parent_context_without_changing_citation_text() -> None:
+    documents = [
+        _document(
+            "r21::chunk_33",
+            "System will allow CIF data correction for following data types.",
+            release_label="R21",
+            document_family="FS_ASNB",
+            unit_index=33,
+        ),
+        LexicalSearchDocument(
+            document_name="r21.docx",
+            unit_id="r21::table_chunk_10",
+            unit_index=149,
+            source_kind="table",
+            document_family="FS_ASNB",
+            release_label="R21",
+            text="Data Type/Fields | Race | Religion | PEP Status",
+            retrieval_text=(
+                "Parent context: System will allow CIF data correction for following data types.\n\n"
+                "Table:\nData Type/Fields | Race | Religion | PEP Status"
+            ),
+            parent_unit_id="r21::chunk_33",
+        ),
+    ]
+
+    results = search_lexical_documents(
+        documents,
+        "Which CIF data correction fields are supported for the unit holder?",
+        limit=2,
+    )
+
+    table = next(result for result in results if result.payload["unit_id"] == "r21::table_chunk_10")
+    assert table.payload["text"] == "Data Type/Fields | Race | Religion | PEP Status"
+    assert table.payload["parent_unit_id"] == "r21::chunk_33"
+    assert "CIF data correction" in table.payload["retrieval_text"]
+
+
 def test_search_lexical_documents_respects_metadata_filters() -> None:
     documents = [
         _document(

@@ -16,6 +16,8 @@ class RetrievalReadyUnit:
     document_family: str
     release_label: str
     document_id: str = ""
+    retrieval_text: str = ""
+    parent_unit_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -51,10 +53,15 @@ def build_retrieval_ready_artifact(
                 document_family=paragraph_chunks.document_family,
                 release_label=paragraph_chunks.release_label,
                 document_id=normalized_artifact.raw_artifact.parsed_name.document_id,
+                retrieval_text=chunk.text,
             )
         )
 
     for table_chunk in table_chunks.table_chunks:
+        parent_unit_id = _find_parent_unit_id(
+            paragraph_chunks,
+            table_chunk.preceding_paragraph_index,
+        )
         units.append(
             RetrievalReadyUnit(
                 unit_id=table_chunk.chunk_id,
@@ -64,6 +71,8 @@ def build_retrieval_ready_artifact(
                 document_family=table_chunks.document_family,
                 release_label=table_chunks.release_label,
                 document_id=normalized_artifact.raw_artifact.parsed_name.document_id,
+                retrieval_text=_build_table_retrieval_text(table_chunk),
+                parent_unit_id=parent_unit_id,
             )
         )
 
@@ -75,3 +84,28 @@ def build_retrieval_ready_artifact(
         units=units,
         document_id=normalized_artifact.raw_artifact.parsed_name.document_id,
     )
+
+
+def _find_parent_unit_id(
+    paragraph_chunks: ChunkedDocument,
+    preceding_paragraph_index: int | None,
+) -> str | None:
+    if preceding_paragraph_index is None:
+        return None
+    for chunk in paragraph_chunks.chunks:
+        if (
+            chunk.original_paragraph_start_index
+            <= preceding_paragraph_index
+            <= chunk.original_paragraph_end_index
+        ):
+            return chunk.chunk_id
+    return None
+
+
+def _build_table_retrieval_text(table_chunk: TableChunk) -> str:
+    """Enrich table search text without changing its citeable source text."""
+
+    context = (table_chunk.preceding_paragraph_text or "").strip()
+    if not context:
+        return table_chunk.text
+    return f"Parent context: {context}\n\nTable:\n{table_chunk.text}"

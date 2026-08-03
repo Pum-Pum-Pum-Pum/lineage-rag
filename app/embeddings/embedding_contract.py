@@ -23,6 +23,8 @@ class EmbeddingRecord:
     embedding_status: str
     vector: list[float] | None = None
     document_id: str = ""
+    source_text: str = ""
+    parent_unit_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,7 +83,8 @@ def build_embedding_batch_contract(
     records = []
 
     for unit in artifact.units:
-        content_hash = compute_content_hash(unit.text)
+        retrieval_text = unit.retrieval_text or unit.text
+        content_hash = compute_content_hash(retrieval_text)
         cache_key = compute_embedding_cache_key(
             content_hash=content_hash,
             embedding_model=embedding_model,
@@ -97,11 +100,13 @@ def build_embedding_batch_contract(
                 content_hash=content_hash,
                 artifact_version=resolved_artifact_version,
                 cache_key=cache_key,
-                text=unit.text,
+                text=retrieval_text,
                 embedding_model=embedding_model,
                 embedding_status="pending",
                 vector=None,
                 document_id=unit.document_id or artifact.document_name.rsplit(".", 1)[0],
+                source_text=unit.text,
+                parent_unit_id=unit.parent_unit_id,
             )
         )
 

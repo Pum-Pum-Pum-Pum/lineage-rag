@@ -41,6 +41,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--limit", type=_positive_int, default=10, help="Retrieval evidence limit. Default: 10.")
     parser.add_argument("--max-cases", type=_positive_int, default=None, help="Optional bounded case count.")
     parser.add_argument(
+        "--case-id",
+        action="append",
+        default=[],
+        help="Repeat to run exact named cases instead of the full manifest.",
+    )
+    parser.add_argument(
         "--allow-unreviewed",
         action="store_true",
         help="Allow an explicitly labelled draft baseline; never treat it as a release-quality gate.",
@@ -55,7 +61,13 @@ def main(argv: list[str] | None = None) -> None:
     configure_logging(settings.log_level)
     logger = get_logger("fdd_grounded_eval")
     cases = load_fdd_grounded_eval_cases(args.eval_file)
-    if args.max_cases is not None:
+    if args.case_id:
+        cases_by_id = {case.case_id: case for case in cases}
+        missing_case_ids = [case_id for case_id in args.case_id if case_id not in cases_by_id]
+        if missing_case_ids:
+            raise ValueError(f"Unknown evaluation case IDs: {missing_case_ids}")
+        cases = [cases_by_id[case_id] for case_id in args.case_id]
+    elif args.max_cases is not None:
         cases = cases[: args.max_cases]
     require_reviewed_cases(cases, allow_unreviewed=args.allow_unreviewed)
 

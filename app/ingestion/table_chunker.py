@@ -13,6 +13,8 @@ class TableChunk:
     row_count: int
     column_count: int
     text: str
+    preceding_paragraph_index: int | None
+    preceding_paragraph_text: str | None
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,8 @@ def chunk_tables_from_artifact(artifact: NormalizedDocxArtifact) -> ChunkedTable
                 row_count=table.row_count,
                 column_count=table.column_count,
                 text=table.text_representation,
+                preceding_paragraph_index=table.preceding_paragraph_index,
+                preceding_paragraph_text=table.preceding_paragraph_text,
             )
         )
 

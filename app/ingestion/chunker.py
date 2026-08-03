@@ -13,6 +13,8 @@ class TextChunk:
     paragraph_end_index: int
     paragraph_count: int
     text: str
+    original_paragraph_start_index: int
+    original_paragraph_end_index: int
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,7 @@ def chunk_normalized_artifact(
         raise ValueError("max_paragraphs_per_chunk must be greater than 0")
 
     paragraphs = artifact.normalized_text.cleaned_paragraphs
+    original_indexes = artifact.normalized_text.cleaned_paragraph_original_indexes
     chunks: list[TextChunk] = []
 
     for chunk_index, start in enumerate(range(0, len(paragraphs), max_paragraphs_per_chunk)):
@@ -54,6 +57,8 @@ def chunk_normalized_artifact(
                 paragraph_end_index=end - 1,
                 paragraph_count=len(chunk_paragraphs),
                 text=chunk_text,
+                original_paragraph_start_index=original_indexes[start],
+                original_paragraph_end_index=original_indexes[end - 1],
             )
         )
 

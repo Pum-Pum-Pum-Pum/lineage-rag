@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from docx import Document
+from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
 
 
 @dataclass(frozen=True)
@@ -13,6 +15,8 @@ class ExtractedTable:
     column_count: int
     rows: list[list[str]]
     text_representation: str
+    preceding_paragraph_index: int | None
+    preceding_paragraph_text: str | None
 
 
 @dataclass(frozen=True)
@@ -40,6 +44,7 @@ def extract_docx_tables(file_path: str | Path) -> ExtractedDocxTables:
         raise ValueError(f"Expected a .docx file, got: {path.name}")
 
     document = Document(path)
+    parent_context_by_table_index = _extract_parent_context_by_table_index(document)
     extracted_tables: list[ExtractedTable] = []
 
     for table_index, table in enumerate(document.tables):
@@ -60,6 +65,8 @@ def extract_docx_tables(file_path: str | Path) -> ExtractedDocxTables:
                 column_count=max_columns,
                 rows=rows,
                 text_representation=table_text,
+                preceding_paragraph_index=parent_context_by_table_index[table_index][0],
+                preceding_paragraph_text=parent_context_by_table_index[table_index][1],
             )
         )
 
@@ -68,3 +75,30 @@ def extract_docx_tables(file_path: str | Path) -> ExtractedDocxTables:
         table_count=len(extracted_tables),
         tables=extracted_tables,
     )
+
+
+def _extract_parent_context_by_table_index(
+    document: Document,
+) -> list[tuple[int | None, str | None]]:
+    """Return the nearest preceding top-level paragraph for each top-level table."""
+
+    contexts: list[tuple[int | None, str | None]] = []
+    preceding_index: int | None = None
+    preceding_text: str | None = None
+    paragraph_index = 0
+
+    for child in document.element.body.iterchildren():
+        if child.tag == qn("w:p"):
+            text = _normalize_cell_text(Paragraph(child, document).text)
+            if text:
+                preceding_index = paragraph_index
+                preceding_text = text
+            paragraph_index += 1
+        elif child.tag == qn("w:tbl"):
+            contexts.append((preceding_index, preceding_text))
+
+    if len(contexts) != len(document.tables):
+        raise RuntimeError(
+            "Unable to establish stable top-level DOCX table order for parent context extraction."
+        )
+    return contexts

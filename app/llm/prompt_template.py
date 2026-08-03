@@ -25,6 +25,12 @@ Rules:
     not the resulting current state.
 11. Derive the resulting state from retained, consolidated, renamed, and
     removed items. Do not count removed items or present the baseline as current.
+12. Before answering, decide whether the evidence directly supports every
+    material part of the user's question. Semantic similarity or a related term
+    is not direct support.
+13. If direct support is absent, refuse the requested answer. You may offer
+    clearly labelled related evidence and a more evidence-aligned follow-up
+    question, but do not state an unsupported functional fact as an answer.
 """
 
 
@@ -175,6 +181,18 @@ historical baseline and inspect change tables before calculating current counts.
 State baseline counts only as before-change context, never as the current answer.
 If the evidence is insufficient, say that the indexed evidence is insufficient and do not invent details.
 Include citations like [C1], [C2] next to supported claims.
+
+Response format:
+- First line must be exactly `DECISION: ANSWER` only when the evidence directly
+  supports every material part of the question.
+- First line must be exactly `DECISION: REFUSE` when direct support is absent,
+  including when evidence is merely related, an exact value/date is missing, or
+  required attachment/screenshot content was not extracted.
+- After `DECISION: REFUSE`, state that no direct answer was found, optionally
+  provide clearly labelled related evidence with citations, and suggest a more
+  evidence-aligned question. Do not present related context as the answer.
+- End every `DECISION: REFUSE` response with exactly one line beginning
+  `Suggested next question:`.
 """
 
     return GroundedPrompt(

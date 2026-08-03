@@ -14,7 +14,7 @@ def test_build_retrieval_ready_artifact_combines_paragraph_and_table_units(tmp_p
 
     document = Document()
     document.add_paragraph("Paragraph 1")
-    document.add_paragraph("Paragraph 2")
+    document.add_paragraph("CIF data correction supports the following fields.")
     table = document.add_table(rows=2, cols=2)
     table.cell(0, 0).text = "Column"
     table.cell(0, 1).text = "Description"
@@ -42,6 +42,13 @@ def test_build_retrieval_ready_artifact_combines_paragraph_and_table_units(tmp_p
     assert retrieval_ready.units[1].source_kind == "paragraph"
     assert retrieval_ready.units[2].source_kind == "table"
     assert retrieval_ready.units[2].text == (
+        "Column | Description\n"
+        "Branch Code | Unique branch identifier"
+    )
+    assert retrieval_ready.units[2].parent_unit_id == retrieval_ready.units[1].unit_id
+    assert retrieval_ready.units[2].retrieval_text == (
+        "Parent context: CIF data correction supports the following fields.\n\n"
+        "Table:\n"
         "Column | Description\n"
         "Branch Code | Unique branch identifier"
     )

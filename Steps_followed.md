@@ -1058,3 +1058,264 @@ answer entails all intended claims and omits unsupported ones.
 Await the user's decision: mark all cases SME-approved and run the quality gate,
 or authorize `--allow-unreviewed` for a clearly labelled, non-gating draft
 baseline. No live 30-case model evaluation has been executed yet.
+
+### Draft baseline execution and result
+
+The user ran:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts/run_fdd_grounded_eval.py --allow-unreviewed
+```
+
+The resulting local report is
+`data/exports/evaluations/fdd-grounded-eval-20260803T020554Z.json`.
+
+- Target collection: `functional_specs_v2`; retrieval mode: hybrid; limit: 10.
+- This remains a draft baseline because all 30 cases are pending SME approval.
+- Structural result: 14/30 passed; 16/30 failed.
+- 29 cases answered and only 1 abstained, although 6 cases expected abstention.
+- Eleven answered cases failed required document-ID and/or release-citation
+  checks; five abstention cases answered instead of refusing.
+- The report's estimated LLM cost is `0.0` because configured price fields are
+  zero; that is not proof that the live provider calls were free.
+
+### Evidence-led failure classification
+
+- R24 and R2 citations often carried an empty or null `document_id` while
+  retaining the release label. This is consistent with legacy artifacts that
+  predate document-ID payload backfill and prevents exact-source validation.
+- Other confusion cases retrieved the wrong release (for example R1/R18/R21
+  evidence where R18, R24, or R1 was expected). That is a retrieval/current
+  release-selection defect, not merely a missing payload field.
+- Five unsupported cases set `is_answered=true` without a refusal reason. This
+  is a grounded-RAG safety defect and must be fixed before expansion.
+
+### Decision
+
+The draft run is useful diagnostic evidence but fails every planned acceptance
+gate. Do not mark the evaluation cases SME-approved or ingest the next FDD batch
+until identity metadata, release selection, and abstention failures are
+investigated and measured again.
+
+## Step 111 — Direct-support decision and six-case abstention rerun
+
+### Objective
+
+Prevent high-scoring but merely related evidence from being presented as an
+answer, while allowing a clearly labelled redirecting abstention that helps the
+user ask a more evidence-aligned question.
+
+### Evidence-led diagnosis
+
+The first draft-run traces showed that five unsupported cases passed the numeric
+sufficiency threshold because they retrieved related terms: investment limits
+for an interest-rate question, a document date for an implementation-date
+question, and a reference to attached layouts for exact field-position
+questions. The answer-generation code set `is_answered=true` whenever numeric
+sufficiency passed, so the model had no machine-readable way to decline.
+
+### Python/code change
+
+```python
+decision, answer = _parse_grounded_decision(completion.content)
+if decision is None:
+    return safe_refusal("Grounded answerability decision was missing or invalid.")
+
+GroundedAnswerResponse(
+    answer=answer,
+    is_answered=decision,
+    refusal_reason=None if decision else "No direct evidence supports every material part ...",
+    citations=prompt.citations,
+)
+```
+
+The prompt now requires a first-line `DECISION: ANSWER` only when evidence
+directly supports every material part of the question, or `DECISION: REFUSE`
+when evidence is only related, a requested value/date is absent, or attachment
+content is not extracted. Invalid/missing decisions fail closed. A repeatable
+`--case-id` CLI option was added so a bounded rerun cannot accidentally execute
+the whole paid manifest.
+
+### Validation and live rerun
+
+- Focused decision/prompt/evaluation tests: 19 passed.
+- Focused selector/answer-generation tests: 7 passed.
+- A dry run selected exactly `abstain-001` through `abstain-006`.
+- The six-case live draft rerun wrote
+  `data/exports/evaluations/fdd-grounded-eval-20260803T071504Z.json` and passed
+  structural abstention checks: 6/6, all with `is_answered=false`.
+- Five cases used the new model-level redirect path; one used the existing
+  below-threshold refusal without a chat completion.
+
+### Remaining usability finding
+
+The six responses contain safe refusals and most include labelled related
+evidence, but none contains an explicit suggested next question. The prompt
+instruction alone did not reliably deliver that UX. The next repair should add
+a deterministic, clearly labelled follow-up-question fallback for both
+model-level and score-threshold refusals, then rerun the six cases only after
+that change is tested.
+
+### Production interpretation
+
+Direct support is a different decision from semantic retrieval score. This
+change makes unsupported answers fail closed even when retrieval is related.
+It does not prove factual claim entailment for answered cases, nor does it
+repair missing legacy `document_id` metadata or release-selection failures.
+
+## Step 112 — Enforced helpful recovery guidance for refusals
+
+### Objective
+
+Complete the redirecting-abstention experience: every safe refusal should give
+the user a clearly labelled next question, even if the model omits that section
+or the response was produced by the score-threshold path without a model call.
+
+### Python/code change
+
+```python
+def _ensure_refusal_follow_up(answer: str) -> str:
+    if "suggested next question:" in answer.casefold():
+        return answer
+    return f"{answer.rstrip()}\n\nSuggested next question: Ask about a named " \
+        "function, report, field, or release explicitly described in the cited evidence."
+```
+
+- The model prompt now requires every `DECISION: REFUSE` to end with
+  `Suggested next question:`.
+- A deterministic fallback appends safe generic guidance when the model omits
+  it, while preserving a model-provided suggestion exactly once.
+- The existing below-score refusal now includes the same guidance.
+
+### Validation and live rerun
+
+- Focused answer-generation/prompt/evaluation suite: 20 passed.
+- The exact six abstention cases ran again under `--allow-unreviewed` and wrote
+  `data/exports/evaluations/fdd-grounded-eval-20260803T083217Z.json`.
+- Structural abstention result: 6/6 passed with `is_answered=false`.
+- Persisted-output verification confirmed `Suggested next question:` for every
+  one of the six cases, including the below-score path.
+- The bounded live run made six embedding calls and five chat-completion calls;
+  configured estimated cost remains zero only because price configuration is
+  not populated.
+
+### Production interpretation
+
+This is a safer user-assistance pattern: the response never treats related
+evidence as a direct answer, yet provides a recovery path. The generic fallback
+is intentionally conservative; it should not fabricate a specific question
+from unsupported details. It does not solve unrelated positive-answer citation
+identity or release-selection failures from the full draft run.
+
+## Step 113 — R21 table retrieval linkage diagnosis
+
+### Reported grounded-answer failure
+
+For the R21 CIF Data Correction question, the application refused because its
+selected evidence included the paragraph that introduces a following list but
+not the list itself. The source DOCX visibly contains a table listing Race,
+Religion, residential address fields, PEP Status, and mailing address fields.
+
+### Read-only artifact evidence
+
+```python
+for unit in r21_retrieval_ready_artifact["units"]:
+    if unit["unit_id"].endswith("table_chunk_10"):
+        print(unit["source_kind"], unit["text"])
+```
+
+The R21 retrieval-ready artifact contains `table_chunk_10` with the complete
+eleven-field list as a `source_kind=table` unit. Its preceding `chunk_33`
+contains the shared query context: `System will allow user to perform CIF data
+correction for following Data types or fields ...`.
+
+### Failure-mode measurement
+
+A no-cost lexical query probe ranked the preceding R21 paragraph first. The
+matching R21 table ranked 244th of 628 candidates because its standalone text
+lacks CIF, bulk-patching, and unit-holder context. It cannot reliably reach a
+top-10 hybrid candidate set despite correct extraction and embedding.
+
+### Design conclusion
+
+This is not missing table ingestion, broken embedding linkage, or proof that
+weighted-RRF must be replaced. It is an ingestion-modeling gap: standalone
+table content lacks the parent section/preceding semantic anchor required for
+retrieval.
+
+The next bounded repair should preserve original table text for citations but
+add structured parent/section context for retrieval and an explicit
+paragraph-to-following-table relationship. It must be tested on this R21 case,
+re-embedded from versioned artifacts, indexed into a new collection generation,
+and evaluated without weakening citation provenance.
+
+## Step 114 — Deterministic parent-table retrieval relationship model
+
+### Objective
+
+Implement the R21 diagnosis as a general ingestion model without changing
+weighted-RRF: retain original table evidence for citations, use parent context
+only for retrieval representation, and record a stable parent paragraph chunk.
+
+### Python/code pattern
+
+```python
+# DOCX extraction preserves the nearest preceding top-level paragraph.
+ExtractedTable(
+    preceding_paragraph_index=preceding_index,
+    preceding_paragraph_text=preceding_text,
+)
+
+# Retrieval-ready table keeps source text separate from search representation.
+retrieval_text = f"Parent context: {context}\n\nTable:\n{table.text}"
+parent_unit_id = _find_parent_unit_id(paragraph_chunks, preceding_paragraph_index)
+```
+
+- Raw DOCX paragraph/table order is captured deterministically at extraction.
+- Normalized paragraph chunks retain original paragraph-index ranges.
+- Each table can now reference its preceding parent chunk through
+  `parent_unit_id`.
+- `text` remains the original citeable table text; `retrieval_text` is the
+  context-enriched embedding/lexical representation.
+- Embedding records hash/embed `retrieval_text`, while Qdrant and lexical
+  result payloads preserve original `text` for citations and expose the
+  relationship metadata for inspection.
+- Existing artifacts remain backward compatible: absent `retrieval_text` falls
+  back to original text and absent `parent_unit_id` is `None`.
+
+### Failure-mode testing
+
+- Initial focused suite caught a backward-compatibility failure in manually
+  constructed lexical test documents; default values and fallback scoring fixed
+  it before any artifact migration.
+- Final focused ingestion/embedding/lexical/Qdrant contract suite: 35 passed.
+- `git diff --check`: passed; only existing LF-to-CRLF warnings were emitted.
+
+### Real R21 validation without mutation
+
+The archived R21 DOCX rebuilt in memory produces:
+
+```text
+table_chunk_10 -> parent_unit_id ...::chunk_33
+retrieval_context_present=True
+citation_text=<original eleven-field table only>
+```
+
+For the reported CIF Data Correction query, the original lexical table rank was
+244/628. The context-linked in-memory rebuild ranks the same table 2nd in the
+top-10 candidate set. No OpenAI call, artifact write, Qdrant write, source move,
+or collection change occurred in this validation.
+
+### Production interpretation
+
+The repair models document structure rather than gaming a score. It makes the
+table retrievable through the semantics that introduce it while retaining a
+precise table citation. The current `functional_specs_v2` artifacts/vectors do
+not yet contain this representation; activation requires an explicit archived-
+source reprocessing workflow, a new versioned collection, exact verification,
+and the R21 positive/negative evaluation gate.
+
+### Gate
+
+Step 114 implementation is complete. Await the user's interview answers before
+designing the controlled artifact migration and collection activation.

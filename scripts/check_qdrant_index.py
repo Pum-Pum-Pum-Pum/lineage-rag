@@ -133,6 +133,9 @@ def verify_embedding_artifacts(
             "release_label": expected.release_label,
             "content_hash": expected.content_hash,
             "document_id": expected.document_id,
+            "text": expected.source_text or expected.text,
+            "retrieval_text": expected.text,
+            "parent_unit_id": expected.parent_unit_id,
         }.items():
             if payload.get(field_name) != expected_value:
                 raise RuntimeError(

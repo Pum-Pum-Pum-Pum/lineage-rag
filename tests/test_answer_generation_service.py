@@ -29,7 +29,7 @@ class FakeUsage:
 
 
 class FakeCompletionsAPI:
-    def __init__(self, content: str = "The reports were consolidated [C1].") -> None:
+    def __init__(self, content: str = "DECISION: ANSWER\nThe reports were consolidated [C1].") -> None:
         self.content = content
         self.calls: list[dict] = []
 
@@ -39,12 +39,12 @@ class FakeCompletionsAPI:
 
 
 class FakeChatAPI:
-    def __init__(self, content: str = "The reports were consolidated [C1].") -> None:
+    def __init__(self, content: str = "DECISION: ANSWER\nThe reports were consolidated [C1].") -> None:
         self.completions = FakeCompletionsAPI(content)
 
 
 class FakeOpenAIClient:
-    def __init__(self, content: str = "The reports were consolidated [C1].") -> None:
+    def __init__(self, content: str = "DECISION: ANSWER\nThe reports were consolidated [C1].") -> None:
         self.chat = FakeChatAPI(content)
 
 
@@ -80,6 +80,7 @@ def test_generate_grounded_answer_refuses_when_evidence_is_insufficient() -> Non
     assert response.is_answered is False
     assert response.refusal_reason == "Top score is below threshold."
     assert "could not find sufficient evidence" in response.answer
+    assert "Suggested next question:" in response.answer
     assert fake_client.chat.completions.calls == []
 
 
@@ -110,7 +111,7 @@ def test_generate_grounded_answer_calls_llm_when_evidence_is_sufficient() -> Non
 
 
 def test_generate_grounded_answer_refuses_when_llm_returns_invalid_citation() -> None:
-    fake_client = FakeOpenAIClient(content="The reports were consolidated [C99].")
+    fake_client = FakeOpenAIClient(content="DECISION: ANSWER\nThe reports were consolidated [C99].")
     response = generate_grounded_answer(
         query="What changed in branch reports?",
         retrieved_results=[_result()],
@@ -127,6 +128,80 @@ def test_generate_grounded_answer_refuses_when_llm_returns_invalid_citation() ->
     assert response.is_answered is False
     assert response.refusal_reason is not None
     assert "Citation validation failed" in response.refusal_reason
+
+
+def test_generate_grounded_answer_returns_redirecting_abstention_when_model_refuses() -> None:
+    fake_client = FakeOpenAIClient(
+        content=(
+            "DECISION: REFUSE\n"
+            "I could not find a direct interest-rate rule in the indexed evidence. "
+            "Related evidence discusses investment limits [C1]. Try asking about the Minor Program investment limit."
+        )
+    )
+    response = generate_grounded_answer(
+        query="What interest rate applies?",
+        retrieved_results=[_result()],
+        sufficiency=EvidenceSufficiencyDecision(
+            is_sufficient=True,
+            reason="Retrieved evidence passed baseline sufficiency checks.",
+            result_count=1,
+            top_score=0.75,
+        ),
+        llm_client=fake_client,
+        model="test-model",
+    )
+
+    assert response.is_answered is False
+    assert response.refusal_reason == "No direct evidence supports every material part of the requested answer."
+    assert "Related evidence" in response.answer
+    assert "Suggested next question:" in response.answer
+    assert response.citations[0].unit_id == "doc::chunk_1"
+
+
+def test_generate_grounded_answer_preserves_model_follow_up_question() -> None:
+    fake_client = FakeOpenAIClient(
+        content=(
+            "DECISION: REFUSE\n"
+            "No direct evidence supports this request [C1].\n"
+            "Suggested next question: What changes are documented for the cited release?"
+        )
+    )
+    response = generate_grounded_answer(
+        query="Unsupported request",
+        retrieved_results=[_result()],
+        sufficiency=EvidenceSufficiencyDecision(
+            is_sufficient=True,
+            reason="Retrieved evidence passed baseline sufficiency checks.",
+            result_count=1,
+            top_score=0.75,
+        ),
+        llm_client=fake_client,
+        model="test-model",
+    )
+
+    assert response.is_answered is False
+    assert response.answer.count("Suggested next question:") == 1
+    assert "What changes are documented" in response.answer
+
+
+def test_generate_grounded_answer_refuses_when_model_omits_decision() -> None:
+    fake_client = FakeOpenAIClient(content="The reports were consolidated [C1].")
+    response = generate_grounded_answer(
+        query="What changed in branch reports?",
+        retrieved_results=[_result()],
+        sufficiency=EvidenceSufficiencyDecision(
+            is_sufficient=True,
+            reason="Retrieved evidence passed baseline sufficiency checks.",
+            result_count=1,
+            top_score=0.75,
+        ),
+        llm_client=fake_client,
+        model="test-model",
+    )
+
+    assert response.is_answered is False
+    assert response.refusal_reason == "Grounded answerability decision was missing or invalid."
+    assert "could not validate" in response.answer
 
 
 def test_generate_grounded_answer_refuses_without_llm_when_evidence_unit_exceeds_budget(
