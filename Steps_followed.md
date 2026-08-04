@@ -1319,3 +1319,141 @@ and the R21 positive/negative evaluation gate.
 
 Step 114 implementation is complete. Await the user's interview answers before
 designing the controlled artifact migration and collection activation.
+
+## Step 115 — Isolated all-FDD staged rebuild workflow
+
+### Objective
+
+Create a controlled migration path for all eight archived FDDs so the
+parent-table retrieval representation can be materialized without overwriting
+the live `functional_specs_v2` collection, active artifacts, or API/UI
+configuration.
+
+### Python/code pattern
+
+```python
+# The active cache is read-only seed input. Only changed retrieval text becomes
+# an OpenAI embedding request; unchanged units reuse its validated v1 vector.
+embedded_batch = embed_batch(
+    batch,
+    cache_directory=settings.cache_dir / "embeddings",
+    request_batch_size=64,
+)
+write_embedding_batch_to_json(embedded_batch, stage_directory / "cache" / "embeddings")
+
+# A fresh collection is required and is verified point-by-point before any
+# later cutover decision.
+index_embedding_cache_directory(client, QdrantCollectionConfig("functional_specs_v3", 3072), staged_cache)
+verify_embedding_artifacts(client=client, collection_name="functional_specs_v3", artifact_paths=paths)
+```
+
+Added `scripts/stage_archived_fdd_rebuild.py` and
+`tests/test_stage_archived_fdd_rebuild.py`.
+
+- Inputs are the eight immutable DOCX files in `data/docs_embedded/`.
+- The script hashes every source and writes a source/operation manifest to the
+  new `data/staging/table_context_v1/` directory only on a real run.
+- It rebuilds processed/retrieval-ready artifacts there, with the Step 114
+  parent-table relationship representation.
+- It reads the active embedding cache as a seed but writes newly produced
+  embedding artifacts only under the staged directory. Because `artifact_version`
+  and embedding model remain `v1`/`text-embedding-3-large`, unchanged retrieval
+  text can reuse its existing vector; context-enriched tables get a different
+  content hash and are embedded anew.
+- It refuses the active collection name, any existing target collection, and
+  any existing stage directory. It never deletes or reuses a collection.
+- It validates every vector's dimension before Qdrant indexing, then verifies
+  every deterministic point ID and payload from each staged artifact.
+- On a real failure it records a failed manifest and leaves the partial stage
+  and any partial new collection for investigation; the operator must choose a
+  new generation rather than silently overwrite them.
+
+### Failure-mode testing
+
+- Dry-run test: hashes archived source inputs without creating a stage.
+- Active collection test: fails before stage writes.
+- Existing target collection test: fails without deleting/reusing it.
+- Vector-dimension test: fails before Qdrant indexing.
+- Focused suite: `14 passed` covering the staged workflow, embedding cache,
+  exact Qdrant verification, and retrieval-ready contracts.
+- `git diff --check` passed with no whitespace errors.
+
+### Real dry-run evidence
+
+```text
+sources=8
+stage=data/staging/table_context_v1
+target_collection=functional_specs_v3
+cache_seed=data/cache/embeddings
+DRY RUN complete: no artifacts, OpenAI calls, Qdrant writes, or configuration changes.
+```
+
+All eight archived source SHA-256 values and sizes were printed by the dry run.
+
+### Production interpretation
+
+This is a generation-builder, not a cutover. It contains re-embedding cost to
+the exact retrieval units whose text changed, captures reproducible source
+identity, and protects the current service from a partial rebuild. The next
+operation, only after review of this step, is a paid isolated staging run;
+after that, retrieval/evaluation and explicit configuration activation remain
+separate gates.
+
+### Gate
+
+Step 115 implementation and no-cost dry run are complete. Do not run the paid
+staging command or change `QDRANT_COLLECTION_NAME` until the interview check
+is accepted.
+
+## Step 116 — Separate embedding-input compatibility from index generation
+
+### Objective
+
+Remove the ambiguous meaning of “version” from the staged rebuild before any
+paid embedding/indexing operation. An index generation must not be mistaken for
+an attempt to transform old vectors into a new embedding space.
+
+### Python/code pattern
+
+```python
+batch = build_embedding_batch_contract(
+    retrieval_ready_artifact,
+    embedding_model=embedding_model,
+    # This legacy field now explicitly represents input compatibility,
+    # not the new Qdrant generation.
+    artifact_version=embedding_input_version,
+)
+
+manifest = {
+    "embedding_input_version": "v1",
+    "index_generation": "table_context_v1",
+    "collection_name": "functional_specs_v3",
+}
+```
+
+`stage_archived_fdd_rebuild.py` now exposes `--embedding-input-version` for
+cache/input compatibility and `--index-generation` for the retrieval/index
+generation. The staged manifest records both independently.
+
+### Failure-mode testing
+
+- Added a manifest test proving both version values persist independently.
+- Focused staged-rebuild/cache/Qdrant verification suite: `14 passed`.
+- The eight-FDD dry run reports `index_generation=table_context_v1` and
+  `embedding_input_version=v1`, with no artifact writes, OpenAI calls, Qdrant
+  point writes, or configuration change.
+- `git diff --check` passed.
+
+### Production interpretation
+
+Cached-vector reuse is exact reuse, never conversion. It is permitted only for
+identical retrieval text under the same model and input contract. The
+parent-enriched table text differs and is embedded anew. Any changed model,
+preprocessing contract, chunking, or retrieval text requires re-embedding the
+affected corpus; incompatible embedding spaces must not be mixed.
+
+### Gate
+
+Step 116 is complete. The user explicitly skipped the interview check for this
+naming-hardening step. The next bounded operation is the paid isolated all-FDD
+staging rebuild, still with no API/UI cutover.

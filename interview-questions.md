@@ -1146,6 +1146,49 @@ defined a complete staged activation gate.
 Step 114 is accepted. Build a controlled archived-source staging workflow next;
 do not overwrite v2 artifacts or switch API/UI configuration during its setup.
 
+## Step 115 — Isolated all-FDD staged rebuild workflow
+
+### Interview questions
+
+1. Why is it safe to reuse a vector only when the retrieval text, embedding
+   model, and artifact/cache compatibility version agree, even though the
+   `document_id` and Qdrant point ID still differ?
+2. Why must the staging script reject an existing `functional_specs_v3`
+   collection rather than upsert into it or automatically delete it after a
+   failed run?
+3. A real staged run reports 937 units, 780 cached vectors, and 157 newly
+   embedded vectors. What do these figures mean operationally, and what would
+   you investigate if the newly embedded count were unexpectedly close to 937?
+4. Why is an exact payload/point-ID verification stronger than merely seeing a
+   Qdrant collection count of 937?
+5. After the staged run verifies successfully, what separate evidence is still
+   required before setting `QDRANT_COLLECTION_NAME=functional_specs_v3` for the
+   API/UI?
+
+### Correct-answer rubric
+
+1. A vector represents exactly the embedded retrieval text under one embedding
+   model and compatibility contract. Reusing it when any of those changes risks
+   a stale/mismatched vector. Citeability remains distinct: each occurrence
+   needs its own document/release/unit payload and deterministic point ID.
+2. Existing state can be a successful prior generation or partial/corrupt data.
+   Upserting mixes runs; deletion destroys investigation/rollback evidence and
+   is especially unsafe on local Qdrant. A new named generation is reviewable
+   and recoverable.
+3. Total is the complete staged evidence coverage, cached is avoided embedding
+   API cost for unchanged inputs, and newly embedded is the changed/new
+   retrieval representation. A near-937 miss rate indicates an unintended
+   cache-version/model/text change, missing seed cache, or preprocessing drift
+   and must be investigated before accepting cost or quality impact.
+4. Count proves only cardinality. Exact verification proves every intended
+   record has its deterministic ID and expected document identity, release,
+   original citeable text, retrieval representation, and parent relationship;
+   it detects stale, duplicate, or wrong-payload points.
+5. Run the R21 table positive and unsupported-negative tests against the staged
+   artifacts/collection, broader FDD retrieval and grounded-answer evaluation,
+   citation/release correctness checks, readiness/configuration inspection,
+   rollback rehearsal with v2 retained, and SME review of material answers.
+
 ### User answer evaluation
 
 Pass. All five answers meet the Step 113 production rubric. The user correctly
@@ -1157,3 +1200,15 @@ end-to-end repair test, and rejected premature global fusion tuning.
 
 Step 113 is accepted. Implement explicit parent-table context relationships;
 do not modify the weighted-RRF algorithm in this step.
+
+## Step 116 — Separate embedding-input compatibility from index generation
+
+### Interview status
+
+The user explicitly skipped the interview check for this naming-hardening step.
+No questions were asked and no answers require evaluation.
+
+### Gate
+
+Proceed only to the paid isolated staging rebuild. Do not change API/UI
+configuration until staging integrity and grounded retrieval evaluation pass.
