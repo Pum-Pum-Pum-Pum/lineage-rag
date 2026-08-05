@@ -1,0 +1,478 @@
+{
+  "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx",
+  "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+  "release_label": "R18",
+  "total_chunks": 47,
+  "chunks": [
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_0",
+      "chunk_index": 0,
+      "paragraph_start_index": 0,
+      "paragraph_end_index": 4,
+      "paragraph_count": 5,
+      "text": "Functional Design Document\nMinor Program\n11\nFunctional Specifications\nIntroduction",
+      "original_paragraph_start_index": 2,
+      "original_paragraph_end_index": 96
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_1",
+      "chunk_index": 1,
+      "paragraph_start_index": 5,
+      "paragraph_end_index": 9,
+      "paragraph_count": 5,
+      "text": "Background\nPNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well.\nASNB Management has approved the proposed mechanism/approach to repurpose ASM3 unsubscribed units from ADAM50 program as part of a new minor investment program, and these units will specifically cater for minor non-Bumi UH.\nOrganization of the Document\nThe first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.",
+      "original_paragraph_start_index": 97,
+      "original_paragraph_end_index": 101
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_2",
+      "chunk_index": 2,
+      "paragraph_start_index": 10,
+      "paragraph_end_index": 14,
+      "paragraph_count": 5,
+      "text": "Acronyms and Abbreviations\nRequirements Summary\nThe enhancements scoped in the document are relating;\nTo rename the “ADAM 50” bucket to Minor Program bucket.\nTo enable Subscription, Redemption, Transfer, and switching of ASM3 units in Minor Program bucket to any non-Bumi UH aged below 18 years old under a new Minor Program.",
+      "original_paragraph_start_index": 102,
+      "original_paragraph_end_index": 108
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_3",
+      "chunk_index": 3,
+      "paragraph_start_index": 15,
+      "paragraph_end_index": 19,
+      "paragraph_count": 5,
+      "text": "To set temporary limit for subscription and to disable transfer and switching for the first 6 months after go live.\nMinor Program\nRequirements Overview\nBusiness Requirement:\nExisting Functionality",
+      "original_paragraph_start_index": 109,
+      "original_paragraph_end_index": 117
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_4",
+      "chunk_index": 4,
+      "paragraph_start_index": 20,
+      "paragraph_end_index": 24,
+      "paragraph_count": 5,
+      "text": "Existing Subscribers of ADAM50 will continue with existing functionality of ADAM50 such as;\nThe existing blocked units of 200 units and its income distribution from ADAM50 program will have no impact.\nThe blocked units which consist of principal and its income distribution will be blocked until the minor has reached the age of 18 years old.\nThe system will release the blocked units to cash units when the minor turns 18 years old (Major UH).\nAs per existing. Hibah and Trust declaration is not allowed for Minor UH.",
+      "original_paragraph_start_index": 118,
+      "original_paragraph_end_index": 122
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_5",
+      "chunk_index": 5,
+      "paragraph_start_index": 25,
+      "paragraph_end_index": 29,
+      "paragraph_count": 5,
+      "text": "Assumptions\nCurrently under Fund rule ADAM50 bucket is available for both Bumi and Non-Bumi and it will be continue as it is so that the existing Bumi unit holders who have units in ADAM50 can redeem their units.\nOnce the Minor Program investment limit is uplifted, user will also have to set ‘Restrict Consumption to MP Bucket’ as No under Fund rule, so that system will consume unit from Non-EPF if Minor Program bucket is having insufficient units.\nStatements\nThe Minor Program units will be reflected in the cash investment column for following statements hence no changes are required.",
+      "original_paragraph_start_index": 123,
+      "original_paragraph_end_index": 128
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_6",
+      "chunk_index": 6,
+      "paragraph_start_index": 30,
+      "paragraph_end_index": 34,
+      "paragraph_count": 5,
+      "text": "Statement requests at OTC and Portal\nHolding Statement\nDetails Statement\nAnnual Income Statement\n(Mini Statement)Unit Trust Investment Holding Statement (Penyata Pegangan Pelaburan Unit Amanah 1 & 2)",
+      "original_paragraph_start_index": 129,
+      "original_paragraph_end_index": 133
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_7",
+      "chunk_index": 7,
+      "paragraph_start_index": 35,
+      "paragraph_end_index": 39,
+      "paragraph_count": 5,
+      "text": "GL Hands-off\nThere are no changes in GL Handoff, there will not  be separate GL for Minor Program UH related transactions, it will be extracted together with Non Minor Program UH transactions.\nFunctional Approach\nMaintenance\nFund Rule UTDFNDRL screen changes",
+      "original_paragraph_start_index": 135,
+      "original_paragraph_end_index": 143
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_8",
+      "chunk_index": 8,
+      "paragraph_start_index": 40,
+      "paragraph_end_index": 44,
+      "paragraph_count": 5,
+      "text": "Existing Transaction Category description for Transaction category code ‘AM’ will be changed to ‘Minor Program’ and same will be reflected in ‘Holding limit for Investors and transaction category’ screen under Fund rule.\nA new Tab ‘Minor Program Detail’ will be added under ‘General Operating rule’ in Fund rule.\nFollowing new fields will be introduced under new Tab ‘Minor Program Details’\nIf Allow Minor Program field is set as No, then rest of the fields will be disabled.\nSystem will not allow to Save if the Minor Program field is set to Yes and there is no Minor Program Bucket is created under investor holding limit screen.",
+      "original_paragraph_start_index": 144,
+      "original_paragraph_end_index": 149
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_9",
+      "chunk_index": 9,
+      "paragraph_start_index": 45,
+      "paragraph_end_index": 49,
+      "paragraph_count": 5,
+      "text": "Once the Minor Program field is set to Yes, once the fund rule is authorized, this field will be disabled and will not allow to change it back to No.\nOnce the Allow Minor Program field is set as Yes, rest of the fields will be enabled except ‘Minor Program UH Category’.\n‘Limit From Date’ field will have calendar, once the user clicked on calendar, system will show current date.\n‘Limit From Date’ should be greater than the current applicate date, if user selected current or previous date, then on click of save button, system will display error message as ‘Limit From Date should be greater than the current applicate date’.\n‘Limit To Date’ should be greater than MP limit From date, if user selected equal to or lesser than MP Limit From Date, then on click of save button, system will display error message as ‘Limit To Date should be greater than limit From date’.",
+      "original_paragraph_start_index": 150,
+      "original_paragraph_end_index": 154
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_10",
+      "chunk_index": 10,
+      "paragraph_start_index": 50,
+      "paragraph_end_index": 54,
+      "paragraph_count": 5,
+      "text": "Unit Holder FT detail UTDUHFT screen changes\nNew field ‘Minor Program’ will be introduced under ‘Other Details’ tab in Unit holder FT details Screen.\n‘Minor Program’ field will be read only and it will be updated by system with value Yes/No during save of the Unit holder.\nFor all new unit holders who are Non-Bumi Minor and Minority flag is No, for those Minor UH system will default ‘Minor Program’ with value as Yes at the time of save.\nFor all new unit holders who are Major/Corporate or Non-Bumi Minor with Minority flag as Yes or Bumi Minor, system will default ‘Minor Program’ with value as No at the time of save.",
+      "original_paragraph_start_index": 155,
+      "original_paragraph_end_index": 159
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_11",
+      "chunk_index": 11,
+      "paragraph_start_index": 55,
+      "paragraph_end_index": 59,
+      "paragraph_count": 5,
+      "text": "For all existing Unit holders, Upon Go live of this enhancement, one time data patch will be applied to set ‘Minor Program’ as Yes for all Non-Bumi Minor Unit holders who has Minority flag as No.\nSystem will update the ‘Minor Program’ to No when Minor Non-Bumi UH turns to Major or Minor Non-Bumi UH becomes Minor Bumi or Minor Non-Bumi UH’s Minority flag changed to Yes.\nInvestor Fund Balance screen changes\nFollowing two new column will be added in Investor Fund balance screen\nMinor Program Units will show Non-Bumi Minor UH’s Holdings in Minor Program Bucket including previous ADAM50 units.",
+      "original_paragraph_start_index": 160,
+      "original_paragraph_end_index": 165
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_12",
+      "chunk_index": 12,
+      "paragraph_start_index": 60,
+      "paragraph_end_index": 64,
+      "paragraph_count": 5,
+      "text": "‘Minor Program Fund’ field will be updated as Yes/No based on the below combination;\nUH Account Inquiry REST API\nTwo new tags ‘mpholding’ and ‘allowmp’ in the existing UH Account Inquiry REST API Service,\nRefer RSD “RSD_FCIS_14.4.0.0.0$ASNB_UH_Acc_Det_Inq_v1.0.xlsx” for more details on new tags.\nScreen Changes",
+      "original_paragraph_start_index": 166,
+      "original_paragraph_end_index": 172
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_13",
+      "chunk_index": 13,
+      "paragraph_start_index": 65,
+      "paragraph_end_index": 69,
+      "paragraph_count": 5,
+      "text": "Processing Changes\nMinor Program Investment limit\nIf UH with Minor Program as Yes at UH screen places UT subscription transaction in a Fund where Minor Program field is set as Yes and Minor Program bucket is maintained in that Fund, then system will first consume units from Minor Program Bucket.\nIf the Fund is setup with Minor Program as Yes with investment limit and From and To date, then system will perform the validations for UT subscription transactions for each Non-Bumi Minor UH (Minor Program as Yes at UH level).\nUH who has ‘Minor Program’ field as Yes, System will perform the validation during the save of the UT Subscription for each Minor Non-Bumi unit holder, if inflow of MP units plus culminative MP subscription units during that investment period breaches the MP investment limit units then system will not Save the transaction and display the existing error message as ‘Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)’.",
+      "original_paragraph_start_index": 185,
+      "original_paragraph_end_index": 189
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_14",
+      "chunk_index": 14,
+      "paragraph_start_index": 70,
+      "paragraph_end_index": 74,
+      "paragraph_count": 5,
+      "text": "For Fixed price funds and Historical VP funds before Cut off  where actual NAV is already available, system will calculate units (Transactions amount/Actual NAV minus any load/Fee) and checks if Non-Bumi UH’s  MP Subscription units plus cumulative MP subscription units during that MP investment period breaches the MP investment limit, then system will not allow to save it and display error on click of Save button as “Minor Program Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.\nFor Forward Price funds before or after cut off and Historical VP Funds after Cut off, wherein Actual NAV will not be available, system will calculate units based on the latest available NAV (Transactions amount/latest NAV minus any load/Fee) and checks if Minor Non-Bumi UH’s  MP Subscription units plus cumulative MP subscription units during that MP investment period breaches the MP investment limit, then system will not allow to save it and display error on click of Save button as “Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.\nSystem will perform the same above validations at the time of transaction allocations, if Investment limit breaches, system will not allocate the transaction and log the error.\nIn case of OTC UT subscription for Fixed price and Historical VP funds before Cut off, at time of Authorization, if Investment limit breaches, system will displays the same error message as “Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.\nIn case of OTC and Non-OTC UT subscription for Forward price and Historical VP funds after Cut off, during allocation batch system will check investment limit, if MP Investment limit breaches, system will not allocate the transaction and log the error, failed transactions due to allocation, user can reverse the transaction as per operation rules and follow the existing payment process.",
+      "original_paragraph_start_index": 190,
+      "original_paragraph_end_index": 194
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_15",
+      "chunk_index": 15,
+      "paragraph_start_index": 75,
+      "paragraph_end_index": 79,
+      "paragraph_count": 5,
+      "text": "In case of REST API, if Minor Non-Bumi UH’s MP Subscription transactions units  plus cumulative MP subscription units during that MP investment period breaches the investment limit, then system will reject the request and display the existing reject code as “109” with error message as “MaxHoldingLimit for Minor/Major exceeded for the UnitHolder” in the response.\nIn case of bulk upload eChannel, if Minor Non-Bumi UH’s MP subscription transactions units plus cumulative MP subscription units during that investment period breaches the MP investment limit, then system will reject the transaction and return the error message as “Exceed the maximum investment limit” with error code ‘E-MAXINVLIMITPERIOD’ in eChannel status file.\nIf existing unit holder is having unit balance in ADAM50 before MP Investment limit period start, system will ignores this ADAM50 unit balance and consider only MP UT subscription transaction performed during that MP investment limit period and validates if it is breaching the limit.\nIf original MP subscription is reversed or cancelled, system will ignore these original MP subscription units while calculating MP investment limit for that period.\nIf Minor Non-Bumi unit holder performs out flow transactions from MP bucket during that MP investment period, then system will not consider these units while calculating investment limit.",
+      "original_paragraph_start_index": 195,
+      "original_paragraph_end_index": 199
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_16",
+      "chunk_index": 16,
+      "paragraph_start_index": 80,
+      "paragraph_end_index": 84,
+      "paragraph_count": 5,
+      "text": "If UH with Minor Program as Yes at UH screen places Financial Plan subscription transaction in a Fund where Minor Program field is set as Yes and Minor Program bucket is maintained in that Fund, then still system will consume the units from PB Non-Bumi Bucket.\nSystem will consider and validate “MP Investment limit for a period” for following UT Subscription transactions:\nUT OTC Subscription consuming from MP bucket\nREST API (Subscription, Provisional Subscription, UH creation with minimum investment) consuming from MP bucket\nBulk upload (E-Channel Subscription) consuming from MP bucket",
+      "original_paragraph_start_index": 200,
+      "original_paragraph_end_index": 204
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_17",
+      "chunk_index": 17,
+      "paragraph_start_index": 85,
+      "paragraph_end_index": 89,
+      "paragraph_count": 5,
+      "text": "System will not consider or validate “MP Investment limit for a period” for following transactions:\nFinancial Plan (Product bundle)\nBulk Upload (ePPA, ALCS)\nEPF Subscription\nLoan Subscription",
+      "original_paragraph_start_index": 205,
+      "original_paragraph_end_index": 209
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_18",
+      "chunk_index": 18,
+      "paragraph_start_index": 90,
+      "paragraph_end_index": 94,
+      "paragraph_count": 5,
+      "text": "Switch In\nTransfer In\nAttached Scenarios on MP Investment limits\nOver subscription in MP bucket during MP Investment limit period\nIf ‘Minor Program’ is set Yes and ‘Restrict Consumption to MP Bucket’ is also Set as Yes under Fund Rule, then system will always consume units from Minor Program bucket.",
+      "original_paragraph_start_index": 210,
+      "original_paragraph_end_index": 216
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_19",
+      "chunk_index": 19,
+      "paragraph_start_index": 95,
+      "paragraph_end_index": 99,
+      "paragraph_count": 5,
+      "text": "If Non-Bumi Minor UH’s subscription transaction units is more than available units in MP bucket, then system will reject it with existing error message as ‘Available Units are Insufficient’.\nExample: Available units in MP bucket is 40,000 and Non-Bumi Minor UH placed subscription transaction for 50,000 then system will reject it.\nOver subscription in MP bucket after MP Investment limit period is uplifted\nOnce the investment limit is uplifted and ‘Restrict Consumption to MP Bucket’ is set as No, system will not check the UT subscription units with investment limits, system will allow any amount in Minor Program if there is unit available in the Minor program bucket.\nIf Non-Bumi Minor UH places subscription transaction, system will consume it first from Minor Program bucket, if available units in Minor Program bucket is insufficient then system will consume remaining units from Non-EPF Non-Bumi bucket.",
+      "original_paragraph_start_index": 217,
+      "original_paragraph_end_index": 222
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_20",
+      "chunk_index": 20,
+      "paragraph_start_index": 100,
+      "paragraph_end_index": 104,
+      "paragraph_count": 5,
+      "text": "If Non-EPF Non-Bumi bucket also not having sufficient units, then system will reject it with existing error message as ‘Available Units are Insufficient.\nExample 1: Available units in MP bucket is 10,000 and Available units in Non-EPF Non-Bumi bucket is 20,000  and Non-Bumi Minor UH placed subscription transaction for 15,000 then system first consume 10,000 from MP bucket and remaining 5,000 from Non-EPF Non-Bumi Bucket.\nExample 2: Available units in MP bucket is 10,000 and Available units in Non-EPF Non-Bumi bucket is 20,000  and Non-Bumi Minor UH placed subscription transaction for 35,000 then System will reject it because available units in both the buckets are insufficient.\nRedemption\nSystem will allow Redemption transactions during the MP investment limit period.",
+      "original_paragraph_start_index": 223,
+      "original_paragraph_end_index": 228
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_21",
+      "chunk_index": 21,
+      "paragraph_start_index": 105,
+      "paragraph_end_index": 109,
+      "paragraph_count": 5,
+      "text": "If investor is having holding in Minor program and Non-EPF bucket and same investor places Redemption transactions, then system will first take out the units from Minor Program bucket.\nSystem will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on outflow units consumed from Minor Program buckets however the outflow units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nIf investor is having holding in Minor program and Non-EPF bucket and same investor places Redemption transactions, then system will first take out the units from Minor Program bucket if Redemption units are more than Minor Program holdings then system will take out the remaining units from Non-EPF bucket.\nExample: Non-Bumi Minor is having holdings in\nMinor Program = 5,000",
+      "original_paragraph_start_index": 229,
+      "original_paragraph_end_index": 233
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_22",
+      "chunk_index": 22,
+      "paragraph_start_index": 110,
+      "paragraph_end_index": 114,
+      "paragraph_count": 5,
+      "text": "Non-EPF = 40,000\nRedemption units = 15,000\nSystem will first take out the units from Minor Program which is 5,000 and remaining units 10,000 will be taken out from Non-EPF bucket, system will apply (90,10) rule on Non-EPF portion which is 10,000, (90% of 10,000) =9,000 units will be taken out from PB bucket and (10% of 10,000)= 1,000 units from Non-EPF bucket.\nAttached scenarios on Redemption Transactions\nTransfer Transactions During MP Investment Period",
+      "original_paragraph_start_index": 234,
+      "original_paragraph_end_index": 240
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_23",
+      "chunk_index": 23,
+      "paragraph_start_index": 115,
+      "paragraph_end_index": 119,
+      "paragraph_count": 5,
+      "text": "If Minor Program is set as Yes in Fund rule with flag Limit Applicable as Yes, then system will not allow Transfer transactions for UH who has Minor Program field as Yes at UH FT screen, however system will allow Transmission, Hibah and WAQF Transfer transactions.\nIf Non-Bumi Minor UH trying to place the Transfer transactions via OTC, then system will reject it and display the error message on click of save as ‘Transfer Transaction is disabled’.\nIf UH places Transfer through REST API, then system will reject the request and display the error code as ‘253’ and message as ‘Transfer Transaction is disabled’.\nTransfer Transactions after MP Investment limit period is uplifted\nOnce the MP Investment limit is uplifted, system will allow Transfer transactions.",
+      "original_paragraph_start_index": 241,
+      "original_paragraph_end_index": 245
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_24",
+      "chunk_index": 24,
+      "paragraph_start_index": 120,
+      "paragraph_end_index": 124,
+      "paragraph_count": 5,
+      "text": "If investor is having holding in Minor program and Non-EPF bucket and same investor places Transfer transactions, then system will first take out the units from Non-EPF bucket.\nIf Transfer transaction units are more than units available in Non-EPF bucket then system will take out the remaining units from Minor Program holdings.\nExample: Non-Bumi Minor is having holdings in\nMinor Program = 40,000\nNon-EPF = 5,000",
+      "original_paragraph_start_index": 246,
+      "original_paragraph_end_index": 250
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_25",
+      "chunk_index": 25,
+      "paragraph_start_index": 125,
+      "paragraph_end_index": 129,
+      "paragraph_count": 5,
+      "text": "Transfer units = 15,000\nSystem will first take out the units from Non-EPF which is 5,000 and remaining units 10,000 will be taken out from Minor Program.\nIn case Transferor UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Major UH then Minor program unit will be moved to Non-EPF bucket of that Major UH.\nIn case Transferor UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Non-Bumi Minor UH who is eligible for Minor program bucket then Minor program units of Transferor UH will be moved to Minor Program bucket of Beneficiary Minor UH.\nRefer the below table for Scenarios",
+      "original_paragraph_start_index": 251,
+      "original_paragraph_end_index": 255
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_26",
+      "chunk_index": 26,
+      "paragraph_start_index": 130,
+      "paragraph_end_index": 134,
+      "paragraph_count": 5,
+      "text": "Attached scenarios on Transfer transaction movement of units\nTransmission Transfer transactions\nIn case Deceased UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Major UH then Minor program unit will be moved to Non-EPF bucket of that Major UH and system will also performs Fund corpus adjustment by moving those many Minor Program registered units to Non-EPF registered units.\nIn case Deceased UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Non-Bumi Minor UH who is eligible for Minor program bucket then Minor program units of Deceased UH will be moved to Minor Program bucket of Beneficiary Minor UH.\nRefer the below table for Scenarios",
+      "original_paragraph_start_index": 257,
+      "original_paragraph_end_index": 262
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_27",
+      "chunk_index": 27,
+      "paragraph_start_index": 135,
+      "paragraph_end_index": 139,
+      "paragraph_count": 5,
+      "text": "Attached scenarios of Units movement when Transfer is done\nTransmission Redemption Transaction\nIn case Deceased UH is Non-Bumi Minor UH who has Minor Program units and mode of payment is selected as Redemption, then these Transmission Redemption units will be flown back to Minor Program bucket.\nIf Deceased UH is having holding in Minor program and Non-EPF bucket, then system will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on Transmission Redemption units consumed from Minor Program buckets however the Transmission Redemption units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nTransmission Fee",
+      "original_paragraph_start_index": 264,
+      "original_paragraph_end_index": 269
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_28",
+      "chunk_index": 28,
+      "paragraph_start_index": 140,
+      "paragraph_end_index": 144,
+      "paragraph_count": 5,
+      "text": "Transmission Fee Redemption transaction will be prioritized to consume units from Minor Program bucket.\nIf Deceased UH is having holding in Minor program and Non-EPF bucket, then system first  consume units from Minor Program bucket if units are insufficient then system will consume remaining units from Non-EPF bucket.\nSystem will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on Transmission Fee units consumed from Minor Program buckets however the Transmission Fee units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nSwitch Transactions During MP Investment Period\nIf Minor Program is set as Yes in Fund rule with flag Limit Applicable as Yes, then system will not allow Switch (Switch-in and Switch-out) transactions for UH who has Minor Program field as Yes at UH FT screen.",
+      "original_paragraph_start_index": 270,
+      "original_paragraph_end_index": 275
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_29",
+      "chunk_index": 29,
+      "paragraph_start_index": 145,
+      "paragraph_end_index": 149,
+      "paragraph_count": 5,
+      "text": "If Non-Bumi Minor UH trying to place the Switch transactions via OTC, then system will reject it and display the error message on click of save as ‘Switching Transaction is disabled’.\nIf UH places Switch through REST API, then system will reject the request and display the error code as ‘254’ and message as ‘Switching Transaction is disabled’.\nSwitch Transactions after MP Investment limit period is uplifted\nOnce the MP Investment limit is uplifted, system will allow Switch transactions.\nSwitch-in in Minor Program Fund",
+      "original_paragraph_start_index": 276,
+      "original_paragraph_end_index": 281
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_30",
+      "chunk_index": 30,
+      "paragraph_start_index": 150,
+      "paragraph_end_index": 154,
+      "paragraph_count": 5,
+      "text": "If Non-Bumi Minor UH performs Switch transactions, Switch out from Non-Minor Program fund to (Switch-in) Minor Program Fund, then system will consume switch-in units first from Non-EPF bucket, if units are insufficient in Non-EPF bucket then system will consume remaining units from Minor Program bucket.\nSwitch-out from Minor Program Fund\nIf investor is having holding in Minor program bucket and Non-EPF bucket and same investor places Switch out transactions, then system will first take out the units from Minor Program bucket.\nSystem will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on outflow units consumed from Minor Program buckets however the outflow units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nIf investor is having holding in Minor program and Non-EPF bucket and same investor places Switch out transactions, then system will first take out the units from Minor Program bucket if Switch out units are more than Minor Program holdings then system will take out the remaining units from Non-EPF bucket.",
+      "original_paragraph_start_index": 282,
+      "original_paragraph_end_index": 286
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_31",
+      "chunk_index": 31,
+      "paragraph_start_index": 155,
+      "paragraph_end_index": 159,
+      "paragraph_count": 5,
+      "text": "Example: Non-Bumi Minor is having holdings in\nMinor Program = 5,000\nNon-EPF = 40,000\nSwitch out units = 15,000\nSystem will first take out the units from Minor Program which is 5,000 and remaining units 10,000 will be taken out from Non-EPF bucket, system will apply (90,10) rule on Non-EPF portion which is 10,000, (90% of 10,000) =9,000 units will be taken out from PB bucket and (10% of 10,000)= 1,000 units from Non-EPF bucket.",
+      "original_paragraph_start_index": 287,
+      "original_paragraph_end_index": 291
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_32",
+      "chunk_index": 32,
+      "paragraph_start_index": 160,
+      "paragraph_end_index": 164,
+      "paragraph_count": 5,
+      "text": "Change of Minor’s Race or Religion\nSystem will update the Minor UH’s ‘Minor Program’ field from Yes to No in Unit holder FT details screen UTDUHFT, when this Minor UH’s Category is changed from Non-Bumi to Bumi due to change in Race or religion or Minority flag is changed to Yes.\nOnce the above Minor UH is successfully authorized, if the Minor UH has consumed units from Minor Program bucket then those units will remain in Minor Program bucket however if the Minor UH has consumed units from Non-EPF Non-Bumi bucket then those units will be moved to Non-EPF Bumi bucket.\nSystem will update the Minor UH’s ‘Minor Program’ field from No to Yes in Unit holder FT details screen UTDUHFT, when this Minor UH’s Category is changed from -Bumi to Non-Bumi due to change in Race or religion or Minority flag is changed to No.\nOnce the above Minor UH is successfully authorized, if the Minor UH has consumed units from Non-EPF Bumi bucket then those units will be moved to Non-EPF Non-Bumi bucket.",
+      "original_paragraph_start_index": 293,
+      "original_paragraph_end_index": 297
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_33",
+      "chunk_index": 33,
+      "paragraph_start_index": 165,
+      "paragraph_end_index": 169,
+      "paragraph_count": 5,
+      "text": "System will not move the units from Non-EPF Bumi bucket to Minor program bucket even though the Minor UH’s category is changed from Bumi to Non-Bumi, however if this Minor UH performs new subscriptions, then it will consume from Minor Program bucket.\nAttached Scenarios on movement of units when Minor UH’s Category is changed\nMinor Turn Major\nWhen Non-Bumi Minor UH turns to 18 year old and becomes Major, his units from Minor Program bucket will be moved to Non-EPF Bucket, system will also adjust Fund Corpus with same units.\nAttached scenarios of Units movement when Minor UH Turn Major",
+      "original_paragraph_start_index": 298,
+      "original_paragraph_end_index": 304
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_34",
+      "chunk_index": 34,
+      "paragraph_start_index": 170,
+      "paragraph_end_index": 174,
+      "paragraph_count": 5,
+      "text": "Units for Reinvestment\nExisting ADAM50 Unit holders\nAll existing ADAM50 unit holders who are having ADAM50 Block units, if they receive any dividend reinvestment units on ADAM50 block units, then these units will be consumed from Minor Program bucket and these reinvestment units will be blocked until minor reached 18 years old.\nAll existing ADAM50 unit holders who are having ADAM50 Non-Block units, if they receive any dividend reinvestment units on ADAM50 Non-Block units, then these units will be utilized and consumed from Non-EPF Non-Bumi bucket and these reinvestment units will not be blocked.\nExisting ADAM50 unit holders who are also having units from Minor Program bucket, if they receive any dividend reinvestment units on Minor Program units, then these units will be utilized and consumed from Non-EPF Non-Bumi bucket and these reinvestment units will not be blocked.",
+      "original_paragraph_start_index": 307,
+      "original_paragraph_end_index": 311
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_35",
+      "chunk_index": 35,
+      "paragraph_start_index": 175,
+      "paragraph_end_index": 179,
+      "paragraph_count": 5,
+      "text": "Non-ADAM50 Unit holders\nIf Non-Bumi Minor UH receives any dividend reinvestment units on Minor Program units, then these units will be utilized and consumed from Non-EPF-Non Bumi bucket and these reinvestment units will not be blocked.\nRefer the below table for reinvestment consumption for Minor Unit holders;\nUnit Holder Merge\nSystem will not allow unit holder merge if the Source or Destination or both UH have units in Minor Program bucket.",
+      "original_paragraph_start_index": 313,
+      "original_paragraph_end_index": 318
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_36",
+      "chunk_index": 36,
+      "paragraph_start_index": 180,
+      "paragraph_end_index": 184,
+      "paragraph_count": 5,
+      "text": "If Source UH has holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Source Unitholder has investment in Minor Program”\nIf Destination UH has holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Destination Unitholder has investment in Minor Program”\nIf both Source and Destination UH have holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Source Unitholder has investment in Minor Program,UH Merging is not allowed because Destination Unitholder has investment in Minor Program”\nProcess Flow\nNA",
+      "original_paragraph_start_index": 319,
+      "original_paragraph_end_index": 325
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_37",
+      "chunk_index": 37,
+      "paragraph_start_index": 185,
+      "paragraph_end_index": 189,
+      "paragraph_count": 5,
+      "text": "Bulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any",
+      "original_paragraph_start_index": 326,
+      "original_paragraph_end_index": 330
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_38",
+      "chunk_index": 38,
+      "paragraph_start_index": 190,
+      "paragraph_end_index": 194,
+      "paragraph_count": 5,
+      "text": "NA\nReports\nRequirements Overview\nBOP Reports:\nPortal Reports",
+      "original_paragraph_start_index": 331,
+      "original_paragraph_end_index": 337
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_39",
+      "chunk_index": 39,
+      "paragraph_start_index": 195,
+      "paragraph_end_index": 199,
+      "paragraph_count": 5,
+      "text": "BIP Reports\nReport Layout\nExisting Functionality\nNA\nAssumptions",
+      "original_paragraph_start_index": 339,
+      "original_paragraph_end_index": 345
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_40",
+      "chunk_index": 40,
+      "paragraph_start_index": 200,
+      "paragraph_end_index": 204,
+      "paragraph_count": 5,
+      "text": "Following BOR reports will not undergo any changes with respect to Minor Program transactions, existing layout and extraction logic will be used to extract the Minor Program related transactions:\nPortal Reports developed by Portal team are out of Scope in FCIS.\nBIP reports developed by CASD are out of Scope in FCIS\nFunctional Approach\nMaintenance",
+      "original_paragraph_start_index": 346,
+      "original_paragraph_end_index": 351
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_41",
+      "chunk_index": 41,
+      "paragraph_start_index": 205,
+      "paragraph_end_index": 209,
+      "paragraph_count": 5,
+      "text": "NA\nScreen Changes\nNA\nProcessing Changes\nExisting BOR reports B-12 will undergo changes to show as ‘Minor Program’ under existing column ‘Remark’ if the Unit Holder is having Minor Program field as Yes in UH detail FT screen UTDUHFT.",
+      "original_paragraph_start_index": 352,
+      "original_paragraph_end_index": 356
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_42",
+      "chunk_index": 42,
+      "paragraph_start_index": 210,
+      "paragraph_end_index": 214,
+      "paragraph_count": 5,
+      "text": "If Unit Holder is having Minor Program field as Yes and Remarks also provided in the field Remarks in UH detail FT screen UTDUHFT, then system will show ‘Remarks details Minor Program’ under ‘Remark’ column.\nRefer below examples:\nProcess Flow\nNA\nBulk Upload/External Interface / Gateway / Scheduler changes",
+      "original_paragraph_start_index": 357,
+      "original_paragraph_end_index": 362
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_43",
+      "chunk_index": 43,
+      "paragraph_start_index": 215,
+      "paragraph_end_index": 219,
+      "paragraph_count": 5,
+      "text": "NA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any\nNA",
+      "original_paragraph_start_index": 363,
+      "original_paragraph_end_index": 367
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_44",
+      "chunk_index": 44,
+      "paragraph_start_index": 220,
+      "paragraph_end_index": 224,
+      "paragraph_count": 5,
+      "text": "Annexure:\nClient specific documents\nGateway /Scheduler / Interface Layout Specification Doc\nNA\nReport Layouts / Specification doc.",
+      "original_paragraph_start_index": 368,
+      "original_paragraph_end_index": 373
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_45",
+      "chunk_index": 45,
+      "paragraph_start_index": 225,
+      "paragraph_end_index": 229,
+      "paragraph_count": 5,
+      "text": "NA\nReview Comments:\nReview Comments\nIssue Status\nOpen Items",
+      "original_paragraph_start_index": 374,
+      "original_paragraph_end_index": 379
+    },
+    {
+      "chunk_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx::chunk_46",
+      "chunk_index": 46,
+      "paragraph_start_index": 230,
+      "paragraph_end_index": 232,
+      "paragraph_count": 3,
+      "text": "Closed Items\nFunctional Specifications\nJan 2024",
+      "original_paragraph_start_index": 380,
+      "original_paragraph_end_index": 384
+    }
+  ]
+}

@@ -251,6 +251,11 @@ def run_staged_rebuild(
             embedded_batch = embed_batch(
                 batch,
                 cache_directory=seed_cache_directory,
+                # Each successful staged artifact immediately becomes a
+                # read-only cache source for later documents in this same run.
+                # This makes identical text reuse one canonical vector across
+                # the whole generation, not only within one source document.
+                additional_cache_directories=[embedding_directory],
                 request_batch_size=request_batch_size,
             )
             _validate_vector_dimensions(embedded_batch, vector_size)

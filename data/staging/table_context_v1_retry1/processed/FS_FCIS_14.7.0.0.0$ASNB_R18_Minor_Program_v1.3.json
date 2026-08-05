@@ -1,0 +1,2037 @@
+{
+  "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx",
+  "parsed_name": {
+    "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx",
+    "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3",
+    "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+    "release_label": "R18",
+    "release_number": 18,
+    "variant_suffix": "Minor_Program_v1.3",
+    "source_type": "docx"
+  },
+  "extracted_text": {
+    "file_name": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx",
+    "paragraph_count": 421,
+    "non_empty_paragraph_count": 303,
+    "paragraphs": [
+      "",
+      "",
+      "Functional Design Document",
+      "",
+      "Minor Program",
+      "",
+      "Client Name                                   : PNB",
+      "Release Name\t\t\t\t\t    : FCIS_14.7.0.0.0$ASNB_R18",
+      "Project ID                                        : 400301538",
+      "Document Ref                                : FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx",
+      "Author                                             : Waseem Manchinkop",
+      "Creation Date                                 : Jan 22, 2024",
+      "Last Updated                                  : , 2024",
+      "Version                                            : 1.",
+      "Title, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.",
+      "",
+      "Title, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.",
+      "",
+      "",
+      "To add additional approval lines, press [Tab] from the last cell in the table above.",
+      "",
+      "You can delete any elements of this cover page that you do not need for your document.",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Document Control",
+      "",
+      "Change Record",
+      "11",
+      "Reviewers",
+      "",
+      "",
+      "Approvers",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Traceability Matrix",
+      "",
+      "",
+      "",
+      "",
+      "Functional Specifications",
+      "",
+      "Table of Contents",
+      "",
+      "1\tDocument Control\t2",
+      "1.1\tChange Record\t2",
+      "1.2\tReviewers\t2",
+      "1.3\tApprovers\t2",
+      "1.4\tTraceability Matrix\t3",
+      "2.\tIntroduction\t5",
+      "2.1.\tBackground\t5",
+      "2.2.\tOrganization of the Document\t5",
+      "2.3.\tAcronyms and Abbreviations\t5",
+      "3.\tRequirements Summary\t6",
+      "4.\tMinor Program\t6",
+      "4.1.\tRequirements Overview\t6",
+      "4.2.\tExisting Functionality\t15",
+      "4.3.\tAssumptions\t15",
+      "4.4.\tFunctional Approach\t16",
+      "4.4.1.\tMaintenance\t16",
+      "4.4.2.\tScreen Changes\t18",
+      "4.4.3.\tProcessing Changes\t18",
+      "4.4.4.\tProcess Flow\t26",
+      "4.4.5.\tBulk Upload/External Interface / Gateway / Scheduler changes\t26",
+      "4.4.6.\tReport or BO Universe or BI Changes\t27",
+      "4.4.7.\tAdditional aspects if any\t27",
+      "5.\tReports\t27",
+      "5.1.\tRequirements Overview\t27",
+      "5.2.\tExisting Functionality\t35",
+      "5.3.\tAssumptions\t35",
+      "5.4.\tFunctional Approach\t36",
+      "5.4.1.\tMaintenance\t36",
+      "5.4.2.\tScreen Changes\t36",
+      "5.4.3.\tProcessing Changes\t36",
+      "5.4.4.\tProcess Flow\t37",
+      "5.4.5.\tBulk Upload/External Interface / Gateway / Scheduler changes\t37",
+      "5.4.6.\tReport or BO Universe or BI Changes\t37",
+      "5.4.7.\tAdditional aspects if any\t37",
+      "6.\tAnnexure:\t38",
+      "6.1.1.\tClient specific documents\t38",
+      "6.1.2.\tGateway /Scheduler / Interface Layout Specification Doc\t38",
+      "6.1.3.\tReport Layouts / Specification doc.\t38",
+      "7.\tReview Comments:\t38",
+      "7.1.\tReview Comments\t38",
+      "8.\tIssue Status\t38",
+      "8.1.\tOpen Items\t38",
+      "8.2.\tClosed Items\t38",
+      "",
+      "",
+      "Introduction",
+      "Background",
+      "PNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well.",
+      "ASNB Management has approved the proposed mechanism/approach to repurpose ASM3 unsubscribed units from ADAM50 program as part of a new minor investment program, and these units will specifically cater for minor non-Bumi UH.",
+      "Organization of the Document",
+      "The first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.",
+      "Acronyms and Abbreviations",
+      "",
+      "Requirements Summary",
+      "",
+      "The enhancements scoped in the document are relating;",
+      "To rename the “ADAM 50” bucket to Minor Program bucket.",
+      "To enable Subscription, Redemption, Transfer, and switching of ASM3 units in Minor Program bucket to any non-Bumi UH aged below 18 years old under a new Minor Program.",
+      "To set temporary limit for subscription and to disable transfer and switching for the first 6 months after go live.",
+      "",
+      "Minor Program",
+      "Requirements Overview",
+      "Business Requirement:",
+      "",
+      "",
+      "",
+      "Existing Functionality",
+      "Existing Subscribers of ADAM50 will continue with existing functionality of ADAM50 such as;",
+      "The existing blocked units of 200 units and its income distribution from ADAM50 program will have no impact.",
+      "The blocked units which consist of principal and its income distribution will be blocked until the minor has reached the age of 18 years old.",
+      "The system will release the blocked units to cash units when the minor turns 18 years old (Major UH).",
+      "As per existing. Hibah and Trust declaration is not allowed for Minor UH.",
+      "Assumptions",
+      "Currently under Fund rule ADAM50 bucket is available for both Bumi and Non-Bumi and it will be continue as it is so that the existing Bumi unit holders who have units in ADAM50 can redeem their units.",
+      "Once the Minor Program investment limit is uplifted, user will also have to set ‘Restrict Consumption to MP Bucket’ as No under Fund rule, so that system will consume unit from Non-EPF if Minor Program bucket is having insufficient units.",
+      "",
+      "Statements",
+      "The Minor Program units will be reflected in the cash investment column for following statements hence no changes are required.",
+      "Statement requests at OTC and Portal",
+      "Holding Statement",
+      "Details Statement",
+      "Annual Income Statement",
+      "(Mini Statement)Unit Trust Investment Holding Statement (Penyata Pegangan Pelaburan Unit Amanah 1 & 2)",
+      "",
+      "GL Hands-off",
+      "There are no changes in GL Handoff, there will not  be separate GL for Minor Program UH related transactions, it will be extracted together with Non Minor Program UH transactions.",
+      "",
+      "",
+      "",
+      "",
+      "Functional Approach",
+      "Maintenance",
+      "Fund Rule UTDFNDRL screen changes",
+      "Existing Transaction Category description for Transaction category code ‘AM’ will be changed to ‘Minor Program’ and same will be reflected in ‘Holding limit for Investors and transaction category’ screen under Fund rule.",
+      "A new Tab ‘Minor Program Detail’ will be added under ‘General Operating rule’ in Fund rule.",
+      "Following new fields will be introduced under new Tab ‘Minor Program Details’",
+      "",
+      "If Allow Minor Program field is set as No, then rest of the fields will be disabled.",
+      "System will not allow to Save if the Minor Program field is set to Yes and there is no Minor Program Bucket is created under investor holding limit screen.",
+      "Once the Minor Program field is set to Yes, once the fund rule is authorized, this field will be disabled and will not allow to change it back to No.",
+      "Once the Allow Minor Program field is set as Yes, rest of the fields will be enabled except ‘Minor Program UH Category’.",
+      "‘Limit From Date’ field will have calendar, once the user clicked on calendar, system will show current date.",
+      "‘Limit From Date’ should be greater than the current applicate date, if user selected current or previous date, then on click of save button, system will display error message as ‘Limit From Date should be greater than the current applicate date’.",
+      "‘Limit To Date’ should be greater than MP limit From date, if user selected equal to or lesser than MP Limit From Date, then on click of save button, system will display error message as ‘Limit To Date should be greater than limit From date’.",
+      "Unit Holder FT detail UTDUHFT screen changes",
+      "New field ‘Minor Program’ will be introduced under ‘Other Details’ tab in Unit holder FT details Screen.",
+      "‘Minor Program’ field will be read only and it will be updated by system with value Yes/No during save of the Unit holder.",
+      "For all new unit holders who are Non-Bumi Minor and Minority flag is No, for those Minor UH system will default ‘Minor Program’ with value as Yes at the time of save.",
+      "For all new unit holders who are Major/Corporate or Non-Bumi Minor with Minority flag as Yes or Bumi Minor, system will default ‘Minor Program’ with value as No at the time of save.",
+      "For all existing Unit holders, Upon Go live of this enhancement, one time data patch will be applied to set ‘Minor Program’ as Yes for all Non-Bumi Minor Unit holders who has Minority flag as No.",
+      "System will update the ‘Minor Program’ to No when Minor Non-Bumi UH turns to Major or Minor Non-Bumi UH becomes Minor Bumi or Minor Non-Bumi UH’s Minority flag changed to Yes.",
+      "",
+      "Investor Fund Balance screen changes",
+      "Following two new column will be added in Investor Fund balance screen",
+      "Minor Program Units will show Non-Bumi Minor UH’s Holdings in Minor Program Bucket including previous ADAM50 units.",
+      "‘Minor Program Fund’ field will be updated as Yes/No based on the below combination;",
+      "",
+      "UH Account Inquiry REST API",
+      "Two new tags ‘mpholding’ and ‘allowmp’ in the existing UH Account Inquiry REST API Service,",
+      "Refer RSD “RSD_FCIS_14.4.0.0.0$ASNB_UH_Acc_Det_Inq_v1.0.xlsx” for more details on new tags.",
+      "",
+      "Screen Changes",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Processing Changes",
+      "Minor Program Investment limit",
+      "If UH with Minor Program as Yes at UH screen places UT subscription transaction in a Fund where Minor Program field is set as Yes and Minor Program bucket is maintained in that Fund, then system will first consume units from Minor Program Bucket.",
+      "If the Fund is setup with Minor Program as Yes with investment limit and From and To date, then system will perform the validations for UT subscription transactions for each Non-Bumi Minor UH (Minor Program as Yes at UH level).",
+      "UH who has ‘Minor Program’ field as Yes, System will perform the validation during the save of the UT Subscription for each Minor Non-Bumi unit holder, if inflow of MP units plus culminative MP subscription units during that investment period breaches the MP investment limit units then system will not Save the transaction and display the existing error message as ‘Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)’.",
+      "For Fixed price funds and Historical VP funds before Cut off  where actual NAV is already available, system will calculate units (Transactions amount/Actual NAV minus any load/Fee) and checks if Non-Bumi UH’s  MP Subscription units plus cumulative MP subscription units during that MP investment period breaches the MP investment limit, then system will not allow to save it and display error on click of Save button as “Minor Program Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.",
+      "For Forward Price funds before or after cut off and Historical VP Funds after Cut off, wherein Actual NAV will not be available, system will calculate units based on the latest available NAV (Transactions amount/latest NAV minus any load/Fee) and checks if Minor Non-Bumi UH’s  MP Subscription units plus cumulative MP subscription units during that MP investment period breaches the MP investment limit, then system will not allow to save it and display error on click of Save button as “Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.",
+      "System will perform the same above validations at the time of transaction allocations, if Investment limit breaches, system will not allocate the transaction and log the error.",
+      "In case of OTC UT subscription for Fixed price and Historical VP funds before Cut off, at time of Authorization, if Investment limit breaches, system will displays the same error message as “Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.",
+      "In case of OTC and Non-OTC UT subscription for Forward price and Historical VP funds after Cut off, during allocation batch system will check investment limit, if MP Investment limit breaches, system will not allocate the transaction and log the error, failed transactions due to allocation, user can reverse the transaction as per operation rules and follow the existing payment process.",
+      "In case of REST API, if Minor Non-Bumi UH’s MP Subscription transactions units  plus cumulative MP subscription units during that MP investment period breaches the investment limit, then system will reject the request and display the existing reject code as “109” with error message as “MaxHoldingLimit for Minor/Major exceeded for the UnitHolder” in the response.",
+      "In case of bulk upload eChannel, if Minor Non-Bumi UH’s MP subscription transactions units plus cumulative MP subscription units during that investment period breaches the MP investment limit, then system will reject the transaction and return the error message as “Exceed the maximum investment limit” with error code ‘E-MAXINVLIMITPERIOD’ in eChannel status file.",
+      "If existing unit holder is having unit balance in ADAM50 before MP Investment limit period start, system will ignores this ADAM50 unit balance and consider only MP UT subscription transaction performed during that MP investment limit period and validates if it is breaching the limit.",
+      "If original MP subscription is reversed or cancelled, system will ignore these original MP subscription units while calculating MP investment limit for that period.",
+      "If Minor Non-Bumi unit holder performs out flow transactions from MP bucket during that MP investment period, then system will not consider these units while calculating investment limit.",
+      "If UH with Minor Program as Yes at UH screen places Financial Plan subscription transaction in a Fund where Minor Program field is set as Yes and Minor Program bucket is maintained in that Fund, then still system will consume the units from PB Non-Bumi Bucket.",
+      "System will consider and validate “MP Investment limit for a period” for following UT Subscription transactions:",
+      "UT OTC Subscription consuming from MP bucket",
+      "REST API (Subscription, Provisional Subscription, UH creation with minimum investment) consuming from MP bucket",
+      "Bulk upload (E-Channel Subscription) consuming from MP bucket",
+      "System will not consider or validate “MP Investment limit for a period” for following transactions:",
+      "Financial Plan (Product bundle)",
+      "Bulk Upload (ePPA, ALCS)",
+      "EPF Subscription",
+      "Loan Subscription",
+      "Switch In",
+      "Transfer In",
+      "Attached Scenarios on MP Investment limits",
+      "",
+      "",
+      "Over subscription in MP bucket during MP Investment limit period",
+      "If ‘Minor Program’ is set Yes and ‘Restrict Consumption to MP Bucket’ is also Set as Yes under Fund Rule, then system will always consume units from Minor Program bucket.",
+      "If Non-Bumi Minor UH’s subscription transaction units is more than available units in MP bucket, then system will reject it with existing error message as ‘Available Units are Insufficient’.",
+      "Example: Available units in MP bucket is 40,000 and Non-Bumi Minor UH placed subscription transaction for 50,000 then system will reject it.",
+      "",
+      "Over subscription in MP bucket after MP Investment limit period is uplifted",
+      "Once the investment limit is uplifted and ‘Restrict Consumption to MP Bucket’ is set as No, system will not check the UT subscription units with investment limits, system will allow any amount in Minor Program if there is unit available in the Minor program bucket.",
+      "If Non-Bumi Minor UH places subscription transaction, system will consume it first from Minor Program bucket, if available units in Minor Program bucket is insufficient then system will consume remaining units from Non-EPF Non-Bumi bucket.",
+      "If Non-EPF Non-Bumi bucket also not having sufficient units, then system will reject it with existing error message as ‘Available Units are Insufficient.",
+      "Example 1: Available units in MP bucket is 10,000 and Available units in Non-EPF Non-Bumi bucket is 20,000  and Non-Bumi Minor UH placed subscription transaction for 15,000 then system first consume 10,000 from MP bucket and remaining 5,000 from Non-EPF Non-Bumi Bucket.",
+      "Example 2: Available units in MP bucket is 10,000 and Available units in Non-EPF Non-Bumi bucket is 20,000  and Non-Bumi Minor UH placed subscription transaction for 35,000 then System will reject it because available units in both the buckets are insufficient.",
+      "",
+      "Redemption",
+      "System will allow Redemption transactions during the MP investment limit period.",
+      "If investor is having holding in Minor program and Non-EPF bucket and same investor places Redemption transactions, then system will first take out the units from Minor Program bucket.",
+      "System will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on outflow units consumed from Minor Program buckets however the outflow units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.",
+      "If investor is having holding in Minor program and Non-EPF bucket and same investor places Redemption transactions, then system will first take out the units from Minor Program bucket if Redemption units are more than Minor Program holdings then system will take out the remaining units from Non-EPF bucket.",
+      "Example: Non-Bumi Minor is having holdings in",
+      "Minor Program = 5,000",
+      "Non-EPF = 40,000",
+      "Redemption units = 15,000",
+      "System will first take out the units from Minor Program which is 5,000 and remaining units 10,000 will be taken out from Non-EPF bucket, system will apply (90,10) rule on Non-EPF portion which is 10,000, (90% of 10,000) =9,000 units will be taken out from PB bucket and (10% of 10,000)= 1,000 units from Non-EPF bucket.",
+      "Attached scenarios on Redemption Transactions",
+      "",
+      "",
+      "Transfer Transactions During MP Investment Period",
+      "If Minor Program is set as Yes in Fund rule with flag Limit Applicable as Yes, then system will not allow Transfer transactions for UH who has Minor Program field as Yes at UH FT screen, however system will allow Transmission, Hibah and WAQF Transfer transactions.",
+      "If Non-Bumi Minor UH trying to place the Transfer transactions via OTC, then system will reject it and display the error message on click of save as ‘Transfer Transaction is disabled’.",
+      "If UH places Transfer through REST API, then system will reject the request and display the error code as ‘253’ and message as ‘Transfer Transaction is disabled’.",
+      "Transfer Transactions after MP Investment limit period is uplifted",
+      "Once the MP Investment limit is uplifted, system will allow Transfer transactions.",
+      "If investor is having holding in Minor program and Non-EPF bucket and same investor places Transfer transactions, then system will first take out the units from Non-EPF bucket.",
+      "If Transfer transaction units are more than units available in Non-EPF bucket then system will take out the remaining units from Minor Program holdings.",
+      "Example: Non-Bumi Minor is having holdings in",
+      "Minor Program = 40,000",
+      "Non-EPF = 5,000",
+      "Transfer units = 15,000",
+      "System will first take out the units from Non-EPF which is 5,000 and remaining units 10,000 will be taken out from Minor Program.",
+      "In case Transferor UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Major UH then Minor program unit will be moved to Non-EPF bucket of that Major UH.",
+      "In case Transferor UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Non-Bumi Minor UH who is eligible for Minor program bucket then Minor program units of Transferor UH will be moved to Minor Program bucket of Beneficiary Minor UH.",
+      "Refer the below table for Scenarios",
+      "",
+      "Attached scenarios on Transfer transaction movement of units",
+      "",
+      "Transmission Transfer transactions",
+      "In case Deceased UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Major UH then Minor program unit will be moved to Non-EPF bucket of that Major UH and system will also performs Fund corpus adjustment by moving those many Minor Program registered units to Non-EPF registered units.",
+      "In case Deceased UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Non-Bumi Minor UH who is eligible for Minor program bucket then Minor program units of Deceased UH will be moved to Minor Program bucket of Beneficiary Minor UH.",
+      "Refer the below table for Scenarios",
+      "",
+      "Attached scenarios of Units movement when Transfer is done",
+      "",
+      "Transmission Redemption Transaction",
+      "In case Deceased UH is Non-Bumi Minor UH who has Minor Program units and mode of payment is selected as Redemption, then these Transmission Redemption units will be flown back to Minor Program bucket.",
+      "If Deceased UH is having holding in Minor program and Non-EPF bucket, then system will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on Transmission Redemption units consumed from Minor Program buckets however the Transmission Redemption units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.",
+      "Transmission Fee",
+      "Transmission Fee Redemption transaction will be prioritized to consume units from Minor Program bucket.",
+      "If Deceased UH is having holding in Minor program and Non-EPF bucket, then system first  consume units from Minor Program bucket if units are insufficient then system will consume remaining units from Non-EPF bucket.",
+      "System will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on Transmission Fee units consumed from Minor Program buckets however the Transmission Fee units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.",
+      "",
+      "Switch Transactions During MP Investment Period",
+      "If Minor Program is set as Yes in Fund rule with flag Limit Applicable as Yes, then system will not allow Switch (Switch-in and Switch-out) transactions for UH who has Minor Program field as Yes at UH FT screen.",
+      "If Non-Bumi Minor UH trying to place the Switch transactions via OTC, then system will reject it and display the error message on click of save as ‘Switching Transaction is disabled’.",
+      "If UH places Switch through REST API, then system will reject the request and display the error code as ‘254’ and message as ‘Switching Transaction is disabled’.",
+      "",
+      "Switch Transactions after MP Investment limit period is uplifted",
+      "Once the MP Investment limit is uplifted, system will allow Switch transactions.",
+      "Switch-in in Minor Program Fund",
+      "If Non-Bumi Minor UH performs Switch transactions, Switch out from Non-Minor Program fund to (Switch-in) Minor Program Fund, then system will consume switch-in units first from Non-EPF bucket, if units are insufficient in Non-EPF bucket then system will consume remaining units from Minor Program bucket.",
+      "Switch-out from Minor Program Fund",
+      "If investor is having holding in Minor program bucket and Non-EPF bucket and same investor places Switch out transactions, then system will first take out the units from Minor Program bucket.",
+      "System will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on outflow units consumed from Minor Program buckets however the outflow units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.",
+      "If investor is having holding in Minor program and Non-EPF bucket and same investor places Switch out transactions, then system will first take out the units from Minor Program bucket if Switch out units are more than Minor Program holdings then system will take out the remaining units from Non-EPF bucket.",
+      "Example: Non-Bumi Minor is having holdings in",
+      "Minor Program = 5,000",
+      "Non-EPF = 40,000",
+      "Switch out units = 15,000",
+      "System will first take out the units from Minor Program which is 5,000 and remaining units 10,000 will be taken out from Non-EPF bucket, system will apply (90,10) rule on Non-EPF portion which is 10,000, (90% of 10,000) =9,000 units will be taken out from PB bucket and (10% of 10,000)= 1,000 units from Non-EPF bucket.",
+      "",
+      "Change of Minor’s Race or Religion",
+      "System will update the Minor UH’s ‘Minor Program’ field from Yes to No in Unit holder FT details screen UTDUHFT, when this Minor UH’s Category is changed from Non-Bumi to Bumi due to change in Race or religion or Minority flag is changed to Yes.",
+      "Once the above Minor UH is successfully authorized, if the Minor UH has consumed units from Minor Program bucket then those units will remain in Minor Program bucket however if the Minor UH has consumed units from Non-EPF Non-Bumi bucket then those units will be moved to Non-EPF Bumi bucket.",
+      "System will update the Minor UH’s ‘Minor Program’ field from No to Yes in Unit holder FT details screen UTDUHFT, when this Minor UH’s Category is changed from -Bumi to Non-Bumi due to change in Race or religion or Minority flag is changed to No.",
+      "Once the above Minor UH is successfully authorized, if the Minor UH has consumed units from Non-EPF Bumi bucket then those units will be moved to Non-EPF Non-Bumi bucket.",
+      "System will not move the units from Non-EPF Bumi bucket to Minor program bucket even though the Minor UH’s category is changed from Bumi to Non-Bumi, however if this Minor UH performs new subscriptions, then it will consume from Minor Program bucket.",
+      "Attached Scenarios on movement of units when Minor UH’s Category is changed",
+      "",
+      "",
+      "Minor Turn Major",
+      "When Non-Bumi Minor UH turns to 18 year old and becomes Major, his units from Minor Program bucket will be moved to Non-EPF Bucket, system will also adjust Fund Corpus with same units.",
+      "Attached scenarios of Units movement when Minor UH Turn Major",
+      "",
+      "",
+      "Units for Reinvestment",
+      "Existing ADAM50 Unit holders",
+      "All existing ADAM50 unit holders who are having ADAM50 Block units, if they receive any dividend reinvestment units on ADAM50 block units, then these units will be consumed from Minor Program bucket and these reinvestment units will be blocked until minor reached 18 years old.",
+      "All existing ADAM50 unit holders who are having ADAM50 Non-Block units, if they receive any dividend reinvestment units on ADAM50 Non-Block units, then these units will be utilized and consumed from Non-EPF Non-Bumi bucket and these reinvestment units will not be blocked.",
+      "Existing ADAM50 unit holders who are also having units from Minor Program bucket, if they receive any dividend reinvestment units on Minor Program units, then these units will be utilized and consumed from Non-EPF Non-Bumi bucket and these reinvestment units will not be blocked.",
+      "",
+      "Non-ADAM50 Unit holders",
+      "If Non-Bumi Minor UH receives any dividend reinvestment units on Minor Program units, then these units will be utilized and consumed from Non-EPF-Non Bumi bucket and these reinvestment units will not be blocked.",
+      "Refer the below table for reinvestment consumption for Minor Unit holders;",
+      "",
+      "Unit Holder Merge",
+      "System will not allow unit holder merge if the Source or Destination or both UH have units in Minor Program bucket.",
+      "If Source UH has holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Source Unitholder has investment in Minor Program”",
+      "If Destination UH has holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Destination Unitholder has investment in Minor Program”",
+      "If both Source and Destination UH have holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Source Unitholder has investment in Minor Program,UH Merging is not allowed because Destination Unitholder has investment in Minor Program”",
+      "",
+      "",
+      "Process Flow",
+      "NA",
+      "Bulk Upload/External Interface / Gateway / Scheduler changes",
+      "NA",
+      "Report or BO Universe or BI Changes",
+      "NA",
+      "Additional aspects if any",
+      "NA",
+      "",
+      "Reports",
+      "Requirements Overview",
+      "BOP Reports:",
+      "",
+      "Portal Reports",
+      "",
+      "BIP Reports",
+      "",
+      "Report Layout",
+      "",
+      "Existing Functionality",
+      "NA",
+      "Assumptions",
+      "Following BOR reports will not undergo any changes with respect to Minor Program transactions, existing layout and extraction logic will be used to extract the Minor Program related transactions:",
+      "",
+      "Portal Reports developed by Portal team are out of Scope in FCIS.",
+      "BIP reports developed by CASD are out of Scope in FCIS",
+      "Functional Approach",
+      "Maintenance",
+      "NA",
+      "Screen Changes",
+      "NA",
+      "Processing Changes",
+      "Existing BOR reports B-12 will undergo changes to show as ‘Minor Program’ under existing column ‘Remark’ if the Unit Holder is having Minor Program field as Yes in UH detail FT screen UTDUHFT.",
+      "If Unit Holder is having Minor Program field as Yes and Remarks also provided in the field Remarks in UH detail FT screen UTDUHFT, then system will show ‘Remarks details Minor Program’ under ‘Remark’ column.",
+      "Refer below examples:",
+      "",
+      "Process Flow",
+      "NA",
+      "Bulk Upload/External Interface / Gateway / Scheduler changes",
+      "NA",
+      "Report or BO Universe or BI Changes",
+      "NA",
+      "Additional aspects if any",
+      "NA",
+      "Annexure:",
+      "Client specific documents",
+      "",
+      "Gateway /Scheduler / Interface Layout Specification Doc",
+      "NA",
+      "Report Layouts / Specification doc.",
+      "NA",
+      "Review Comments:",
+      "Review Comments",
+      "",
+      "Issue Status",
+      "Open Items",
+      "Closed Items",
+      "",
+      "",
+      "Functional Specifications",
+      "Jan 2024",
+      "Version number:1.0",
+      "",
+      "Oracle Corporation",
+      "World Headquarters",
+      "",
+      "",
+      "",
+      "",
+      "Worldwide Inquiries:",
+      "Phone: +1.650.506.7000",
+      "Fax: +1.650.506.7200",
+      "www.oracle.com/ financial_services/",
+      "",
+      "Copyright © 2024. All rights reserved.  \n\n\n\nNo part of this work may be reproduced, stored in a retrieval system, adopted or transmitted in any form or by any means, electronic, mechanical, photographic, graphic, optic recording or otherwise, translated in any language or computer language, without the prior written permission of Oracle Financial Services Software Limited and/or its affiliates.  \n\nDue care has been taken to make this FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx and accompanying software package (if any) as accurate as possible. However, Oracle Financial Services Software Limited makes no representation or warranties with respect to the contents hereof and shall not be responsible for any loss or damage caused to the user by the direct or indirect use of this",
+      "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx and the accompanying Software Product  (if any). Furthermore, Oracle Financial Services Software Limited reserves the right to alter, modify or otherwise change in any manner the content hereof, without obligation of Oracle Financial Services Software Limited to notify any person of such revision or changes. \n\nAll company and product names are trademarks of the respective companies with which they are associated.",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "full_text": "Functional Design Document\nMinor Program\nClient Name                                   : PNB\nRelease Name\t\t\t\t\t    : FCIS_14.7.0.0.0$ASNB_R18\nProject ID                                        : 400301538\nDocument Ref                                : FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx\nAuthor                                             : Waseem Manchinkop\nCreation Date                                 : Jan 22, 2024\nLast Updated                                  : , 2024\nVersion                                            : 1.\nTitle, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.\nTitle, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.\nTo add additional approval lines, press [Tab] from the last cell in the table above.\nYou can delete any elements of this cover page that you do not need for your document.\nDocument Control\nChange Record\n11\nReviewers\nApprovers\nTraceability Matrix\nFunctional Specifications\nTable of Contents\n1\tDocument Control\t2\n1.1\tChange Record\t2\n1.2\tReviewers\t2\n1.3\tApprovers\t2\n1.4\tTraceability Matrix\t3\n2.\tIntroduction\t5\n2.1.\tBackground\t5\n2.2.\tOrganization of the Document\t5\n2.3.\tAcronyms and Abbreviations\t5\n3.\tRequirements Summary\t6\n4.\tMinor Program\t6\n4.1.\tRequirements Overview\t6\n4.2.\tExisting Functionality\t15\n4.3.\tAssumptions\t15\n4.4.\tFunctional Approach\t16\n4.4.1.\tMaintenance\t16\n4.4.2.\tScreen Changes\t18\n4.4.3.\tProcessing Changes\t18\n4.4.4.\tProcess Flow\t26\n4.4.5.\tBulk Upload/External Interface / Gateway / Scheduler changes\t26\n4.4.6.\tReport or BO Universe or BI Changes\t27\n4.4.7.\tAdditional aspects if any\t27\n5.\tReports\t27\n5.1.\tRequirements Overview\t27\n5.2.\tExisting Functionality\t35\n5.3.\tAssumptions\t35\n5.4.\tFunctional Approach\t36\n5.4.1.\tMaintenance\t36\n5.4.2.\tScreen Changes\t36\n5.4.3.\tProcessing Changes\t36\n5.4.4.\tProcess Flow\t37\n5.4.5.\tBulk Upload/External Interface / Gateway / Scheduler changes\t37\n5.4.6.\tReport or BO Universe or BI Changes\t37\n5.4.7.\tAdditional aspects if any\t37\n6.\tAnnexure:\t38\n6.1.1.\tClient specific documents\t38\n6.1.2.\tGateway /Scheduler / Interface Layout Specification Doc\t38\n6.1.3.\tReport Layouts / Specification doc.\t38\n7.\tReview Comments:\t38\n7.1.\tReview Comments\t38\n8.\tIssue Status\t38\n8.1.\tOpen Items\t38\n8.2.\tClosed Items\t38\nIntroduction\nBackground\nPNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well.\nASNB Management has approved the proposed mechanism/approach to repurpose ASM3 unsubscribed units from ADAM50 program as part of a new minor investment program, and these units will specifically cater for minor non-Bumi UH.\nOrganization of the Document\nThe first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.\nAcronyms and Abbreviations\nRequirements Summary\nThe enhancements scoped in the document are relating;\nTo rename the “ADAM 50” bucket to Minor Program bucket.\nTo enable Subscription, Redemption, Transfer, and switching of ASM3 units in Minor Program bucket to any non-Bumi UH aged below 18 years old under a new Minor Program.\nTo set temporary limit for subscription and to disable transfer and switching for the first 6 months after go live.\nMinor Program\nRequirements Overview\nBusiness Requirement:\nExisting Functionality\nExisting Subscribers of ADAM50 will continue with existing functionality of ADAM50 such as;\nThe existing blocked units of 200 units and its income distribution from ADAM50 program will have no impact.\nThe blocked units which consist of principal and its income distribution will be blocked until the minor has reached the age of 18 years old.\nThe system will release the blocked units to cash units when the minor turns 18 years old (Major UH).\nAs per existing. Hibah and Trust declaration is not allowed for Minor UH.\nAssumptions\nCurrently under Fund rule ADAM50 bucket is available for both Bumi and Non-Bumi and it will be continue as it is so that the existing Bumi unit holders who have units in ADAM50 can redeem their units.\nOnce the Minor Program investment limit is uplifted, user will also have to set ‘Restrict Consumption to MP Bucket’ as No under Fund rule, so that system will consume unit from Non-EPF if Minor Program bucket is having insufficient units.\nStatements\nThe Minor Program units will be reflected in the cash investment column for following statements hence no changes are required.\nStatement requests at OTC and Portal\nHolding Statement\nDetails Statement\nAnnual Income Statement\n(Mini Statement)Unit Trust Investment Holding Statement (Penyata Pegangan Pelaburan Unit Amanah 1 & 2)\nGL Hands-off\nThere are no changes in GL Handoff, there will not  be separate GL for Minor Program UH related transactions, it will be extracted together with Non Minor Program UH transactions.\nFunctional Approach\nMaintenance\nFund Rule UTDFNDRL screen changes\nExisting Transaction Category description for Transaction category code ‘AM’ will be changed to ‘Minor Program’ and same will be reflected in ‘Holding limit for Investors and transaction category’ screen under Fund rule.\nA new Tab ‘Minor Program Detail’ will be added under ‘General Operating rule’ in Fund rule.\nFollowing new fields will be introduced under new Tab ‘Minor Program Details’\nIf Allow Minor Program field is set as No, then rest of the fields will be disabled.\nSystem will not allow to Save if the Minor Program field is set to Yes and there is no Minor Program Bucket is created under investor holding limit screen.\nOnce the Minor Program field is set to Yes, once the fund rule is authorized, this field will be disabled and will not allow to change it back to No.\nOnce the Allow Minor Program field is set as Yes, rest of the fields will be enabled except ‘Minor Program UH Category’.\n‘Limit From Date’ field will have calendar, once the user clicked on calendar, system will show current date.\n‘Limit From Date’ should be greater than the current applicate date, if user selected current or previous date, then on click of save button, system will display error message as ‘Limit From Date should be greater than the current applicate date’.\n‘Limit To Date’ should be greater than MP limit From date, if user selected equal to or lesser than MP Limit From Date, then on click of save button, system will display error message as ‘Limit To Date should be greater than limit From date’.\nUnit Holder FT detail UTDUHFT screen changes\nNew field ‘Minor Program’ will be introduced under ‘Other Details’ tab in Unit holder FT details Screen.\n‘Minor Program’ field will be read only and it will be updated by system with value Yes/No during save of the Unit holder.\nFor all new unit holders who are Non-Bumi Minor and Minority flag is No, for those Minor UH system will default ‘Minor Program’ with value as Yes at the time of save.\nFor all new unit holders who are Major/Corporate or Non-Bumi Minor with Minority flag as Yes or Bumi Minor, system will default ‘Minor Program’ with value as No at the time of save.\nFor all existing Unit holders, Upon Go live of this enhancement, one time data patch will be applied to set ‘Minor Program’ as Yes for all Non-Bumi Minor Unit holders who has Minority flag as No.\nSystem will update the ‘Minor Program’ to No when Minor Non-Bumi UH turns to Major or Minor Non-Bumi UH becomes Minor Bumi or Minor Non-Bumi UH’s Minority flag changed to Yes.\nInvestor Fund Balance screen changes\nFollowing two new column will be added in Investor Fund balance screen\nMinor Program Units will show Non-Bumi Minor UH’s Holdings in Minor Program Bucket including previous ADAM50 units.\n‘Minor Program Fund’ field will be updated as Yes/No based on the below combination;\nUH Account Inquiry REST API\nTwo new tags ‘mpholding’ and ‘allowmp’ in the existing UH Account Inquiry REST API Service,\nRefer RSD “RSD_FCIS_14.4.0.0.0$ASNB_UH_Acc_Det_Inq_v1.0.xlsx” for more details on new tags.\nScreen Changes\nProcessing Changes\nMinor Program Investment limit\nIf UH with Minor Program as Yes at UH screen places UT subscription transaction in a Fund where Minor Program field is set as Yes and Minor Program bucket is maintained in that Fund, then system will first consume units from Minor Program Bucket.\nIf the Fund is setup with Minor Program as Yes with investment limit and From and To date, then system will perform the validations for UT subscription transactions for each Non-Bumi Minor UH (Minor Program as Yes at UH level).\nUH who has ‘Minor Program’ field as Yes, System will perform the validation during the save of the UT Subscription for each Minor Non-Bumi unit holder, if inflow of MP units plus culminative MP subscription units during that investment period breaches the MP investment limit units then system will not Save the transaction and display the existing error message as ‘Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)’.\nFor Fixed price funds and Historical VP funds before Cut off  where actual NAV is already available, system will calculate units (Transactions amount/Actual NAV minus any load/Fee) and checks if Non-Bumi UH’s  MP Subscription units plus cumulative MP subscription units during that MP investment period breaches the MP investment limit, then system will not allow to save it and display error on click of Save button as “Minor Program Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.\nFor Forward Price funds before or after cut off and Historical VP Funds after Cut off, wherein Actual NAV will not be available, system will calculate units based on the latest available NAV (Transactions amount/latest NAV minus any load/Fee) and checks if Minor Non-Bumi UH’s  MP Subscription units plus cumulative MP subscription units during that MP investment period breaches the MP investment limit, then system will not allow to save it and display error on click of Save button as “Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.\nSystem will perform the same above validations at the time of transaction allocations, if Investment limit breaches, system will not allocate the transaction and log the error.\nIn case of OTC UT subscription for Fixed price and Historical VP funds before Cut off, at time of Authorization, if Investment limit breaches, system will displays the same error message as “Maximum Investment Limit Allowed For A Period Exceeded For The Unitholder (UH ID)”.\nIn case of OTC and Non-OTC UT subscription for Forward price and Historical VP funds after Cut off, during allocation batch system will check investment limit, if MP Investment limit breaches, system will not allocate the transaction and log the error, failed transactions due to allocation, user can reverse the transaction as per operation rules and follow the existing payment process.\nIn case of REST API, if Minor Non-Bumi UH’s MP Subscription transactions units  plus cumulative MP subscription units during that MP investment period breaches the investment limit, then system will reject the request and display the existing reject code as “109” with error message as “MaxHoldingLimit for Minor/Major exceeded for the UnitHolder” in the response.\nIn case of bulk upload eChannel, if Minor Non-Bumi UH’s MP subscription transactions units plus cumulative MP subscription units during that investment period breaches the MP investment limit, then system will reject the transaction and return the error message as “Exceed the maximum investment limit” with error code ‘E-MAXINVLIMITPERIOD’ in eChannel status file.\nIf existing unit holder is having unit balance in ADAM50 before MP Investment limit period start, system will ignores this ADAM50 unit balance and consider only MP UT subscription transaction performed during that MP investment limit period and validates if it is breaching the limit.\nIf original MP subscription is reversed or cancelled, system will ignore these original MP subscription units while calculating MP investment limit for that period.\nIf Minor Non-Bumi unit holder performs out flow transactions from MP bucket during that MP investment period, then system will not consider these units while calculating investment limit.\nIf UH with Minor Program as Yes at UH screen places Financial Plan subscription transaction in a Fund where Minor Program field is set as Yes and Minor Program bucket is maintained in that Fund, then still system will consume the units from PB Non-Bumi Bucket.\nSystem will consider and validate “MP Investment limit for a period” for following UT Subscription transactions:\nUT OTC Subscription consuming from MP bucket\nREST API (Subscription, Provisional Subscription, UH creation with minimum investment) consuming from MP bucket\nBulk upload (E-Channel Subscription) consuming from MP bucket\nSystem will not consider or validate “MP Investment limit for a period” for following transactions:\nFinancial Plan (Product bundle)\nBulk Upload (ePPA, ALCS)\nEPF Subscription\nLoan Subscription\nSwitch In\nTransfer In\nAttached Scenarios on MP Investment limits\nOver subscription in MP bucket during MP Investment limit period\nIf ‘Minor Program’ is set Yes and ‘Restrict Consumption to MP Bucket’ is also Set as Yes under Fund Rule, then system will always consume units from Minor Program bucket.\nIf Non-Bumi Minor UH’s subscription transaction units is more than available units in MP bucket, then system will reject it with existing error message as ‘Available Units are Insufficient’.\nExample: Available units in MP bucket is 40,000 and Non-Bumi Minor UH placed subscription transaction for 50,000 then system will reject it.\nOver subscription in MP bucket after MP Investment limit period is uplifted\nOnce the investment limit is uplifted and ‘Restrict Consumption to MP Bucket’ is set as No, system will not check the UT subscription units with investment limits, system will allow any amount in Minor Program if there is unit available in the Minor program bucket.\nIf Non-Bumi Minor UH places subscription transaction, system will consume it first from Minor Program bucket, if available units in Minor Program bucket is insufficient then system will consume remaining units from Non-EPF Non-Bumi bucket.\nIf Non-EPF Non-Bumi bucket also not having sufficient units, then system will reject it with existing error message as ‘Available Units are Insufficient.\nExample 1: Available units in MP bucket is 10,000 and Available units in Non-EPF Non-Bumi bucket is 20,000  and Non-Bumi Minor UH placed subscription transaction for 15,000 then system first consume 10,000 from MP bucket and remaining 5,000 from Non-EPF Non-Bumi Bucket.\nExample 2: Available units in MP bucket is 10,000 and Available units in Non-EPF Non-Bumi bucket is 20,000  and Non-Bumi Minor UH placed subscription transaction for 35,000 then System will reject it because available units in both the buckets are insufficient.\nRedemption\nSystem will allow Redemption transactions during the MP investment limit period.\nIf investor is having holding in Minor program and Non-EPF bucket and same investor places Redemption transactions, then system will first take out the units from Minor Program bucket.\nSystem will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on outflow units consumed from Minor Program buckets however the outflow units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nIf investor is having holding in Minor program and Non-EPF bucket and same investor places Redemption transactions, then system will first take out the units from Minor Program bucket if Redemption units are more than Minor Program holdings then system will take out the remaining units from Non-EPF bucket.\nExample: Non-Bumi Minor is having holdings in\nMinor Program = 5,000\nNon-EPF = 40,000\nRedemption units = 15,000\nSystem will first take out the units from Minor Program which is 5,000 and remaining units 10,000 will be taken out from Non-EPF bucket, system will apply (90,10) rule on Non-EPF portion which is 10,000, (90% of 10,000) =9,000 units will be taken out from PB bucket and (10% of 10,000)= 1,000 units from Non-EPF bucket.\nAttached scenarios on Redemption Transactions\nTransfer Transactions During MP Investment Period\nIf Minor Program is set as Yes in Fund rule with flag Limit Applicable as Yes, then system will not allow Transfer transactions for UH who has Minor Program field as Yes at UH FT screen, however system will allow Transmission, Hibah and WAQF Transfer transactions.\nIf Non-Bumi Minor UH trying to place the Transfer transactions via OTC, then system will reject it and display the error message on click of save as ‘Transfer Transaction is disabled’.\nIf UH places Transfer through REST API, then system will reject the request and display the error code as ‘253’ and message as ‘Transfer Transaction is disabled’.\nTransfer Transactions after MP Investment limit period is uplifted\nOnce the MP Investment limit is uplifted, system will allow Transfer transactions.\nIf investor is having holding in Minor program and Non-EPF bucket and same investor places Transfer transactions, then system will first take out the units from Non-EPF bucket.\nIf Transfer transaction units are more than units available in Non-EPF bucket then system will take out the remaining units from Minor Program holdings.\nExample: Non-Bumi Minor is having holdings in\nMinor Program = 40,000\nNon-EPF = 5,000\nTransfer units = 15,000\nSystem will first take out the units from Non-EPF which is 5,000 and remaining units 10,000 will be taken out from Minor Program.\nIn case Transferor UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Major UH then Minor program unit will be moved to Non-EPF bucket of that Major UH.\nIn case Transferor UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Non-Bumi Minor UH who is eligible for Minor program bucket then Minor program units of Transferor UH will be moved to Minor Program bucket of Beneficiary Minor UH.\nRefer the below table for Scenarios\nAttached scenarios on Transfer transaction movement of units\nTransmission Transfer transactions\nIn case Deceased UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Major UH then Minor program unit will be moved to Non-EPF bucket of that Major UH and system will also performs Fund corpus adjustment by moving those many Minor Program registered units to Non-EPF registered units.\nIn case Deceased UH is Non-Bumi Minor UH who has Minor Program units and the beneficiary is Non-Bumi Minor UH who is eligible for Minor program bucket then Minor program units of Deceased UH will be moved to Minor Program bucket of Beneficiary Minor UH.\nRefer the below table for Scenarios\nAttached scenarios of Units movement when Transfer is done\nTransmission Redemption Transaction\nIn case Deceased UH is Non-Bumi Minor UH who has Minor Program units and mode of payment is selected as Redemption, then these Transmission Redemption units will be flown back to Minor Program bucket.\nIf Deceased UH is having holding in Minor program and Non-EPF bucket, then system will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on Transmission Redemption units consumed from Minor Program buckets however the Transmission Redemption units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nTransmission Fee\nTransmission Fee Redemption transaction will be prioritized to consume units from Minor Program bucket.\nIf Deceased UH is having holding in Minor program and Non-EPF bucket, then system first  consume units from Minor Program bucket if units are insufficient then system will consume remaining units from Non-EPF bucket.\nSystem will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on Transmission Fee units consumed from Minor Program buckets however the Transmission Fee units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nSwitch Transactions During MP Investment Period\nIf Minor Program is set as Yes in Fund rule with flag Limit Applicable as Yes, then system will not allow Switch (Switch-in and Switch-out) transactions for UH who has Minor Program field as Yes at UH FT screen.\nIf Non-Bumi Minor UH trying to place the Switch transactions via OTC, then system will reject it and display the error message on click of save as ‘Switching Transaction is disabled’.\nIf UH places Switch through REST API, then system will reject the request and display the error code as ‘254’ and message as ‘Switching Transaction is disabled’.\nSwitch Transactions after MP Investment limit period is uplifted\nOnce the MP Investment limit is uplifted, system will allow Switch transactions.\nSwitch-in in Minor Program Fund\nIf Non-Bumi Minor UH performs Switch transactions, Switch out from Non-Minor Program fund to (Switch-in) Minor Program Fund, then system will consume switch-in units first from Non-EPF bucket, if units are insufficient in Non-EPF bucket then system will consume remaining units from Minor Program bucket.\nSwitch-out from Minor Program Fund\nIf investor is having holding in Minor program bucket and Non-EPF bucket and same investor places Switch out transactions, then system will first take out the units from Minor Program bucket.\nSystem will not apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule maintained under Fund Rule on outflow units consumed from Minor Program buckets however the outflow units consumed from Non-EPF bucket will follow the existing functionality to apply ‘Use Financial Plan Bucket for Outflows’ (90,10) rule.\nIf investor is having holding in Minor program and Non-EPF bucket and same investor places Switch out transactions, then system will first take out the units from Minor Program bucket if Switch out units are more than Minor Program holdings then system will take out the remaining units from Non-EPF bucket.\nExample: Non-Bumi Minor is having holdings in\nMinor Program = 5,000\nNon-EPF = 40,000\nSwitch out units = 15,000\nSystem will first take out the units from Minor Program which is 5,000 and remaining units 10,000 will be taken out from Non-EPF bucket, system will apply (90,10) rule on Non-EPF portion which is 10,000, (90% of 10,000) =9,000 units will be taken out from PB bucket and (10% of 10,000)= 1,000 units from Non-EPF bucket.\nChange of Minor’s Race or Religion\nSystem will update the Minor UH’s ‘Minor Program’ field from Yes to No in Unit holder FT details screen UTDUHFT, when this Minor UH’s Category is changed from Non-Bumi to Bumi due to change in Race or religion or Minority flag is changed to Yes.\nOnce the above Minor UH is successfully authorized, if the Minor UH has consumed units from Minor Program bucket then those units will remain in Minor Program bucket however if the Minor UH has consumed units from Non-EPF Non-Bumi bucket then those units will be moved to Non-EPF Bumi bucket.\nSystem will update the Minor UH’s ‘Minor Program’ field from No to Yes in Unit holder FT details screen UTDUHFT, when this Minor UH’s Category is changed from -Bumi to Non-Bumi due to change in Race or religion or Minority flag is changed to No.\nOnce the above Minor UH is successfully authorized, if the Minor UH has consumed units from Non-EPF Bumi bucket then those units will be moved to Non-EPF Non-Bumi bucket.\nSystem will not move the units from Non-EPF Bumi bucket to Minor program bucket even though the Minor UH’s category is changed from Bumi to Non-Bumi, however if this Minor UH performs new subscriptions, then it will consume from Minor Program bucket.\nAttached Scenarios on movement of units when Minor UH’s Category is changed\nMinor Turn Major\nWhen Non-Bumi Minor UH turns to 18 year old and becomes Major, his units from Minor Program bucket will be moved to Non-EPF Bucket, system will also adjust Fund Corpus with same units.\nAttached scenarios of Units movement when Minor UH Turn Major\nUnits for Reinvestment\nExisting ADAM50 Unit holders\nAll existing ADAM50 unit holders who are having ADAM50 Block units, if they receive any dividend reinvestment units on ADAM50 block units, then these units will be consumed from Minor Program bucket and these reinvestment units will be blocked until minor reached 18 years old.\nAll existing ADAM50 unit holders who are having ADAM50 Non-Block units, if they receive any dividend reinvestment units on ADAM50 Non-Block units, then these units will be utilized and consumed from Non-EPF Non-Bumi bucket and these reinvestment units will not be blocked.\nExisting ADAM50 unit holders who are also having units from Minor Program bucket, if they receive any dividend reinvestment units on Minor Program units, then these units will be utilized and consumed from Non-EPF Non-Bumi bucket and these reinvestment units will not be blocked.\nNon-ADAM50 Unit holders\nIf Non-Bumi Minor UH receives any dividend reinvestment units on Minor Program units, then these units will be utilized and consumed from Non-EPF-Non Bumi bucket and these reinvestment units will not be blocked.\nRefer the below table for reinvestment consumption for Minor Unit holders;\nUnit Holder Merge\nSystem will not allow unit holder merge if the Source or Destination or both UH have units in Minor Program bucket.\nIf Source UH has holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Source Unitholder has investment in Minor Program”\nIf Destination UH has holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Destination Unitholder has investment in Minor Program”\nIf both Source and Destination UH have holdings in MP bucket and user tries to save UH Merge, then system will not save it and display error message as “UH Merging is not allowed because Source Unitholder has investment in Minor Program,UH Merging is not allowed because Destination Unitholder has investment in Minor Program”\nProcess Flow\nNA\nBulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any\nNA\nReports\nRequirements Overview\nBOP Reports:\nPortal Reports\nBIP Reports\nReport Layout\nExisting Functionality\nNA\nAssumptions\nFollowing BOR reports will not undergo any changes with respect to Minor Program transactions, existing layout and extraction logic will be used to extract the Minor Program related transactions:\nPortal Reports developed by Portal team are out of Scope in FCIS.\nBIP reports developed by CASD are out of Scope in FCIS\nFunctional Approach\nMaintenance\nNA\nScreen Changes\nNA\nProcessing Changes\nExisting BOR reports B-12 will undergo changes to show as ‘Minor Program’ under existing column ‘Remark’ if the Unit Holder is having Minor Program field as Yes in UH detail FT screen UTDUHFT.\nIf Unit Holder is having Minor Program field as Yes and Remarks also provided in the field Remarks in UH detail FT screen UTDUHFT, then system will show ‘Remarks details Minor Program’ under ‘Remark’ column.\nRefer below examples:\nProcess Flow\nNA\nBulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any\nNA\nAnnexure:\nClient specific documents\nGateway /Scheduler / Interface Layout Specification Doc\nNA\nReport Layouts / Specification doc.\nNA\nReview Comments:\nReview Comments\nIssue Status\nOpen Items\nClosed Items\nFunctional Specifications\nJan 2024\nVersion number:1.0\nOracle Corporation\nWorld Headquarters\nWorldwide Inquiries:\nPhone: +1.650.506.7000\nFax: +1.650.506.7200\nwww.oracle.com/ financial_services/\nCopyright © 2024. All rights reserved.  \n\n\n\nNo part of this work may be reproduced, stored in a retrieval system, adopted or transmitted in any form or by any means, electronic, mechanical, photographic, graphic, optic recording or otherwise, translated in any language or computer language, without the prior written permission of Oracle Financial Services Software Limited and/or its affiliates.  \n\nDue care has been taken to make this FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx and accompanying software package (if any) as accurate as possible. However, Oracle Financial Services Software Limited makes no representation or warranties with respect to the contents hereof and shall not be responsible for any loss or damage caused to the user by the direct or indirect use of this\nFS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx and the accompanying Software Product  (if any). Furthermore, Oracle Financial Services Software Limited reserves the right to alter, modify or otherwise change in any manner the content hereof, without obligation of Oracle Financial Services Software Limited to notify any person of such revision or changes. \n\nAll company and product names are trademarks of the respective companies with which they are associated."
+  },
+  "extracted_tables": {
+    "file_name": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx",
+    "table_count": 20,
+    "tables": [
+      {
+        "table_index": 0,
+        "row_count": 9,
+        "column_count": 4,
+        "rows": [
+          [
+            "Date",
+            "Author",
+            "Version",
+            "Change Reference"
+          ],
+          [
+            "22-Jan-2024",
+            "Waseem Manchinkop",
+            "Draft",
+            "Initial Draft"
+          ],
+          [
+            "09-Feb-2024",
+            "Waseem Manchinkop",
+            "1.1",
+            "Incorporated Reports Changes"
+          ],
+          [
+            "29-Feb-2024",
+            "Waseem Manchinkop",
+            "1.2",
+            "Incorporated comments raised during testing"
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Date | Author | Version | Change Reference\n22-Jan-2024 | Waseem Manchinkop | Draft | Initial Draft\n09-Feb-2024 | Waseem Manchinkop | 1.1 | Incorporated Reports Changes\n29-Feb-2024 | Waseem Manchinkop | 1.2 | Incorporated comments raised during testing\n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | ",
+        "preceding_paragraph_index": 31,
+        "preceding_paragraph_text": "Change Record"
+      },
+      {
+        "table_index": 1,
+        "row_count": 3,
+        "column_count": 6,
+        "rows": [
+          [
+            "Name",
+            "Role",
+            "Status",
+            "Comments",
+            "Version Reviewed",
+            "Date"
+          ],
+          [
+            "Bhanu Pratap Sing",
+            "Consulting Practice Manager",
+            "Reviewed",
+            "",
+            "1.0",
+            ""
+          ],
+          [
+            "Shan Natarajan",
+            "Consulting Technical Manager",
+            "Reviewed",
+            "",
+            "1.0",
+            ""
+          ]
+        ],
+        "text_representation": "Name | Role | Status | Comments | Version Reviewed | Date\nBhanu Pratap Sing | Consulting Practice Manager | Reviewed |  | 1.0 | \nShan Natarajan | Consulting Technical Manager | Reviewed |  | 1.0 | ",
+        "preceding_paragraph_index": 33,
+        "preceding_paragraph_text": "Reviewers"
+      },
+      {
+        "table_index": 2,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Name",
+            "Role",
+            "Status",
+            "Comments",
+            "Version Approved",
+            "Date"
+          ],
+          [
+            "Rakesh Kolla",
+            "Director Banking Consulting FLEXCUBE Investor Servicing",
+            "Approved",
+            "",
+            "1.0",
+            ""
+          ]
+        ],
+        "text_representation": "Name | Role | Status | Comments | Version Approved | Date\nRakesh Kolla | Director Banking Consulting FLEXCUBE Investor Servicing | Approved |  | 1.0 | ",
+        "preceding_paragraph_index": 36,
+        "preceding_paragraph_text": "Approvers"
+      },
+      {
+        "table_index": 3,
+        "row_count": 3,
+        "column_count": 5,
+        "rows": [
+          [
+            "BRS FS Traceability Matrix",
+            "BRS FS Traceability Matrix",
+            "BRS FS Traceability Matrix",
+            "BRS FS Traceability Matrix",
+            "BRS FS Traceability Matrix"
+          ],
+          [
+            "BRS Tag",
+            "BRD Name",
+            "FS Tag",
+            "FS name"
+          ],
+          [
+            "6.1",
+            "BRS Proposed Mechanism to Repurpose ASM3 Unsubscribed Units From Adam50 Program v1.3.docx",
+            "4.1",
+            "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx"
+          ]
+        ],
+        "text_representation": "BRS FS Traceability Matrix | BRS FS Traceability Matrix | BRS FS Traceability Matrix | BRS FS Traceability Matrix | BRS FS Traceability Matrix\nBRS Tag | BRD Name | FS Tag | FS name\n6.1 | BRS Proposed Mechanism to Repurpose ASM3 Unsubscribed Units From Adam50 Program v1.3.docx | 4.1 | FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program.docx",
+        "preceding_paragraph_index": 42,
+        "preceding_paragraph_text": "Traceability Matrix"
+      },
+      {
+        "table_index": 4,
+        "row_count": 16,
+        "column_count": 2,
+        "rows": [
+          [
+            "Abbreviation",
+            "Description"
+          ],
+          [
+            "FCIS",
+            "FLEXCUBE®™ Investor Servicing"
+          ],
+          [
+            "FMG",
+            "Fund Manager Module in FCIS"
+          ],
+          [
+            "AGY",
+            "Agency Branch Manager Module in FCIS"
+          ],
+          [
+            "UT",
+            "Unit Trust"
+          ],
+          [
+            "PNB",
+            "Permodalan Nasional Berhad"
+          ],
+          [
+            "ASNB",
+            "Amanah Saham Nasional Berhad"
+          ],
+          [
+            "FDS",
+            "Fund Distribution System"
+          ],
+          [
+            "EOD",
+            "End of Day"
+          ],
+          [
+            "FCIS",
+            "Flexcube Investor Services"
+          ],
+          [
+            "FP",
+            "Fixed Priced Fund"
+          ],
+          [
+            "VP",
+            "Variable Priced Fund"
+          ],
+          [
+            "AEMS",
+            "ASNB Estate Management System"
+          ],
+          [
+            "AMU",
+            "Agent Management Unit"
+          ],
+          [
+            "UH",
+            "Unit holder"
+          ],
+          [
+            "MP",
+            "Minor Program"
+          ]
+        ],
+        "text_representation": "Abbreviation | Description\nFCIS | FLEXCUBE®™ Investor Servicing\nFMG | Fund Manager Module in FCIS\nAGY | Agency Branch Manager Module in FCIS\nUT | Unit Trust\nPNB | Permodalan Nasional Berhad\nASNB | Amanah Saham Nasional Berhad\nFDS | Fund Distribution System\nEOD | End of Day\nFCIS | Flexcube Investor Services\nFP | Fixed Priced Fund\nVP | Variable Priced Fund\nAEMS | ASNB Estate Management System\nAMU | Agent Management Unit\nUH | Unit holder\nMP | Minor Program",
+        "preceding_paragraph_index": 102,
+        "preceding_paragraph_text": "Acronyms and Abbreviations"
+      },
+      {
+        "table_index": 5,
+        "row_count": 23,
+        "column_count": 3,
+        "rows": [
+          [
+            "NO",
+            "ITEM",
+            "REQUIREMENT/DESCRIPTIONS"
+          ],
+          [
+            "",
+            "Platform",
+            "FDS"
+          ],
+          [
+            "",
+            "Fund",
+            "Amanah Saham Malaysia 3 (ASM3)"
+          ],
+          [
+            "",
+            "Program Name",
+            "Minor Program"
+          ],
+          [
+            "",
+            "Minor Program Bucket",
+            "The existing “ADAM50” bucket to be renamed to Minor Program bucket."
+          ],
+          [
+            "",
+            "Fund involves for Minor Program",
+            "Amanah Saham Malaysia 3 (ASM3)"
+          ],
+          [
+            "",
+            "Eligibility for Minor program",
+            "All existing and new minor unitholder with below condition: - UH Category: Non-Bumi Minority: No Minor: Yes ADAM50 Account status: Yes/No"
+          ],
+          [
+            "",
+            "Change of minor’s race or religion",
+            "In the event change of minor’s race/religion, minor’s UH category changed to Bumi or Minority changed to Yes, then minor unitholder is no longer eligible for Minor Program System will automatically change Minor Program flag from Yes to No Investment units consumed from Minor Program bucket will maintain in Minor Program bucket. Investment units consumed from Normal UT bucket will move from Non EPF- Non Bumi to Non EPF-Bumi bucket."
+          ],
+          [
+            "",
+            "Existing ADAM50 Subscribers",
+            "To maintain the existing functionality for ADAM50 unitholder: - The existing blocked units of 200 units and its income distribution from ADAM50 program to be maintained. The blocked units which consist of principal and its income distribution will be blocked until the minor has reached the age of 18 years old. The system will automate the release of the blocked units to cash units when the minor turns 18 years old (Major UH)"
+          ],
+          [
+            "",
+            "Units for Reinvestment",
+            "ADAM50 unitholder Distribution from blocked ADAM50 units will be utilizing Minor Program bucket and blocked until minor reached 18 years old. Distribution for investment units consumed from ADAM50 bucket (unblocked units) will be utilizing Cash bucket and will be reinvested in the Cash investment holding. Distribution for investment units consumed from Minor Program bucket will be utilizing Cash bucket and will be reinvested in the Cash investment holding. Non ADAM50 unitholder Distribution for investment units consumed from Minor Program bucket will be utilizing Cash bucket and will be reinvested in the Cash investment holding. ."
+          ],
+          [
+            "",
+            "Deceased Non-Bumi Minor UH with ASM 3 account.",
+            "Claim Mode: Transfer to Major unitholders ASM3 account (i.e guardian of the minor) ASM3 units under Minor Program bucket will be transferred into normal UT bucket. System will perform Fund Corpus adjustment accordingly. Claim Mode: Payout ASM3 units under Minor Program bucket will be redeemed and payout. Redeemed units will flow back to Minor Program bucket Below Death claim Transfer transaction expectation received from Siti Amirah binti Suhaimi and Muhamad Khairi Bin Husin via email on 9-Jan-2024"
+          ],
+          [
+            "",
+            "Financial Plan Bucket Percentage for Outflows",
+            "Minor Program bucket should be excluded from percentage of UT outflow units to be added into Financial Plan bucket similar to existing ADAM50 bucket"
+          ],
+          [
+            "",
+            "Hibah and Trust Declaration",
+            "As per existing. Hibah and Trust declaration is not allowed as UH is Minor."
+          ],
+          [
+            "",
+            "Minor turn Major",
+            "When Minor unit holder turns 18 years old (change to Major UH), units in Minor Program bucket will be transferred into normal UT bucket. System will perform Fund Corpus adjustment accordingly."
+          ],
+          [
+            "",
+            "Unit Holder FT Detail Screen Enhancement",
+            "To introduce Minor Program flag under Other Details tab Minor Program: Yes/No Read-only field Should be default as “Yes” for non bumi minor unitholder regardless of any funds upon go-live of the initiative."
+          ],
+          [
+            "",
+            "Investor Fund Balance Screen Enhancement",
+            "To add new column"
+          ],
+          [
+            "",
+            "Subscription",
+            "Within 6-month post go-live Maximum holding limit for Minor Program is 50,000 units for 6-months from go-live (subscription limit and period to be parameterized) Each account will be capped at 50,000 units subscription per unitholder, excluding ADAM50 subscribed units and blocked units. Out flow transactions during subscription period should not be considered while calculating subscription limit Example : Subscription limit : 50,000 units Subscription period : 01/03/2024 31/08/2024 Additional subscription transactions exceeding subscription limit of RM50,000 for Minor Program will be rejected due to exceed allowable subscription limit and pop-up error message will be displayed as below. After 6-month post go-live System to uplift maximum subscription limit validation. UH can subscribe to any amount in Minor Program if there is unit available in that program. If the unit in minor is insufficient, then the balance insufficient unit will be utilized from cash bucket. Within and After 6-month post go-live If UH subscribes more than the available unit in minor program bucket or cash bucket, then the transaction will be rejected due to insufficient unit in minor program bucket or cash bucket and pop-up error message will be displayed as below. Assume enhancement go-live : 01/03/2024 Fund : ASM 3 Maximum Investment Allowed : 50,000 units Period : 01/03/2024 – 31/08/2024 Minor Program Allocation : 125,000 units"
+          ],
+          [
+            "",
+            "Redemption",
+            "Redemption transaction for ASM3 Non-Bumi Minor UH will prioritise Minor Program investment. If UH redeems unit more that Minor program unit that UH subscribe, the balance unit will be redeem from UH cash unit. Any unit that UH redeem from Minor program will be flow back to Minor Program bucket. Minimum redemption amount to follow as per existing. Redemption is allowed during 6-month post go-live. Scenario:"
+          ],
+          [
+            "",
+            "Transfer",
+            "Within 6-month post go-live Transfer transaction for ASM3 for Non-Bumi Minor UH will be temporary disable within first 6 month upon Minor Program Go Live. Transfer-in from Hibah Claim/Transmission Claim (transfer to Minor Non-Bumi ASM3 account) is allowed during this period and will utilize the UT bucket. The Transfer-in units are not counted as part of 50,000 units limit in Minor Program bucket. Reject Code for Transfer Transactions for Minor Program units within temporary disabled period. After 6-month post go-live Transfer transaction will be enabled. Non Bumi Minor allowed to transfer Major / Bumi Minor, subject to cash bucket’s availability. If the cash bucket is insufficient, system should reject the transfer transaction. Transfer from Non Bumi Minor will prioritize cash investment holdings first, if not sufficient then the remaining amount will be taken from Minor Program holdings. Allowable transfer transaction will be as below: Scenario: Below Normal Transfer transaction expectation received from Siti Amirah binti Suhaimi and Muhamad Khairi Bin Husin via email on 9-Jan-2024"
+          ],
+          [
+            "",
+            "Switch",
+            "Within 6-month post go-live Switching transaction for ASM3 for Non-Bumi Minor UH will be temporary disable within first 6 month upon Minor Program Go Live. Reject Code for Switch Transactions for Minor Program units within temporary disabled period as below. After 6-month post go-live Switching transactions will be enabled. Switching out from ASM3 to other funds will priorities Minor Program holdings first, if not sufficient then the remaining amount will be taken from cash holdings. Switching in to ASM3 from other funds will priorities cash investment holdings, if available units are not sufficient then remaining amount will be taken from Minor Program holdings. Scenario:"
+          ],
+          [
+            "",
+            "GL Hands-off",
+            "By Branches follows by funds by txn channels or payment mode follows by sub/redemption/switching/transfer. Use ref type normal, not ADAM50."
+          ],
+          [
+            "",
+            "Statement",
+            "No changes on the layout The Minor Program units will be reflected in the cash investment column. Statement requests at OTC and Portal Holding Statement Details Statement Annual Income Statement Statement printing at OTC. Unit Trust Investment Holding Statement (Penyata Pegangan Pelaburan Unit Amanah 1 & 2)"
+          ],
+          [
+            "",
+            "WebService Enhancement",
+            "Enhancement for webservice UH Account Inquiry as below"
+          ]
+        ],
+        "text_representation": "NO | ITEM | REQUIREMENT/DESCRIPTIONS\n | Platform | FDS\n | Fund | Amanah Saham Malaysia 3 (ASM3)\n | Program Name | Minor Program\n | Minor Program Bucket | The existing “ADAM50” bucket to be renamed to Minor Program bucket.\n | Fund involves for Minor Program | Amanah Saham Malaysia 3 (ASM3)\n | Eligibility for Minor program | All existing and new minor unitholder with below condition: - UH Category: Non-Bumi Minority: No Minor: Yes ADAM50 Account status: Yes/No\n | Change of minor’s race or religion | In the event change of minor’s race/religion, minor’s UH category changed to Bumi or Minority changed to Yes, then minor unitholder is no longer eligible for Minor Program System will automatically change Minor Program flag from Yes to No Investment units consumed from Minor Program bucket will maintain in Minor Program bucket. Investment units consumed from Normal UT bucket will move from Non EPF- Non Bumi to Non EPF-Bumi bucket.\n | Existing ADAM50 Subscribers | To maintain the existing functionality for ADAM50 unitholder: - The existing blocked units of 200 units and its income distribution from ADAM50 program to be maintained. The blocked units which consist of principal and its income distribution will be blocked until the minor has reached the age of 18 years old. The system will automate the release of the blocked units to cash units when the minor turns 18 years old (Major UH)\n | Units for Reinvestment | ADAM50 unitholder Distribution from blocked ADAM50 units will be utilizing Minor Program bucket and blocked until minor reached 18 years old. Distribution for investment units consumed from ADAM50 bucket (unblocked units) will be utilizing Cash bucket and will be reinvested in the Cash investment holding. Distribution for investment units consumed from Minor Program bucket will be utilizing Cash bucket and will be reinvested in the Cash investment holding. Non ADAM50 unitholder Distribution for investment units consumed from Minor Program bucket will be utilizing Cash bucket and will be reinvested in the Cash investment holding. .\n | Deceased Non-Bumi Minor UH with ASM 3 account. | Claim Mode: Transfer to Major unitholders ASM3 account (i.e guardian of the minor) ASM3 units under Minor Program bucket will be transferred into normal UT bucket. System will perform Fund Corpus adjustment accordingly. Claim Mode: Payout ASM3 units under Minor Program bucket will be redeemed and payout. Redeemed units will flow back to Minor Program bucket Below Death claim Transfer transaction expectation received from Siti Amirah binti Suhaimi and Muhamad Khairi Bin Husin via email on 9-Jan-2024\n | Financial Plan Bucket Percentage for Outflows | Minor Program bucket should be excluded from percentage of UT outflow units to be added into Financial Plan bucket similar to existing ADAM50 bucket\n | Hibah and Trust Declaration | As per existing. Hibah and Trust declaration is not allowed as UH is Minor.\n | Minor turn Major | When Minor unit holder turns 18 years old (change to Major UH), units in Minor Program bucket will be transferred into normal UT bucket. System will perform Fund Corpus adjustment accordingly.\n | Unit Holder FT Detail Screen Enhancement | To introduce Minor Program flag under Other Details tab Minor Program: Yes/No Read-only field Should be default as “Yes” for non bumi minor unitholder regardless of any funds upon go-live of the initiative.\n | Investor Fund Balance Screen Enhancement | To add new column\n | Subscription | Within 6-month post go-live Maximum holding limit for Minor Program is 50,000 units for 6-months from go-live (subscription limit and period to be parameterized) Each account will be capped at 50,000 units subscription per unitholder, excluding ADAM50 subscribed units and blocked units. Out flow transactions during subscription period should not be considered while calculating subscription limit Example : Subscription limit : 50,000 units Subscription period : 01/03/2024 31/08/2024 Additional subscription transactions exceeding subscription limit of RM50,000 for Minor Program will be rejected due to exceed allowable subscription limit and pop-up error message will be displayed as below. After 6-month post go-live System to uplift maximum subscription limit validation. UH can subscribe to any amount in Minor Program if there is unit available in that program. If the unit in minor is insufficient, then the balance insufficient unit will be utilized from cash bucket. Within and After 6-month post go-live If UH subscribes more than the available unit in minor program bucket or cash bucket, then the transaction will be rejected due to insufficient unit in minor program bucket or cash bucket and pop-up error message will be displayed as below. Assume enhancement go-live : 01/03/2024 Fund : ASM 3 Maximum Investment Allowed : 50,000 units Period : 01/03/2024 – 31/08/2024 Minor Program Allocation : 125,000 units\n | Redemption | Redemption transaction for ASM3 Non-Bumi Minor UH will prioritise Minor Program investment. If UH redeems unit more that Minor program unit that UH subscribe, the balance unit will be redeem from UH cash unit. Any unit that UH redeem from Minor program will be flow back to Minor Program bucket. Minimum redemption amount to follow as per existing. Redemption is allowed during 6-month post go-live. Scenario:\n | Transfer | Within 6-month post go-live Transfer transaction for ASM3 for Non-Bumi Minor UH will be temporary disable within first 6 month upon Minor Program Go Live. Transfer-in from Hibah Claim/Transmission Claim (transfer to Minor Non-Bumi ASM3 account) is allowed during this period and will utilize the UT bucket. The Transfer-in units are not counted as part of 50,000 units limit in Minor Program bucket. Reject Code for Transfer Transactions for Minor Program units within temporary disabled period. After 6-month post go-live Transfer transaction will be enabled. Non Bumi Minor allowed to transfer Major / Bumi Minor, subject to cash bucket’s availability. If the cash bucket is insufficient, system should reject the transfer transaction. Transfer from Non Bumi Minor will prioritize cash investment holdings first, if not sufficient then the remaining amount will be taken from Minor Program holdings. Allowable transfer transaction will be as below: Scenario: Below Normal Transfer transaction expectation received from Siti Amirah binti Suhaimi and Muhamad Khairi Bin Husin via email on 9-Jan-2024\n | Switch | Within 6-month post go-live Switching transaction for ASM3 for Non-Bumi Minor UH will be temporary disable within first 6 month upon Minor Program Go Live. Reject Code for Switch Transactions for Minor Program units within temporary disabled period as below. After 6-month post go-live Switching transactions will be enabled. Switching out from ASM3 to other funds will priorities Minor Program holdings first, if not sufficient then the remaining amount will be taken from cash holdings. Switching in to ASM3 from other funds will priorities cash investment holdings, if available units are not sufficient then remaining amount will be taken from Minor Program holdings. Scenario:\n | GL Hands-off | By Branches follows by funds by txn channels or payment mode follows by sub/redemption/switching/transfer. Use ref type normal, not ADAM50.\n | Statement | No changes on the layout The Minor Program units will be reflected in the cash investment column. Statement requests at OTC and Portal Holding Statement Details Statement Annual Income Statement Statement printing at OTC. Unit Trust Investment Holding Statement (Penyata Pegangan Pelaburan Unit Amanah 1 & 2)\n | WebService Enhancement | Enhancement for webservice UH Account Inquiry as below",
+        "preceding_paragraph_index": 113,
+        "preceding_paragraph_text": "Business Requirement:"
+      },
+      {
+        "table_index": 6,
+        "row_count": 8,
+        "column_count": 4,
+        "rows": [
+          [
+            "Field Name",
+            "Description",
+            "Default Value",
+            "Amendable"
+          ],
+          [
+            "Allow Minor Program",
+            "To allow Minor Program in this Fund, user can set it as Yes or No",
+            "No",
+            "Yes"
+          ],
+          [
+            "Minor Program UH Category",
+            "Applicable UH Category for Minor Program",
+            "Non-Bumi",
+            "Read Only"
+          ],
+          [
+            "Restrict Consumption to MP Bucket",
+            "It will be enable if the Minor Program is set as Yes and If it Set as Yes, system will always consume subscription from MP bucket",
+            "No",
+            "Yes"
+          ],
+          [
+            "Limit Applicable",
+            "To allow system to check the MP limit for this Fund, user can set it as Yes or No",
+            "No",
+            "Yes"
+          ],
+          [
+            "Investment Limit",
+            "This field will be enable if MP limit applicable is set as Yes and user can specify limits in units without any decimals",
+            "Blank",
+            "Yes"
+          ],
+          [
+            "Limit From Date",
+            "This field will be enabled if MP limit applicable is set as Yes and it will be used to specify MP limit start period",
+            "Blank",
+            "Yes"
+          ],
+          [
+            "Limit To Date",
+            "This field will be enabled if MP limit applicable is set as Yes and it will be used to specify MP limit end period",
+            "Blank",
+            "Yes"
+          ]
+        ],
+        "text_representation": "Field Name | Description | Default Value | Amendable\nAllow Minor Program | To allow Minor Program in this Fund, user can set it as Yes or No | No | Yes\nMinor Program UH Category | Applicable UH Category for Minor Program | Non-Bumi | Read Only\nRestrict Consumption to MP Bucket | It will be enable if the Minor Program is set as Yes and If it Set as Yes, system will always consume subscription from MP bucket | No | Yes\nLimit Applicable | To allow system to check the MP limit for this Fund, user can set it as Yes or No | No | Yes\nInvestment Limit | This field will be enable if MP limit applicable is set as Yes and user can specify limits in units without any decimals | Blank | Yes\nLimit From Date | This field will be enabled if MP limit applicable is set as Yes and it will be used to specify MP limit start period | Blank | Yes\nLimit To Date | This field will be enabled if MP limit applicable is set as Yes and it will be used to specify MP limit end period | Blank | Yes",
+        "preceding_paragraph_index": 146,
+        "preceding_paragraph_text": "Following new fields will be introduced under new Tab ‘Minor Program Details’"
+      },
+      {
+        "table_index": 7,
+        "row_count": 3,
+        "column_count": 4,
+        "rows": [
+          [
+            "No",
+            "Column Name",
+            "Description",
+            "Read only"
+          ],
+          [
+            "1",
+            "Minor Program Units",
+            "Non-Bumi Minor UH’s Holdings in Minor Program Bucket",
+            "Yes"
+          ],
+          [
+            "2",
+            "Minor Program Fund",
+            "Minor Program field in Fund Rule and Minor Program field in UH screen if it is set as Yes, then this field will be Yes",
+            "Yes"
+          ]
+        ],
+        "text_representation": "No | Column Name | Description | Read only\n1 | Minor Program Units | Non-Bumi Minor UH’s Holdings in Minor Program Bucket | Yes\n2 | Minor Program Fund | Minor Program field in Fund Rule and Minor Program field in UH screen if it is set as Yes, then this field will be Yes | Yes",
+        "preceding_paragraph_index": 164,
+        "preceding_paragraph_text": "Following two new column will be added in Investor Fund balance screen"
+      },
+      {
+        "table_index": 8,
+        "row_count": 4,
+        "column_count": 4,
+        "rows": [
+          [
+            "No",
+            "Minor Program field in Fund Rule",
+            "Minor program field in Unit Holder FT screen",
+            "Minor program field in investor Fund balance screen"
+          ],
+          [
+            "1",
+            "Yes",
+            "Yes",
+            "Yes"
+          ],
+          [
+            "2",
+            "Yes",
+            "No",
+            "No"
+          ],
+          [
+            "3",
+            "No",
+            "Yes",
+            "No"
+          ]
+        ],
+        "text_representation": "No | Minor Program field in Fund Rule | Minor program field in Unit Holder FT screen | Minor program field in investor Fund balance screen\n1 | Yes | Yes | Yes\n2 | Yes | No | No\n3 | No | Yes | No",
+        "preceding_paragraph_index": 166,
+        "preceding_paragraph_text": "‘Minor Program Fund’ field will be updated as Yes/No based on the below combination;"
+      },
+      {
+        "table_index": 9,
+        "row_count": 17,
+        "column_count": 3,
+        "rows": [
+          [
+            "Transferor UH",
+            "Beneficiary UH",
+            "Remarks (Source Fund's Bucket>To Fund's Bucket)"
+          ],
+          [
+            "Minor Bumi",
+            "Minor Non-Bumi with MP Units",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Bumi",
+            "Minor Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Bumi",
+            "Major Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Bumi",
+            "Major Non-Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Minor Non-Bumi with MP Units",
+            "MP>MP, Non-EPF>Non-EPF"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Minor Bumi",
+            "MP & Non-EPF >Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Major Bumi",
+            "MP & Non-EPF >Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Major Non-Bumi",
+            "MP & Non-EPF >Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Minor Non-Bumi with MP Units",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Minor Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Major Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Major Non-Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Minor Non-Bumi with MP Units",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Minor Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Major Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Major Non-Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ]
+        ],
+        "text_representation": "Transferor UH | Beneficiary UH | Remarks (Source Fund's Bucket>To Fund's Bucket)\nMinor Bumi | Minor Non-Bumi with MP Units | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Bumi | Minor Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Bumi | Major Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Bumi | Major Non-Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Non-Bumi with MP units | Minor Non-Bumi with MP Units | MP>MP, Non-EPF>Non-EPF\nMinor Non-Bumi with MP units | Minor Bumi | MP & Non-EPF >Non-EPF, payout if sufficient available cash unit\nMinor Non-Bumi with MP units | Major Bumi | MP & Non-EPF >Non-EPF, payout if sufficient available cash unit\nMinor Non-Bumi with MP units | Major Non-Bumi | MP & Non-EPF >Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Minor Non-Bumi with MP Units | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Minor Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Major Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Major Non-Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Minor Non-Bumi with MP Units | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Minor Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Major Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Major Non-Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit",
+        "preceding_paragraph_index": 255,
+        "preceding_paragraph_text": "Refer the below table for Scenarios"
+      },
+      {
+        "table_index": 10,
+        "row_count": 17,
+        "column_count": 3,
+        "rows": [
+          [
+            "Deceased UH",
+            "Beneficiary UH",
+            "Remarks (Source Fund's Bucket>To Fund's Bucket)"
+          ],
+          [
+            "Minor Bumi",
+            "Minor Non-Bumi with MP Units",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Bumi",
+            "Minor Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Bumi",
+            "Major Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Bumi",
+            "Major Non-Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Minor Non-Bumi with MP Units",
+            "MP>MP, Non-EPF>Non-EPF"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Minor Bumi",
+            "MP & Non-EPF >Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Major Bumi",
+            "MP & Non-EPF >Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Minor Non-Bumi with MP units",
+            "Major Non-Bumi",
+            "MP & Non-EPF >Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Minor Non-Bumi with MP Units",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Minor Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Major Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Bumi",
+            "Major Non-Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Minor Non-Bumi with MP Units",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Minor Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Major Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ],
+          [
+            "Major Non-Bumi",
+            "Major Non-Bumi",
+            "Non-EPF>Non-EPF, payout if sufficient available cash unit"
+          ]
+        ],
+        "text_representation": "Deceased UH | Beneficiary UH | Remarks (Source Fund's Bucket>To Fund's Bucket)\nMinor Bumi | Minor Non-Bumi with MP Units | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Bumi | Minor Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Bumi | Major Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Bumi | Major Non-Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMinor Non-Bumi with MP units | Minor Non-Bumi with MP Units | MP>MP, Non-EPF>Non-EPF\nMinor Non-Bumi with MP units | Minor Bumi | MP & Non-EPF >Non-EPF, payout if sufficient available cash unit\nMinor Non-Bumi with MP units | Major Bumi | MP & Non-EPF >Non-EPF, payout if sufficient available cash unit\nMinor Non-Bumi with MP units | Major Non-Bumi | MP & Non-EPF >Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Minor Non-Bumi with MP Units | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Minor Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Major Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Bumi | Major Non-Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Minor Non-Bumi with MP Units | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Minor Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Major Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit\nMajor Non-Bumi | Major Non-Bumi | Non-EPF>Non-EPF, payout if sufficient available cash unit",
+        "preceding_paragraph_index": 262,
+        "preceding_paragraph_text": "Refer the below table for Scenarios"
+      },
+      {
+        "table_index": 11,
+        "row_count": 12,
+        "column_count": 6,
+        "rows": [
+          [
+            "Non Bumi Minor",
+            "ADAM50 Account",
+            "Investment Units",
+            "Reinvestment Units",
+            "Reinvestment Units"
+          ],
+          [
+            "Non Bumi Minor",
+            "ADAM50 Account",
+            "Investment Units",
+            "Unit Utilization",
+            "Remark"
+          ],
+          [
+            "UH1",
+            "Yes",
+            "Investment units consumed from ADAM50 bucket.",
+            "Non EPF - Non Bumi bucket",
+            ""
+          ],
+          [
+            "UH1",
+            "Yes",
+            "Investment units consumed from ADAM50 bucket.",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ],
+          [
+            "UH1",
+            "Yes",
+            "Investment units consumed from ADAM50 bucket.",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ],
+          [
+            "UH1",
+            "Yes",
+            "ADAM50 Block Unit",
+            "Minor Program bucket",
+            "To block the reinvestment units",
+            ""
+          ],
+          [
+            "UH1",
+            "Yes",
+            "Investment units consumed from Minor Program bucket.",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ],
+          [
+            "UH1",
+            "Yes",
+            "Investment units consumed from Minor Program bucket.",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ],
+          [
+            "UH1",
+            "Yes",
+            "Investment units consumed from Non EPF-Non Bumi bucket.",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ],
+          [
+            "UH1",
+            "Yes",
+            "Investment units consumed from Non EPF-Non Bumi bucket.",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ],
+          [
+            "UH2",
+            "No",
+            "Investment units consumed from Non EPF-Non Bumi bucket.",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ],
+          [
+            "UH2",
+            "No",
+            "Investment units consume from Minor Program bucket",
+            "Non EPF - Non Bumi bucket",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Non Bumi Minor | ADAM50 Account | Investment Units | Reinvestment Units | Reinvestment Units\nNon Bumi Minor | ADAM50 Account | Investment Units | Unit Utilization | Remark\nUH1 | Yes | Investment units consumed from ADAM50 bucket. | Non EPF - Non Bumi bucket | \nUH1 | Yes | Investment units consumed from ADAM50 bucket. | Non EPF - Non Bumi bucket |  | \nUH1 | Yes | Investment units consumed from ADAM50 bucket. | Non EPF - Non Bumi bucket |  | \nUH1 | Yes | ADAM50 Block Unit | Minor Program bucket | To block the reinvestment units | \nUH1 | Yes | Investment units consumed from Minor Program bucket. | Non EPF - Non Bumi bucket |  | \nUH1 | Yes | Investment units consumed from Minor Program bucket. | Non EPF - Non Bumi bucket |  | \nUH1 | Yes | Investment units consumed from Non EPF-Non Bumi bucket. | Non EPF - Non Bumi bucket |  | \nUH1 | Yes | Investment units consumed from Non EPF-Non Bumi bucket. | Non EPF - Non Bumi bucket |  | \nUH2 | No | Investment units consumed from Non EPF-Non Bumi bucket. | Non EPF - Non Bumi bucket |  | \nUH2 | No | Investment units consume from Minor Program bucket | Non EPF - Non Bumi bucket |  | ",
+        "preceding_paragraph_index": 315,
+        "preceding_paragraph_text": "Refer the below table for reinvestment consumption for Minor Unit holders;"
+      },
+      {
+        "table_index": 12,
+        "row_count": 8,
+        "column_count": 6,
+        "rows": [
+          [
+            "No.",
+            "Department",
+            "Report Code",
+            "Report Name",
+            "Requirement",
+            "Develop By"
+          ],
+          [
+            "1.",
+            "BMSU",
+            "B-3",
+            "BRANCH TRANSACTION SUMMARY",
+            "Layout report: remain as-it-is, no changes. Financial Transactions: All transaction related to Minor Program should be reflected under ASM 3",
+            "OFSS"
+          ],
+          [
+            "2.",
+            "BMSU",
+            "B-4",
+            "SUMMARY TRANSACTION APPROVED BY SUPERVISOR",
+            "Layout report: remain as-it-is, no changes. To include all transaction approved by Supervisor related to Minor Program for ASM 3",
+            "OFSS"
+          ],
+          [
+            "3.",
+            "BMSU",
+            "B-6",
+            "TRANSACTION SUMMARY BY FUND",
+            "Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3",
+            "OFSS"
+          ],
+          [
+            "4.",
+            "BMSU",
+            "B-8",
+            "BRANCH CASH/ NON CASH TRANSACTION SUMMARY",
+            "Layout report: remain as-it-is, no changes. Transaction Type: To include all transaction related to Minor Program (initial, subscription & redemption) under ASM 3 - Amanah Saham Malaysia 3",
+            "OFSS"
+          ],
+          [
+            "5.",
+            "BMSU",
+            "B-9",
+            "BRANCH TRANSACTION DETAIL REPORT",
+            "Layout report: remain as-it-is, no changes. Financial Transaction: To include all financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Non Financial Transaction: To include all non financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Others: To include others transaction related to Minor Program ASM 3 such as Khairat Payment, New UH Registration, UH Information Change, Unitholder Balances Reversal Transactions: To include reversal transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3",
+            "OFSS"
+          ],
+          [
+            "6.",
+            "BMSU",
+            "B-10",
+            "CHEQUE/MONEY TRANSFER/DEBIT CARD TRANSACTION DETAIL",
+            "Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3",
+            "OFSS"
+          ],
+          [
+            "7.",
+            "BMSU",
+            "B-12",
+            "ACCOUNT REGISTRATION/CLOSURE DETAILS",
+            "Layout report: remain as-it-is, no changes. For Minor Account Registration: if the account being tagged as Minor Program: YES, in column Remarks show as Minor Program",
+            "OFSS"
+          ]
+        ],
+        "text_representation": "No. | Department | Report Code | Report Name | Requirement | Develop By\n1. | BMSU | B-3 | BRANCH TRANSACTION SUMMARY | Layout report: remain as-it-is, no changes. Financial Transactions: All transaction related to Minor Program should be reflected under ASM 3 | OFSS\n2. | BMSU | B-4 | SUMMARY TRANSACTION APPROVED BY SUPERVISOR | Layout report: remain as-it-is, no changes. To include all transaction approved by Supervisor related to Minor Program for ASM 3 | OFSS\n3. | BMSU | B-6 | TRANSACTION SUMMARY BY FUND | Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3 | OFSS\n4. | BMSU | B-8 | BRANCH CASH/ NON CASH TRANSACTION SUMMARY | Layout report: remain as-it-is, no changes. Transaction Type: To include all transaction related to Minor Program (initial, subscription & redemption) under ASM 3 - Amanah Saham Malaysia 3 | OFSS\n5. | BMSU | B-9 | BRANCH TRANSACTION DETAIL REPORT | Layout report: remain as-it-is, no changes. Financial Transaction: To include all financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Non Financial Transaction: To include all non financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Others: To include others transaction related to Minor Program ASM 3 such as Khairat Payment, New UH Registration, UH Information Change, Unitholder Balances Reversal Transactions: To include reversal transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 | OFSS\n6. | BMSU | B-10 | CHEQUE/MONEY TRANSFER/DEBIT CARD TRANSACTION DETAIL | Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3 | OFSS\n7. | BMSU | B-12 | ACCOUNT REGISTRATION/CLOSURE DETAILS | Layout report: remain as-it-is, no changes. For Minor Account Registration: if the account being tagged as Minor Program: YES, in column Remarks show as Minor Program | OFSS",
+        "preceding_paragraph_index": 335,
+        "preceding_paragraph_text": "BOP Reports:"
+      },
+      {
+        "table_index": 13,
+        "row_count": 17,
+        "column_count": 7,
+        "rows": [
+          [
+            "No.",
+            "Department",
+            "Report Modules",
+            "Report Names",
+            "Frequency",
+            "Changes Required",
+            "Develop By"
+          ],
+          [
+            "1.",
+            "Account",
+            "PORTAL DIRECT DEBIT TERMINATION FEE TXN LISTING DDTF01A",
+            "PORTAL DIRECT DEBIT TERMINATION FEE TXN LISTING",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "2.",
+            "Account",
+            "PORTAL DIRECT DEBIT FEE TXN LISTING (REJECTED) DDF01R",
+            "PORTAL DIRECT DEBIT FEE TXN LISTING",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "3.",
+            "Account",
+            "PORTAL DIRECT DEBIT FEE TXN LISTING (PENDING) DDF01P",
+            "PORTAL DIRECT DEBIT FEE TXN LISTING (PENDING)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "4.",
+            "Account",
+            "PORTAL DIRECT DEBIT FEE TXN LISTING (ACCEPTED) DDFO1A",
+            "PORTAL DIRECT DEBIT FEE TXN LISTING (ACCEPTED)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "5.",
+            "Account",
+            "PORTAL DIRECT DEBIT DDBO1R",
+            "DIRECT DEBIT BILLING TXN LISTING (REJECTED)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "6.",
+            "Account",
+            "PORTAL DIRECT DEBIT DDB01A",
+            "DIRECT DEBIT BILLING TXN LISTING (ACCEPTED)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "7.",
+            "Account",
+            "PORTAL ADD. INV (REVERSAL) PAC01RV",
+            "PORTAL ADD. INV (REVERSAL)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "8.",
+            "Account",
+            "PORTAL ADD. INV (REJECTED) PAC01R",
+            "PORTAL ADD. INV (REJECTED)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "9.",
+            "Account",
+            "PORTAL ADD. INV (PENDING) PAC01P",
+            "PORTAL ADD. INV (PENDING)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "10.",
+            "Account",
+            "PORTAL ADD. INV (Accepted) PAC01A",
+            "PORTAL ADD. INV (Accepted)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "11.",
+            "Account",
+            "PORTAL ADD. INV ( EXCEPTIONAL) PAC01E",
+            "PORTAL ADD. INV ( EXCEPTIONAL)",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "12.",
+            "Account",
+            "PACW01R -ewallet Boost/TNG",
+            "Additional Invstment Transactiong Listing (Rejected)",
+            "Daily",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "13.",
+            "Account",
+            "PACW01P - ewallet Boost/TNG",
+            "Additional Investment Transaction Listing (Pending)",
+            "Daily",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "14.",
+            "Account",
+            "PACW01A - ewallet Boost/TNG",
+            "Additional Investment Transaction Listing (Accepted)",
+            "Daily",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "15.",
+            "Account",
+            "PAC02W - ewallet SUMMARY DAILY REPORT Boost/TNG",
+            "Additional Invstment Transactiong Listing (Summary)",
+            "Daily",
+            "To reflect accordingly",
+            "Portal Team"
+          ],
+          [
+            "16.",
+            "Account",
+            "PAC02 - SUMMARY DAILY REPORT ASNB PORTAL SUBSCRIPTION",
+            "SUMMARY DAILY REPORT ASNB PORTAL SUBSCRIPTION",
+            "DAILY",
+            "To reflect accordingly",
+            "Portal Team"
+          ]
+        ],
+        "text_representation": "No. | Department | Report Modules | Report Names | Frequency | Changes Required | Develop By\n1. | Account | PORTAL DIRECT DEBIT TERMINATION FEE TXN LISTING DDTF01A | PORTAL DIRECT DEBIT TERMINATION FEE TXN LISTING | DAILY | To reflect accordingly | Portal Team\n2. | Account | PORTAL DIRECT DEBIT FEE TXN LISTING (REJECTED) DDF01R | PORTAL DIRECT DEBIT FEE TXN LISTING | DAILY | To reflect accordingly | Portal Team\n3. | Account | PORTAL DIRECT DEBIT FEE TXN LISTING (PENDING) DDF01P | PORTAL DIRECT DEBIT FEE TXN LISTING (PENDING) | DAILY | To reflect accordingly | Portal Team\n4. | Account | PORTAL DIRECT DEBIT FEE TXN LISTING (ACCEPTED) DDFO1A | PORTAL DIRECT DEBIT FEE TXN LISTING (ACCEPTED) | DAILY | To reflect accordingly | Portal Team\n5. | Account | PORTAL DIRECT DEBIT DDBO1R | DIRECT DEBIT BILLING TXN LISTING (REJECTED) | DAILY | To reflect accordingly | Portal Team\n6. | Account | PORTAL DIRECT DEBIT DDB01A | DIRECT DEBIT BILLING TXN LISTING (ACCEPTED) | DAILY | To reflect accordingly | Portal Team\n7. | Account | PORTAL ADD. INV (REVERSAL) PAC01RV | PORTAL ADD. INV (REVERSAL) | DAILY | To reflect accordingly | Portal Team\n8. | Account | PORTAL ADD. INV (REJECTED) PAC01R | PORTAL ADD. INV (REJECTED) | DAILY | To reflect accordingly | Portal Team\n9. | Account | PORTAL ADD. INV (PENDING) PAC01P | PORTAL ADD. INV (PENDING) | DAILY | To reflect accordingly | Portal Team\n10. | Account | PORTAL ADD. INV (Accepted) PAC01A | PORTAL ADD. INV (Accepted) | DAILY | To reflect accordingly | Portal Team\n11. | Account | PORTAL ADD. INV ( EXCEPTIONAL) PAC01E | PORTAL ADD. INV ( EXCEPTIONAL) | DAILY | To reflect accordingly | Portal Team\n12. | Account | PACW01R -ewallet Boost/TNG | Additional Invstment Transactiong Listing (Rejected) | Daily | To reflect accordingly | Portal Team\n13. | Account | PACW01P - ewallet Boost/TNG | Additional Investment Transaction Listing (Pending) | Daily | To reflect accordingly | Portal Team\n14. | Account | PACW01A - ewallet Boost/TNG | Additional Investment Transaction Listing (Accepted) | Daily | To reflect accordingly | Portal Team\n15. | Account | PAC02W - ewallet SUMMARY DAILY REPORT Boost/TNG | Additional Invstment Transactiong Listing (Summary) | Daily | To reflect accordingly | Portal Team\n16. | Account | PAC02 - SUMMARY DAILY REPORT ASNB PORTAL SUBSCRIPTION | SUMMARY DAILY REPORT ASNB PORTAL SUBSCRIPTION | DAILY | To reflect accordingly | Portal Team",
+        "preceding_paragraph_index": 337,
+        "preceding_paragraph_text": "Portal Reports"
+      },
+      {
+        "table_index": 14,
+        "row_count": 44,
+        "column_count": 7,
+        "rows": [
+          [
+            "No.",
+            "Role ID",
+            "Report ID",
+            "Report Name",
+            "Report Frequency",
+            "Expected Changes",
+            "Develop By"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR001D",
+            "Daily Summary of Unit Trust Transaction",
+            "Daily",
+            "Reflects accordingly by branches or by its payment types",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR001M",
+            "Monthly Summary of Unit Trust Transaction",
+            "Monthly",
+            "Reflects accordingly by branches or by its payment types",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR002D",
+            "Principal Agent Cash Summary",
+            "Daily",
+            "Reflects accordingly to the funds by branches",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR002M",
+            "Principal Agent Cash Summary",
+            "Monthly",
+            "Reflects accordingly to the funds by branches",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR006D",
+            "Unit Summary for Switching, Summary Report by Principal Agent",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR006M",
+            "Unit Summary for Switching, Summary Report by Principal Agent",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR008D",
+            "Unit Summary for Transfer, Summary Report by Principal Agent",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR008M",
+            "Unit Summary for Transfer, Summary Report by Principal Agent",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR022D",
+            "Commission Statement for Over the Counter on transaction dated DD MMM YYYY",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR022M",
+            "Commission Statement for Over the Counter for the month of MMM YYYY",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR023D",
+            "Commission Statement for Financial Executive on transation dated dd mmm yyyy",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR023M",
+            "Commission Statement for Financial Executive for the month of mmm yyyy",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR025D",
+            "Commission Statement for ASNB Financial Planning Solutions Package on transaction dated dd mmm yyyy",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR025M",
+            "Commission Statement for ASNB Financial Planning Solutions Package for the month of mmm yyyy",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR026D",
+            "Summary of Commission Statement for Pos Malaysia Berhad on transaction dated dd mmm yyyy",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR026M",
+            "Summary of Commission Statement for Pos Malaysia Berhad for the month of mmm yyyy",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR027D",
+            "Commission Statement for Online Platform on transaction dated dd mmm yyyy",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR027M",
+            "Commission Statement for Online Platform for the month of mmm yyyy",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR028M",
+            "Monthly Summary of Commission Statement for the month of mmm yyyy",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR032M",
+            "Summary of Commission Statement for Over the Counter / Nominee",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR033M",
+            "Summary of Commission Statement for Financial Executive",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR035M",
+            "Summary of Commission Statement for Online Platform",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRAR037D",
+            "Daily Summary of Unit Trust Transaction",
+            "Daily",
+            "Reflects to report accordingly (POS Malaysia)",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCADJUST",
+            "FRAA004D",
+            "Unit Register",
+            "Daily",
+            "Reflects accordingly - by correct funds ASB/ASM3",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCSTATUTORY",
+            "FRST002M",
+            "MONTHLY SUMMARY OF SALES & REDEMPTION (UNITS)",
+            "Monthly",
+            "Reflects accordingly by branches",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCSTATUTORY",
+            "FRST003M",
+            "MONTHLY SUMMARY OF SALES & REDEMPTION (AMOUNT)",
+            "Monthly",
+            "Reflects accordingly by branches",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCSTATUTORY",
+            "FRST004M",
+            "MONTHLY SUMMARY OF SALES & REDEMPTION (NAV)",
+            "Monthly",
+            "Reflects accordingly by branches",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACRECEIVABLE",
+            "FRDC001D",
+            "DAILY SUMMARY REPORT OF ASNB COLLECTIONS THROUGH DEBIT CARD BY BRANCHES FOR ALL FUNDS",
+            "Daily",
+            "Reflects to existing branch table and or by ewallet type",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACRECEIVABLE",
+            "FRDC005D",
+            "DAILY SUMMARY REPORT OF ASNB UNITHOLDER’S TRANSACTION THROUGH E-CHANNEL BY BANK FOR ALL FUNDS",
+            "Daily",
+            "Reflects accordingly by payment channels/ by banks for all digitals transaction",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCUNITCR",
+            "FRUC005D",
+            "SUMMARY OF UNIT POSITION",
+            "Daily",
+            "Reflects to report accordingly, by allotment.",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCUNITCR",
+            "FRUC509D",
+            "SUMMARY OF UNIT POSITION (FORWARD FOREIGN FUND)",
+            "Daily",
+            "Reflects to report accordingly, by allotment.",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCUNITCR",
+            "FRUC505D",
+            "SUMMARY OF UNIT POSITION",
+            "Daily",
+            "Reflects to report accordingly, by allotment.",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCAGENT",
+            "FRFE005D(CT)",
+            "Lembaran Tunai Untuk Semua Urusniaga (Cawangan)",
+            "Daily",
+            "Transaction to reflect accordingly to any agents",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR001D",
+            "Detail Report For Redemption via Credit of Account (ASNB Branch)",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR001M",
+            "Detail Report For Redemption via Credit of Account (ASNB Branch)",
+            "Monthly",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR003D",
+            "List of Cheque Issuance for Rejected Transaction (By Transaction Type)",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR004D",
+            "List of Cheque Issuance for Rejected Transaction (ASNB Branches - Redemption/Cancellation)",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR005D",
+            "Summary of EPS Transaction Rejected by Bank - Before Cheque Printing (ASNB Branches - Redemption/Cancellation)",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR006D",
+            "SUMMARY OF EPS TRANSACTION REJECTED BY BANK ( BY TRANSACTION TYPE )",
+            "Daily",
+            "Reflects to report accordingly to its transaction types",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR007D",
+            "MONEY TRANSFER SUMMARY FOR ALL BRANCHES",
+            "Daily",
+            "Reflects to report accordingly to its agent types",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR008D",
+            "LISTING OF TRANSACTION VIA E-PAYMENT SYSTEM",
+            "Daily",
+            "Reflects to report accordingly to its transaction types",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCSHR",
+            "FRPR009D",
+            "SUMMARY OF EPS TRANSACTION REJECTED BY BANK ( BY PORTAL & MOBILE APPS REDEMPTION )",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ],
+          [
+            "",
+            "RDMACCEPS",
+            "FRPR011D",
+            "SUMMARY OF CHEQUE PENDING PRINTING",
+            "Daily",
+            "Reflects to report accordingly",
+            "CASD"
+          ]
+        ],
+        "text_representation": "No. | Role ID | Report ID | Report Name | Report Frequency | Expected Changes | Develop By\n | RDMACCAGENT | FRAR001D | Daily Summary of Unit Trust Transaction | Daily | Reflects accordingly by branches or by its payment types | CASD\n | RDMACCAGENT | FRAR001M | Monthly Summary of Unit Trust Transaction | Monthly | Reflects accordingly by branches or by its payment types | CASD\n | RDMACCAGENT | FRAR002D | Principal Agent Cash Summary | Daily | Reflects accordingly to the funds by branches | CASD\n | RDMACCAGENT | FRAR002M | Principal Agent Cash Summary | Monthly | Reflects accordingly to the funds by branches | CASD\n | RDMACCAGENT | FRAR006D | Unit Summary for Switching, Summary Report by Principal Agent | Daily | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR006M | Unit Summary for Switching, Summary Report by Principal Agent | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR008D | Unit Summary for Transfer, Summary Report by Principal Agent | Daily | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR008M | Unit Summary for Transfer, Summary Report by Principal Agent | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR022D | Commission Statement for Over the Counter on transaction dated DD MMM YYYY | Daily | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR022M | Commission Statement for Over the Counter for the month of MMM YYYY | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR023D | Commission Statement for Financial Executive on transation dated dd mmm yyyy | Daily | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR023M | Commission Statement for Financial Executive for the month of mmm yyyy | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR025D | Commission Statement for ASNB Financial Planning Solutions Package on transaction dated dd mmm yyyy | Daily | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR025M | Commission Statement for ASNB Financial Planning Solutions Package for the month of mmm yyyy | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR026D | Summary of Commission Statement for Pos Malaysia Berhad on transaction dated dd mmm yyyy | Daily | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR026M | Summary of Commission Statement for Pos Malaysia Berhad for the month of mmm yyyy | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR027D | Commission Statement for Online Platform on transaction dated dd mmm yyyy | Daily | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR027M | Commission Statement for Online Platform for the month of mmm yyyy | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR028M | Monthly Summary of Commission Statement for the month of mmm yyyy | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR032M | Summary of Commission Statement for Over the Counter / Nominee | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR033M | Summary of Commission Statement for Financial Executive | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR035M | Summary of Commission Statement for Online Platform | Monthly | Reflects to report accordingly | CASD\n | RDMACCAGENT | FRAR037D | Daily Summary of Unit Trust Transaction | Daily | Reflects to report accordingly (POS Malaysia) | CASD\n | RDMACCADJUST | FRAA004D | Unit Register | Daily | Reflects accordingly - by correct funds ASB/ASM3 | CASD\n | RDMACCSTATUTORY | FRST002M | MONTHLY SUMMARY OF SALES & REDEMPTION (UNITS) | Monthly | Reflects accordingly by branches | CASD\n | RDMACCSTATUTORY | FRST003M | MONTHLY SUMMARY OF SALES & REDEMPTION (AMOUNT) | Monthly | Reflects accordingly by branches | CASD\n | RDMACCSTATUTORY | FRST004M | MONTHLY SUMMARY OF SALES & REDEMPTION (NAV) | Monthly | Reflects accordingly by branches | CASD\n | RDMACRECEIVABLE | FRDC001D | DAILY SUMMARY REPORT OF ASNB COLLECTIONS THROUGH DEBIT CARD BY BRANCHES FOR ALL FUNDS | Daily | Reflects to existing branch table and or by ewallet type | CASD\n | RDMACRECEIVABLE | FRDC005D | DAILY SUMMARY REPORT OF ASNB UNITHOLDER’S TRANSACTION THROUGH E-CHANNEL BY BANK FOR ALL FUNDS | Daily | Reflects accordingly by payment channels/ by banks for all digitals transaction | CASD\n | RDMACCUNITCR | FRUC005D | SUMMARY OF UNIT POSITION | Daily | Reflects to report accordingly, by allotment. | CASD\n | RDMACCUNITCR | FRUC509D | SUMMARY OF UNIT POSITION (FORWARD FOREIGN FUND) | Daily | Reflects to report accordingly, by allotment. | CASD\n | RDMACCUNITCR | FRUC505D | SUMMARY OF UNIT POSITION | Daily | Reflects to report accordingly, by allotment. | CASD\n | RDMACCAGENT | FRFE005D(CT) | Lembaran Tunai Untuk Semua Urusniaga (Cawangan) | Daily | Transaction to reflect accordingly to any agents | CASD\n | RDMACCEPS | FRPR001D | Detail Report For Redemption via Credit of Account (ASNB Branch) | Daily | Reflects to report accordingly | CASD\n | RDMACCEPS | FRPR001M | Detail Report For Redemption via Credit of Account (ASNB Branch) | Monthly | Reflects to report accordingly | CASD\n | RDMACCEPS | FRPR003D | List of Cheque Issuance for Rejected Transaction (By Transaction Type) | Daily | Reflects to report accordingly | CASD\n | RDMACCEPS | FRPR004D | List of Cheque Issuance for Rejected Transaction (ASNB Branches - Redemption/Cancellation) | Daily | Reflects to report accordingly | CASD\n | RDMACCEPS | FRPR005D | Summary of EPS Transaction Rejected by Bank - Before Cheque Printing (ASNB Branches - Redemption/Cancellation) | Daily | Reflects to report accordingly | CASD\n | RDMACCEPS | FRPR006D | SUMMARY OF EPS TRANSACTION REJECTED BY BANK ( BY TRANSACTION TYPE ) | Daily | Reflects to report accordingly to its transaction types | CASD\n | RDMACCEPS | FRPR007D | MONEY TRANSFER SUMMARY FOR ALL BRANCHES | Daily | Reflects to report accordingly to its agent types | CASD\n | RDMACCEPS | FRPR008D | LISTING OF TRANSACTION VIA E-PAYMENT SYSTEM | Daily | Reflects to report accordingly to its transaction types | CASD\n | RDMACCSHR | FRPR009D | SUMMARY OF EPS TRANSACTION REJECTED BY BANK ( BY PORTAL & MOBILE APPS REDEMPTION ) | Daily | Reflects to report accordingly | CASD\n | RDMACCEPS | FRPR011D | SUMMARY OF CHEQUE PENDING PRINTING | Daily | Reflects to report accordingly | CASD",
+        "preceding_paragraph_index": 339,
+        "preceding_paragraph_text": "BIP Reports"
+      },
+      {
+        "table_index": 15,
+        "row_count": 8,
+        "column_count": 6,
+        "rows": [
+          [
+            "No.",
+            "Department",
+            "Report Code",
+            "Report Name",
+            "Requirement",
+            "Changes require in FCIS"
+          ],
+          [
+            "1.",
+            "BMSU",
+            "B-3",
+            "BRANCH TRANSACTION SUMMARY",
+            "Layout report: remain as-it-is, no changes. Financial Transactions: All transaction related to Minor Program should be reflected under ASM 3",
+            "No"
+          ],
+          [
+            "2.",
+            "BMSU",
+            "B-4",
+            "SUMMARY TRANSACTION APPROVED BY SUPERVISOR",
+            "Layout report: remain as-it-is, no changes. To include all transaction approved by Supervisor related to Minor Program for ASM 3",
+            "No"
+          ],
+          [
+            "3.",
+            "BMSU",
+            "B-6",
+            "TRANSACTION SUMMARY BY FUND",
+            "Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3",
+            "No"
+          ],
+          [
+            "4.",
+            "BMSU",
+            "B-8",
+            "BRANCH CASH/ NON CASH TRANSACTION SUMMARY",
+            "Layout report: remain as-it-is, no changes. Transaction Type: To include all transaction related to Minor Program (initial, subscription & redemption) under ASM 3 - Amanah Saham Malaysia 3",
+            "No"
+          ],
+          [
+            "5.",
+            "BMSU",
+            "B-9",
+            "BRANCH TRANSACTION DETAIL REPORT",
+            "Layout report: remain as-it-is, no changes. Financial Transaction: To include all financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Non Financial Transaction: To include all non financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Others: To include others transaction related to Minor Program ASM 3 such as Khairat Payment, New UH Registration, UH Information Change, Unitholder Balances Reversal Transactions: To include reversal transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3",
+            "No"
+          ],
+          [
+            "6.",
+            "BMSU",
+            "B-10",
+            "CHEQUE/MONEY TRANSFER/DEBIT CARD TRANSACTION DETAIL",
+            "Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3",
+            "No"
+          ],
+          [
+            "7.",
+            "BMSU",
+            "B-12",
+            "ACCOUNT REGISTRATION/CLOSURE DETAILS",
+            "Layout report: remain as-it-is, no changes. For Minor Account Registration: if the account being tagged as Minor Program: YES, in column Remarks show as Minor Program",
+            "Yes"
+          ]
+        ],
+        "text_representation": "No. | Department | Report Code | Report Name | Requirement | Changes require in FCIS\n1. | BMSU | B-3 | BRANCH TRANSACTION SUMMARY | Layout report: remain as-it-is, no changes. Financial Transactions: All transaction related to Minor Program should be reflected under ASM 3 | No\n2. | BMSU | B-4 | SUMMARY TRANSACTION APPROVED BY SUPERVISOR | Layout report: remain as-it-is, no changes. To include all transaction approved by Supervisor related to Minor Program for ASM 3 | No\n3. | BMSU | B-6 | TRANSACTION SUMMARY BY FUND | Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3 | No\n4. | BMSU | B-8 | BRANCH CASH/ NON CASH TRANSACTION SUMMARY | Layout report: remain as-it-is, no changes. Transaction Type: To include all transaction related to Minor Program (initial, subscription & redemption) under ASM 3 - Amanah Saham Malaysia 3 | No\n5. | BMSU | B-9 | BRANCH TRANSACTION DETAIL REPORT | Layout report: remain as-it-is, no changes. Financial Transaction: To include all financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Non Financial Transaction: To include all non financial transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 Others: To include others transaction related to Minor Program ASM 3 such as Khairat Payment, New UH Registration, UH Information Change, Unitholder Balances Reversal Transactions: To include reversal transactions related to Minor Program ASM 3 under Amanah Saham Malaysia 3 | No\n6. | BMSU | B-10 | CHEQUE/MONEY TRANSFER/DEBIT CARD TRANSACTION DETAIL | Layout report: remain as-it-is, no changes. All transaction related to Minor Program should be reflected under ASM 3 | No\n7. | BMSU | B-12 | ACCOUNT REGISTRATION/CLOSURE DETAILS | Layout report: remain as-it-is, no changes. For Minor Account Registration: if the account being tagged as Minor Program: YES, in column Remarks show as Minor Program | Yes",
+        "preceding_paragraph_index": 346,
+        "preceding_paragraph_text": "Following BOR reports will not undergo any changes with respect to Minor Program transactions, existing layout and extraction logic will be used to extract the Minor Program related transactions:"
+      },
+      {
+        "table_index": 16,
+        "row_count": 3,
+        "column_count": 4,
+        "rows": [
+          [
+            "Minor Program field in UTDUHFT screen",
+            "Remarks field in UTDUHFT screen",
+            "OKU Status in UTDUHFT screen",
+            "Remarks Column in B-12 Report"
+          ],
+          [
+            "Yes",
+            "",
+            "No",
+            "Minor Program"
+          ],
+          [
+            "Yes",
+            "Good Investor",
+            "No",
+            "Good Investor Minor Program"
+          ]
+        ],
+        "text_representation": "Minor Program field in UTDUHFT screen | Remarks field in UTDUHFT screen | OKU Status in UTDUHFT screen | Remarks Column in B-12 Report\nYes |  | No | Minor Program\nYes | Good Investor | No | Good Investor Minor Program",
+        "preceding_paragraph_index": 358,
+        "preceding_paragraph_text": "Refer below examples:"
+      },
+      {
+        "table_index": 17,
+        "row_count": 2,
+        "column_count": 7,
+        "rows": [
+          [
+            "Review comments by",
+            "RS Tag/ Req ID",
+            "FS Tag",
+            "Review Comment",
+            "Response",
+            "FS Updated",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Review comments by | RS Tag/ Req ID | FS Tag | Review Comment | Response | FS Updated | Status\n |  |  |  |  |  | ",
+        "preceding_paragraph_index": 376,
+        "preceding_paragraph_text": "Review Comments"
+      },
+      {
+        "table_index": 18,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Req ID.",
+            "Description",
+            "Resolution",
+            "Responsibility",
+            "Target date",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+        "preceding_paragraph_index": 379,
+        "preceding_paragraph_text": "Open Items"
+      },
+      {
+        "table_index": 19,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Req ID.",
+            "Description",
+            "Resolution",
+            "Responsibility",
+            "Target date",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+        "preceding_paragraph_index": 380,
+        "preceding_paragraph_text": "Closed Items"
+      }
+    ]
+  }
+}

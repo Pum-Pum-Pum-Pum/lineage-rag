@@ -1,0 +1,50 @@
+{
+  "schema_version": "fdd_sme_review_v1",
+  "reviewed_generation": "functional_specs_v4",
+  "reviewed_report": "data/exports/evaluations/fdd-grounded-v4-draft-20260805.json",
+  "reviewed_at": "2026-08-05",
+  "decisions": [
+    {
+      "case_id": "lineage-r2-r18-002",
+      "verdict": "expected_case_incorrect",
+      "rationale": "R18 directly documents the B-12 Remark-column change. The question does not require historical R2 evidence, so requiring R2 as a citation is over-constrained.",
+      "required_follow_up": "Remove the R2 citation/release requirement while retaining R18 as the required source."
+    },
+    {
+      "case_id": "lineage-r24-006",
+      "verdict": "retrieval_or_release_gap",
+      "rationale": "The latest relevant Teller and Branch Reports change is R24. The R24 document was not selected despite available staged evidence.",
+      "required_follow_up": "Add a current-report-lineage retrieval regression for R24 versus original R2 specifications."
+    },
+    {
+      "case_id": "confusion-release-001",
+      "verdict": "retrieval_or_release_gap",
+      "rationale": "The comparison is answerable: Minor Program investment-limit validation belongs to R18, not the R1 Non-Financial Load FDD. The answer refused after drifting to R1 Fund Rule evidence.",
+      "required_follow_up": "Add a named-document comparison regression requiring R1 NFL and R18 evidence."
+    },
+    {
+      "case_id": "confusion-release-003",
+      "verdict": "retrieval_or_release_gap",
+      "rationale": "R18 explicitly establishes the B-12 Minor Program Remark-column change, so the question is answerable as No; R24 is not the source of that R18 change.",
+      "required_follow_up": "Add a negative lineage regression requiring the R18 source and review whether an R24 citation is necessary for this answer."
+    },
+    {
+      "case_id": "confusion-release-004",
+      "verdict": "retrieval_or_release_gap",
+      "rationale": "R2 answers the PDF-format part, while R24 answers the current T-1 report name. The response used stale R2 evidence for both parts.",
+      "required_follow_up": "Add a multi-part current-state regression requiring R2 and R24 citations."
+    },
+    {
+      "case_id": "confusion-release-005",
+      "verdict": "expected_case_incorrect",
+      "rationale": "R21 correctly governs FE/LG and fundwise guardian printing. Requiring an R1 citation merely to establish a negative historical contrast is over-constrained.",
+      "required_follow_up": "Remove the R1 release-citation requirement while retaining R21 as the required source."
+    },
+    {
+      "case_id": "confusion-release-006",
+      "verdict": "retrieval_or_release_gap",
+      "rationale": "R21 directly states EPF Applicable defaults and amendment restrictions for Minor unit holders. The response safely refused, but the refusal was incorrect because direct R21 evidence exists.",
+      "required_follow_up": "Add an explicit R21 Minor CIF EPF retrieval regression with direct source evidence."
+    }
+  ]
+}

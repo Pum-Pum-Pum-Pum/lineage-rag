@@ -1,0 +1,251 @@
+{
+  "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx",
+  "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+  "release_label": "R24",
+  "total_units": 22,
+  "units": [
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_0",
+      "unit_index": 0,
+      "source_kind": "paragraph",
+      "text": "Functional Design Document\nTeller and Branch Reports Re-alignment\n7\nFunctional Specifications\nIntroduction",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Functional Design Document\nTeller and Branch Reports Re-alignment\n7\nFunctional Specifications\nIntroduction",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_1",
+      "unit_index": 1,
+      "source_kind": "paragraph",
+      "text": "Background\nPNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well.\nOrganization of the Document\nThe first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.\nAcronyms and Abbreviations",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Background\nPNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well.\nOrganization of the Document\nThe first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.\nAcronyms and Abbreviations",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_2",
+      "unit_index": 2,
+      "source_kind": "paragraph",
+      "text": "Requirements Summary\nThe enhancements scoped in the document are relating to multiple Teller reports consolidating into 1 and multiple Branch reports consolidating into single and remove the reports which are not required.\nTeller and Branch Reports Re-alignment\nRequirements Overview\nRequirement with respect to FCIS:",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Requirements Summary\nThe enhancements scoped in the document are relating to multiple Teller reports consolidating into 1 and multiple Branch reports consolidating into single and remove the reports which are not required.\nTeller and Branch Reports Re-alignment\nRequirements Overview\nRequirement with respect to FCIS:",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_3",
+      "unit_index": 3,
+      "source_kind": "paragraph",
+      "text": "Existing Functionality\nCurrently a total of 23 reports need to be printed/downloaded by branch EOD for batching and reconciliation purpose.\nTeller Report – 6\nBO Report – 17\nAssumptions",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Existing Functionality\nCurrently a total of 23 reports need to be printed/downloaded by branch EOD for batching and reconciliation purpose.\nTeller Report – 6\nBO Report – 17\nAssumptions",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_4",
+      "unit_index": 4,
+      "source_kind": "paragraph",
+      "text": "Extraction logic of all the reports remains same.\nFunctional Approach\nMaintenance\nNA.\nScreen Changes",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Extraction logic of all the reports remains same.\nFunctional Approach\nMaintenance\nNA.\nScreen Changes",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_5",
+      "unit_index": 5,
+      "source_kind": "paragraph",
+      "text": "NA\nProcessing Changes\nBOR - Teller Reports\nFollowing Teller reports will undergo changes in FCIS:\nT-1 report name will be changed to “T-1 Teller End of Day Report”",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "NA\nProcessing Changes\nBOR - Teller Reports\nFollowing Teller reports will undergo changes in FCIS:\nT-1 report name will be changed to “T-1 Teller End of Day Report”",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_6",
+      "unit_index": 6,
+      "source_kind": "paragraph",
+      "text": "T -1 report layout will be changed as per below attached sample report:\nBOR - Branch Reports\nFollowing BOR reports will undergo changes in FCIS:\nB-01 report name will be changed to “B-01 Branch End of Day Report”\nB-01 report layout will be changed as per below attached sample report:",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "T -1 report layout will be changed as per below attached sample report:\nBOR - Branch Reports\nFollowing BOR reports will undergo changes in FCIS:\nB-01 report name will be changed to “B-01 Branch End of Day Report”\nB-01 report layout will be changed as per below attached sample report:",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_7",
+      "unit_index": 7,
+      "source_kind": "paragraph",
+      "text": "Bulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Bulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_8",
+      "unit_index": 8,
+      "source_kind": "paragraph",
+      "text": "NA\nAnnexure:\nClient specific documents\nBRD Realignment of Teller and Branch Online Reports in FDS v.2\nGateway /Scheduler / Interface Layout Specification Doc",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "NA\nAnnexure:\nClient specific documents\nBRD Realignment of Teller and Branch Online Reports in FDS v.2\nGateway /Scheduler / Interface Layout Specification Doc",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_9",
+      "unit_index": 9,
+      "source_kind": "paragraph",
+      "text": "NA\nReport Layouts / Specification doc.\nNA\nReview Comments:\nReview Comments",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "NA\nReport Layouts / Specification doc.\nNA\nReview Comments:\nReview Comments",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_10",
+      "unit_index": 10,
+      "source_kind": "paragraph",
+      "text": "Issue Status\nOpen Items\nClosed Items\nFunctional Specifications\nOct 2025",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Issue Status\nOpen Items\nClosed Items\nFunctional Specifications\nOct 2025",
+      "parent_unit_id": null
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_0",
+      "unit_index": 11,
+      "source_kind": "table",
+      "text": "Date | Author | Version | Change Reference\n29-Oct-2025 | Waseem Manchinkop | 1.0 | Initial Draft\n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | ",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Change Record\n\nTable:\nDate | Author | Version | Change Reference\n29-Oct-2025 | Waseem Manchinkop | 1.0 | Initial Draft\n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | ",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_0"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_1",
+      "unit_index": 12,
+      "source_kind": "table",
+      "text": "Name | Role | Status | Comments | Version Reviewed | Date\nBhanu Pratap Singh | Consulting Practice Manager | Reviewed |  | 1.0 | \nShan Natarajan | Consulting Technical Manager | Reviewed |  | 1.0 | ",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Reviewers\n\nTable:\nName | Role | Status | Comments | Version Reviewed | Date\nBhanu Pratap Singh | Consulting Practice Manager | Reviewed |  | 1.0 | \nShan Natarajan | Consulting Technical Manager | Reviewed |  | 1.0 | ",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_0"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_2",
+      "unit_index": 13,
+      "source_kind": "table",
+      "text": "Name | Role | Status | Comments | Version Approved | Date\nSudhakar Gali | Director - Banking Consulting - FLEXCUBE Investor Servicing | Approved |  | 1.0 | ",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Approvers\n\nTable:\nName | Role | Status | Comments | Version Approved | Date\nSudhakar Gali | Director - Banking Consulting - FLEXCUBE Investor Servicing | Approved |  | 1.0 | ",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_0"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_3",
+      "unit_index": 14,
+      "source_kind": "table",
+      "text": "BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix\nBRS Tag | BRD Name | FS Tag | FS name\nPPT | BRD Realignment of Teller and Branch Online Reports in FDS v.2 | 4.1 | FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Traceability Matrix\n\nTable:\nBRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix\nBRS Tag | BRD Name | FS Tag | FS name\nPPT | BRD Realignment of Teller and Branch Online Reports in FDS v.2 | 4.1 | FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_0"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_4",
+      "unit_index": 15,
+      "source_kind": "table",
+      "text": "Abbreviation | Description\nFCIS | FLEXCUBE®™ Investor Servicing\nFMG | Fund Manager Module in FCIS\nAGY | Agency Branch Manager Module in FCIS\nUT | Unit Trust\nPNB | Permodalan Nasional Berhad\nASNB | Amanah Saham Nasional Berhad\nFDS | Fund Distribution System\nEOD | End of Day\nFCIS | Flexcube Investor Services\nFP | Fixed Priced Fund\nVP | Variable Priced Fund\nBOR | Branch Online Reports\nUH | Unit holder\nOTC | Over The Counter",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Acronyms and Abbreviations\n\nTable:\nAbbreviation | Description\nFCIS | FLEXCUBE®™ Investor Servicing\nFMG | Fund Manager Module in FCIS\nAGY | Agency Branch Manager Module in FCIS\nUT | Unit Trust\nPNB | Permodalan Nasional Berhad\nASNB | Amanah Saham Nasional Berhad\nFDS | Fund Distribution System\nEOD | End of Day\nFCIS | Flexcube Investor Services\nFP | Fixed Priced Fund\nVP | Variable Priced Fund\nBOR | Branch Online Reports\nUH | Unit holder\nOTC | Over The Counter",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_1"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_5",
+      "unit_index": 16,
+      "source_kind": "table",
+      "text": "No. | Item | Business Requirement\n5. | Enhancement on FDS Reports (Teller) | 1. T-1 Cash Cheque Analysis Report Propose new layout for T-1 To consolidate existing T-2 and T-3 into T-1 To rename report name to T-1 Teller End of Day Report Sample Report : T-01 Teller End of Day Report.xlsx 2. T-2 Teller Transaction Summary To remove from FDS 3. T-3 Teller Transaction Detail To remove from FDS 4. T-4 Teller Transaction Payment Report To rename report number T-4 to T-2 Sample Report: T-2 Teller Transaction Payment Report.pdf 5. T-5 Transaction Summary Report – Corporate Client To remove from FDS 6. T-6 PNB Group Employee Transaction Report To remove from FDS\n6. | Enhancement on FDS Reports (Branch Online) 1/3 | 1. B-01 Cash Cheque Analysis Report Propose new layout for B-01 To consolidate existing B-02, B-03, B-06 into B-01 To rename report name to B-01 Branch End of Day Report Sample Report: B-01 Branch End of Day Report.xlsx 2. B-10 Branch Transaction Payment Report To rename report number B-10 to B-02 Branch Transaction Payment Report Sample Report: B02 Branch Transaction Payment Report.pdf 3. B-14 Pending Cheque/ Money Transfer Status To rename report number B-14 to B-03 Pending Cheque/ Money Transfer Status Sample Report: B03 Pending Cheque Money Transfer Status.pdf 4. B-17 PNB Group Employee Transaction Report To rename report number B-17 to B-04 PNB Group Employee Transaction Report Sample Report: B04 PNB Group Employee Transaction Report.pdf\n7. | Enhancement on FDS Reports (Branch Online) 2/3 | B-02 Teller Cash Balance Report To remove from FDS B-03 Branch Transaction Summary To remove from FDS B-04 Summary Transaction Approved by Supervisor To remove from FDS B-05 Transaction Summary by Teller To remove from FDS B-06 Transaction Summary by Fund To remove from FDS B-07 Transaction Summary by Time To remove from FDS B-08 Branch Cash/Non-Cash Transaction Summary To remove from FDS B-09 Branch Transaction Detail Report To remove from FDS B-11 Fund Switching Transaction To remove from FDS\n8. | Enhancement on FDS Reports (Branch Online) 3/3 | B-12 Account Registration/ Closure Details To remove from FDS B-15 Fund Financial Plan Transaction To remove from FDS B-16 Transaction Summary Report – Corporate Client To remove from FDS",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Requirement with respect to FCIS:\n\nTable:\nNo. | Item | Business Requirement\n5. | Enhancement on FDS Reports (Teller) | 1. T-1 Cash Cheque Analysis Report Propose new layout for T-1 To consolidate existing T-2 and T-3 into T-1 To rename report name to T-1 Teller End of Day Report Sample Report : T-01 Teller End of Day Report.xlsx 2. T-2 Teller Transaction Summary To remove from FDS 3. T-3 Teller Transaction Detail To remove from FDS 4. T-4 Teller Transaction Payment Report To rename report number T-4 to T-2 Sample Report: T-2 Teller Transaction Payment Report.pdf 5. T-5 Transaction Summary Report – Corporate Client To remove from FDS 6. T-6 PNB Group Employee Transaction Report To remove from FDS\n6. | Enhancement on FDS Reports (Branch Online) 1/3 | 1. B-01 Cash Cheque Analysis Report Propose new layout for B-01 To consolidate existing B-02, B-03, B-06 into B-01 To rename report name to B-01 Branch End of Day Report Sample Report: B-01 Branch End of Day Report.xlsx 2. B-10 Branch Transaction Payment Report To rename report number B-10 to B-02 Branch Transaction Payment Report Sample Report: B02 Branch Transaction Payment Report.pdf 3. B-14 Pending Cheque/ Money Transfer Status To rename report number B-14 to B-03 Pending Cheque/ Money Transfer Status Sample Report: B03 Pending Cheque Money Transfer Status.pdf 4. B-17 PNB Group Employee Transaction Report To rename report number B-17 to B-04 PNB Group Employee Transaction Report Sample Report: B04 PNB Group Employee Transaction Report.pdf\n7. | Enhancement on FDS Reports (Branch Online) 2/3 | B-02 Teller Cash Balance Report To remove from FDS B-03 Branch Transaction Summary To remove from FDS B-04 Summary Transaction Approved by Supervisor To remove from FDS B-05 Transaction Summary by Teller To remove from FDS B-06 Transaction Summary by Fund To remove from FDS B-07 Transaction Summary by Time To remove from FDS B-08 Branch Cash/Non-Cash Transaction Summary To remove from FDS B-09 Branch Transaction Detail Report To remove from FDS B-11 Fund Switching Transaction To remove from FDS\n8. | Enhancement on FDS Reports (Branch Online) 3/3 | B-12 Account Registration/ Closure Details To remove from FDS B-15 Fund Financial Plan Transaction To remove from FDS B-16 Transaction Summary Report – Corporate Client To remove from FDS",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_2"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_6",
+      "unit_index": 17,
+      "source_kind": "table",
+      "text": "Sl No | Existing Teller Reports Name | Teller Reports - Realignment changes\n1 | T-1 Cash Cheque Analysis Report | Existing Teller reports T-2 and T-3 will be consolidated into T-1 report.\n2 | T-2 Teller Transaction Summary | Remove from FCIS\n3 | T-3 Teller Transaction Detail | Remove from FCIS\n4 | T-4 Teller Cheque/Money Transfer/Debit Card Txn Report | It will be renamed as ‘T-2 Teller Transaction Payment Report’\n5 | T-5 Transaction Summary Report – Corporate Client | Remove from FCIS\n6 | T-6 PNB Group Employee Transaction Report | Remove from FCIS",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Following Teller reports will undergo changes in FCIS:\n\nTable:\nSl No | Existing Teller Reports Name | Teller Reports - Realignment changes\n1 | T-1 Cash Cheque Analysis Report | Existing Teller reports T-2 and T-3 will be consolidated into T-1 report.\n2 | T-2 Teller Transaction Summary | Remove from FCIS\n3 | T-3 Teller Transaction Detail | Remove from FCIS\n4 | T-4 Teller Cheque/Money Transfer/Debit Card Txn Report | It will be renamed as ‘T-2 Teller Transaction Payment Report’\n5 | T-5 Transaction Summary Report – Corporate Client | Remove from FCIS\n6 | T-6 PNB Group Employee Transaction Report | Remove from FCIS",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_5"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_7",
+      "unit_index": 18,
+      "source_kind": "table",
+      "text": "Sl No | Existing Branch online Reports Name | Branch Reports - Realignment changes\n1 | B-01 Cash Cheque Analysis Report | Existing B-02, B-03 and B-06 will be consolidated into B-01 report.\n2 | B-02 Teller Cash Balance Report | Remove from FCIS\n3 | B-03 Branch Transaction Summary | Remove from FCIS\n4 | B-04 Summary Transaction Approved by Supervisor | Remove from FCIS\n5 | B-05 Transaction Summary by Teller | Remove from FCIS\n6 | B-06 Transaction Summary by Fund | Remove from FCIS\n7 | B-07 Transaction Summary by Time | Remove from FCIS\n8 | B-08 Branch Cash/Non-Cash Transaction Summary | Remove from FCIS\n9 | B-09 Branch Transaction Detail Report | Remove from FCIS\n10 | B-10 Branch Transaction Payment Report | It will be renamed as B-02 Branch Transaction Payment Report\n11 | B-11 Fund Switching Transaction | Remove from FCIS\n12 | B-12 Account Registration/ Closure Details | Remove from FCIS\n13 | B-14 Pending Cheque/ Money Transfer Status | It will be renamed as B-03 Pending Cheque/ Money Transfer Status\n14 | B-15 Fund Financial Plan Transaction | Remove from FCIS\n15 | B-16 Transaction Summary Report – Corporate Client | Remove from FCIS\n16 | B-17 PNB Group Employee Transaction Report | It will be renamed as B-04 PNB Group Employee Transaction Report",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Following BOR reports will undergo changes in FCIS:\n\nTable:\nSl No | Existing Branch online Reports Name | Branch Reports - Realignment changes\n1 | B-01 Cash Cheque Analysis Report | Existing B-02, B-03 and B-06 will be consolidated into B-01 report.\n2 | B-02 Teller Cash Balance Report | Remove from FCIS\n3 | B-03 Branch Transaction Summary | Remove from FCIS\n4 | B-04 Summary Transaction Approved by Supervisor | Remove from FCIS\n5 | B-05 Transaction Summary by Teller | Remove from FCIS\n6 | B-06 Transaction Summary by Fund | Remove from FCIS\n7 | B-07 Transaction Summary by Time | Remove from FCIS\n8 | B-08 Branch Cash/Non-Cash Transaction Summary | Remove from FCIS\n9 | B-09 Branch Transaction Detail Report | Remove from FCIS\n10 | B-10 Branch Transaction Payment Report | It will be renamed as B-02 Branch Transaction Payment Report\n11 | B-11 Fund Switching Transaction | Remove from FCIS\n12 | B-12 Account Registration/ Closure Details | Remove from FCIS\n13 | B-14 Pending Cheque/ Money Transfer Status | It will be renamed as B-03 Pending Cheque/ Money Transfer Status\n14 | B-15 Fund Financial Plan Transaction | Remove from FCIS\n15 | B-16 Transaction Summary Report – Corporate Client | Remove from FCIS\n16 | B-17 PNB Group Employee Transaction Report | It will be renamed as B-04 PNB Group Employee Transaction Report",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_6"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_8",
+      "unit_index": 19,
+      "source_kind": "table",
+      "text": "Review comments by | RS Tag/ Req ID | FS Tag | Review Comment | Response | FS Updated | Status\n |  |  |  |  |  | ",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Review Comments\n\nTable:\nReview comments by | RS Tag/ Req ID | FS Tag | Review Comment | Response | FS Updated | Status\n |  |  |  |  |  | ",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_9"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_9",
+      "unit_index": 20,
+      "source_kind": "table",
+      "text": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Open Items\n\nTable:\nReq ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_10"
+    },
+    {
+      "unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::table_chunk_10",
+      "unit_index": 21,
+      "source_kind": "table",
+      "text": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+      "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+      "release_label": "R24",
+      "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+      "retrieval_text": "Parent context: Closed Items\n\nTable:\nReq ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+      "parent_unit_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx::chunk_10"
+    }
+  ],
+  "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0"
+}

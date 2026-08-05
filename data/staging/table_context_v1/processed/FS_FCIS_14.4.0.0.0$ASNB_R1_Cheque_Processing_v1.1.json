@@ -1,0 +1,1306 @@
+{
+  "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1.docx",
+  "parsed_name": {
+    "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1.docx",
+    "document_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1",
+    "document_family": "FS_FCIS_14.4.0.0.0$ASNB",
+    "release_label": "R1",
+    "release_number": 1,
+    "variant_suffix": "Cheque_Processing_v1.1",
+    "source_type": "docx"
+  },
+  "extracted_text": {
+    "file_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1.docx",
+    "paragraph_count": 316,
+    "non_empty_paragraph_count": 206,
+    "paragraphs": [
+      "",
+      "",
+      "Functional Design Document",
+      "",
+      "Cheque processing",
+      "",
+      "",
+      "Client Name\t: PNB",
+      "Release Name\t\t\t\t\t\t\t\t\t: FCIS_14.4.0.0.0$ASNB_R1",
+      "Project ID\t: 400030238",
+      "Document Ref                                \t: FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing.docx",
+      "Author\t: Waseem Manchinkop",
+      "Creation Date\t: January 29, 2021",
+      "Last Updated\t: 9, 2021",
+      "Version\t: 1.",
+      "Title, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.",
+      "",
+      "Title, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.",
+      "",
+      "",
+      "To add additional approval lines, press [Tab] from the last cell in the table above.",
+      "",
+      "You can delete any elements of this cover page that you do not need for your document.",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Document Control",
+      "",
+      "Change Record",
+      "5",
+      "Reviewers",
+      "",
+      "",
+      "Approvers",
+      "",
+      "",
+      "",
+      "",
+      "Traceability Matrix",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Functional Specifications",
+      "",
+      "Table of Contents",
+      "",
+      "1\tDocument Control\t2",
+      "1.1\tChange Record\t2",
+      "1.2\tReviewers\t2",
+      "1.3\tApprovers\t2",
+      "1.4\tTraceability Matrix\t3",
+      "2.\tIntroduction\t5",
+      "2.1.\tBackground\t5",
+      "2.2.\tOrganization of the Document\t5",
+      "2.3.\tAcronyms and Abbreviations\t5",
+      "3.\tRequirements Summary\t6",
+      "4.\tCheque Processing\t6",
+      "4.1.\tRequirements Overview\t6",
+      "4.2.\tExisting Functionality\t6",
+      "4.3.\tAssumptions\t6",
+      "4.4.\tFunctional Approach\t7",
+      "4.4.1.\tMaintenance\t7",
+      "4.4.2.\tScreen Changes\t13",
+      "4.4.3.\tProcessing Changes\t14",
+      "4.4.4.\tProcess Flow\t18",
+      "4.4.5.\tBulk Upload/External Interface / Gateway / Scheduler changes\t18",
+      "4.4.6.\tReport or BO Universe or BI Changes\t18",
+      "4.4.7.\tAdditional aspects if any\t18",
+      "5.\tAnnexure:\t19",
+      "5.1.\tClient specific documents\t19",
+      "5.2.\tGateway /Scheduler / Interface Layout Specification Doc\t19",
+      "5.3.\tReport Layouts / Specification doc.\t19",
+      "6.\tReview Comments:\t19",
+      "6.1.\tReview Comments\t19",
+      "7.\tIssue Status\t19",
+      "7.1.\tOpen Items\t19",
+      "7.2.\tClosed Items\t19",
+      "",
+      "",
+      "Introduction",
+      "Background",
+      "PNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well. The scope of work is to enhance  current .net version of FCIS application to FCIS 14.4.0.0.0 base product with functionalities required for PNB.",
+      "Organization of the Document",
+      "The first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.",
+      "Acronyms and Abbreviations",
+      "",
+      "Requirements Summary",
+      "",
+      "The enhancements scoped in the document are relating to the Cheque processing that were customized for PNB as part of .Net enhancements. The Details are covered in the Traceability Matrix section. The summary of requirements is as below:",
+      "Cheque printing",
+      "Cheque Status",
+      "",
+      "GAP/New requirements are not part of this FS, these new Gaps will be discussed separately in detail and cover in different FS.",
+      "",
+      "Cheque Processing",
+      "Requirements Overview",
+      "PNB makes payment to its unit holders and other entities through both cash and Cheque. The entire activities related to payment through Cheque except bank reconciliation is required to be handled in their proposed fund distribution system. The unique requirement is that one bank account is assigned to each function i.e.",
+      "Cheque printing to be integrated with the transaction screen i.e. on completion of transaction, Cheque printing should be available.",
+      "Transmission Cheque to be printed for beneficiary",
+      "Third party redemption Cheque payment to be available to print",
+      "Provision to re-print a Cheque in case not printed correctly or lost or wrong payee details.",
+      "Facility to track the Cheque status and make the Cheque status changes",
+      "",
+      "Existing Functionality",
+      "Existing screen in AGY and FMGCheque printing (UTDCHKPR) screen can be used to initiate the printing of checks for Dividend payments, redemption payments, payment of fee or incentives etc..",
+      "Existing screen in FMGCheque status summary (UTDCHKST) screen support to view Cheque status and allow to change the Cheque status as invalid or lost.",
+      "Assumptions",
+      "Type of Cheque ‘Additional Khairat’ will be out of scope to upgrade in J2EE in both screens Cheque printing and Cheque status",
+      "EPF redemption is always captured as Money transfer in EPF redemption screen hence the EPF redemption Cheque is out of scope for upgrade in J2EE",
+      "Dividend Cheques are extracted for printing by external system, this will be scoped in interface integration/Interfaces release",
+      "Cheque Preview screen development is not in current scope. it will be covered as part of future development",
+      "Cheque status upload will be covered as part of separate interface FDD",
+      "PPRT loans repayment (From Dividend) is handled outside the system so Loan repayment Cheque will be out of scope for upgrade in J2EE",
+      "Functional Approach",
+      "Maintenance",
+      "System will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in FMGCheque printing screen (UTDCHKPR)",
+      "",
+      "",
+      "System will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in AGYCheque printing screen (UTDCHKPR)",
+      "",
+      "System will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in FMGCheque status summary screen (UTDCHKST)",
+      "",
+      "",
+      "System will be enhanced to add the following fields in FMGCheque status summary screen (UTDCHKST)",
+      "",
+      "The field ‘UH IC No’ will display the",
+      "System will not display the Fund ID and it will be disabled and blank if Type of Cheque is selected as ‘Subscription / IPO’ or  ‘EPF Subscription’ in Cheque status summary screen (UTDCHKST)",
+      "System will be enhanced and restricted to show the following LOV values in field ‘Cheque Status’ in AGY/FMGCheque Status summary screen (UTDCHKST)",
+      "",
+      "Existing field ‘Cheque No’ will be renamed as ‘Cheque No./ File name’ in FMGCheque status summary screen (UTDCHKST)",
+      "System will be enhanced to add the following fields in AGY/FMGCheque Printing screen (UTDCHKPR)",
+      "",
+      "Re-issue Reason column in Cheque detail section will be enable when user ticked the duplicate check box otherwise it will be disable with re-issue reason as Blank",
+      "Re-issue reason column will have values as Invalid, Lost, wrong payee, Damaged, Others",
+      "If Re-issue reason is selected as ‘Wrong Payee’ then Payee details button enable, when user clicked this button system pops up window where user can correct the payee details,  payee details sub screen details given in above Maintenance in section 4.4.1.9",
+      "Existing following fields labels in J2EE in Cheque printing screen will be renamed as per .Net and some the fields which are not required will make it invisible",
+      "",
+      "",
+      "",
+      "Existing following fields labels in J2EE in Cheque status summary screen will be renamed as per .Net and some the fields which are not required will make it invisible",
+      "",
+      "",
+      "Screen Changes",
+      "AGY/FMGCheque printing screen (UTDCHKPR)",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "AGY/FMGCheque status summary screen (UTDCHKST)",
+      "",
+      "",
+      "",
+      "",
+      "Processing Changes",
+      "Cheque Printing",
+      "User can printing the Cheque in AGY or FMGCheque printing UTDCHKPR screen",
+      "First User has to provide the details in search criteria such as Type of Cheque, Printing option, Output type, Fund Id, Amount range and click on ‘OK’ button",
+      "Based on the above Search Criteria, system will fetch the Cheque records and display in Cheque details section if the user selected the ‘Display Records for selecting’ as Yes",
+      "User can select the Cheque record and click on ‘Preview button’ to print the Cheque",
+      "Cheque date field in FMGCheque printing (UTDCHKPR) screen will show by default as current application date while displaying Cheques which are pending to print, existing validation which does not allow the user to enter the back date in Cheque date field will remain and user will be allowed to give Cheque date as future date",
+      "System will be restricted to display the following types of Cheques in FMGCheque printing screen UTDCHKPR",
+      "Dividend",
+      "Redemption",
+      "Subscription /IPO",
+      "Transmission",
+      "Forced selling cases",
+      "Third party Redemption-Invoking Block",
+      "Cancel Transaction",
+      "Hibah/Trust Declaration Claim",
+      "Second Transmission",
+      "Third party Redemption Bankruptcy",
+      "",
+      "",
+      "",
+      "",
+      "Redemption Allocation will be enhanced to extract the data for printing the Cheques online.",
+      "For historical pricing funds, redemption Cheque will be printed immediately on successful allocation of Redemption transaction using the redemption confirmation printing screen",
+      "For forward pricing funds, redemption Cheque will be printed after EOD batch allocation in FMG Cheque printing screen UTDCHKPR",
+      "User can re-print or re-issue the redemption Cheque from AGY or FMGCheque printing screen as duplicate Cheque",
+      "Once the redemption transaction Cheque is printing for all types of redemption, Cheque number will be updated for that redemption transaction under tab settlement details in field ‘Cheque number’",
+      "If the redemption Cheque is re-issued then the latest Cheque number will be updated in that redemption transaction screen under tab settlement detail in field Cheque number",
+      "This is applicable to all front teller and back office out going Cheques",
+      "System will extract the Cheque data in daily EOD batch with activity ‘Payment Data Extraction’ for following type of Cheques:",
+      "Transmission",
+      "Forced selling cases",
+      "Hibah/Trust Declaration Claim",
+      "Third party Redemption-Invoking Block",
+      "Second Transmission",
+      "Third party Redemption Bankruptcy",
+      "Once the EOD batch ‘Payment data extraction’ is executed successfully, Cheque data will be available for printing",
+      "User can print these Cheque by selecting particular type of Cheque in FMGCheque printing screen UTDCHKPR and preview the Cheque to print it",
+      "During Beneficiary detail capture in Transmission screen, user will specify whether Cheque printing is required or not. If user specifies, Cheque printing is not required, (Suppress Cheque is ticked) then, system will generate payables for each beneficiary, however the payment type will be marked as Manual Cheque. Provision will be provided so that the user can retrieve those records and update the Manual Cheque number individually against each payable in AGYTransmission manual Cheque update screen. These Transmission Cheques will not be available for printing in Cheque printing screen UTDCHKPR.",
+      "For historical pricing funds, Cancel Transaction Cheque will be printed immediately on successful allocation of Redemption transaction using the redemption confirmation printing screen",
+      "For forward pricing funds, cancel redemption Cheque will be printed after EOD batch allocation in FMG Cheque printing screen UTDCHKPR",
+      "Cheques can be printed in a bulk based on Cheque type as required",
+      "",
+      "Cheque status summary screen",
+      "Existing Check Status Summary screen UTDCHKST in FMG will be used for tracking the status of the Cheque or changing the Cheque status.",
+      "Cheque status summary screen UTDCHKST will be also available in AGY module, the Drop down in field ‘type of Cheque’ will show only three values as Bonus, Redemption, Subscription /IPO",
+      "At the time of Cheque data extraction for Cheque printing itself the status of the Cheque will be ‘READY’ for printing.",
+      "If the Cheque has been printed in FMGCheque printing screen UTDCHKPR, the status will be automatically updated as ACTIVE.",
+      "If the unit holder has reported the loss of a Cheque, user has to update the Cheque status to STOP.",
+      "If the Cheque status is already marked as Cleared, Cheque status change to STOP will not be allowed.",
+      "User will be allowed to change the Cheque status only as ‘STOP’, other status will be automatically triggered in the system.",
+      "Cheque status will be updated by system as ‘EXPIRED’ in AGY/FMGCheque status summary screen, Daily EOD task will trigger to mark all ACTIVE Cheques to EXPIRED if six months have crossed since the date of issue.",
+      "Example: Cheque was issued on 1-Jan-2020, if no one claims this Cheque on or before 1-July-2020 then on 2-July-2020 BOD batch will trigger and make the Cheque status as ‘Expired’ in Cheque status summary screen",
+      "Cheque will be updated by system as ‘UNCLAIMED’ once in year in FMGCheque status summary screen UTDCHKST if the Cheque remained unpaid for a period of more than one year, on every 31st -Dec BOD task will trigger and mark all EXPIRED Cheques to UNCLAIMED if one year has crossed since the date of issue.",
+      "",
+      "Example 1: Cheque was issued to UH on 10/2/2010, Cheque status was ACTIVE.",
+      "When it crossed six (6) months (180 days), on 10/8/2010, system will update the Cheque status from ACTIVE to EXPIRED.",
+      "This Cheque will reach one (1) year on 10/2/2011 but system will update the Cheque status from EXPIRED to UNCLAIMED on 1st-Jan-2012 during the BOD batch processing",
+      "",
+      "Example 2: Cheque was issued to UH on 26/10/2010, Cheque status was ACTIVE.",
+      "When it reached six (6) months, on 26/03/2011, system will update the Cheque status from ACTIVE to EXPIRED.",
+      "This Cheque will reach one (1) year on 26/10/2011 but system will update the Cheque status from EXPIRED to UNCLAIMED on 1st-Jan-2012 during the BOD batch processing",
+      "",
+      "Example 3: Cheque was issued to UH on 31/12/2010, Cheque status was ACTIVE.",
+      "When it reached six (6) months, on 30/06/2011, system will update the Cheque status from ACTIVE to EXPIRED.",
+      "This Cheque will reach one (1) year on 31/12/2011, system will update the Cheque status from EXPIRED to UNCLAIMED on 1st-Jan-2012 during the BOD batch processing",
+      "",
+      "Cheque status will be updated by system as ‘DUPLICATE’ when the Cheque is selected for re-issue and re-printed it",
+      "To see the Cheque replacement history for a particular Cheque, user can specify the Cheque transaction number in new search criteria field ‘Cheque Txn No’ in FMGCheque status summary screen UTDCHKST, system will show the list of all old Cheque details for that transaction in Cheque details section and the listing will be in the stopped/reissued order, new Cheque number will be displayed first.",
+      "",
+      "Cheque Re-issue",
+      "In order to re-issue the Cheque, first user has to change the Cheque status as ‘Stop’ in AGY or FMGCheque status summary screen UTDCHKST.",
+      "Once the Cheque status is changed as ‘Stop’, it will be allowed to re-issue as Duplicate Cheque in AGY or FMGCheque printing screen",
+      "Once the Duplicate Cheque is printed, system will update the new Cheque number in column ‘New Cheque No’ in AGY/FMGCheque status summary screen UTDCHKST",
+      "User can select the field ‘Duplicate Cheque’ as Yes and search Cheques by providing the search criteria",
+      "Re-issue Reason column in Cheque detail section will be enable when user selected the duplicate field as Yes",
+      "Re-issue reason column will have values as Invalid, Lost, wrong payee, Damaged, Others",
+      "If Re-issue reason is selected as ‘Wrong Payee’ then Payee details button enable, when user clicked this button system will pops up window where user can correct the payee details, details of payee details fields given in Maintenance in section 4.4.18",
+      "User can select the Cheque for re-issue and click on ‘Preview’ button to print the Cheque",
+      "In case the Cheque is not printed correctly, user can go for re-printing the Cheques",
+      "Re-issue/Duplicate issue of Cheque will be allowed from the branch of issue only.",
+      "Example: Branch A is issued one redemption Cheque, same Cheque can be re-issued by the same Branch only which is Branch A, other Branches are not allowed to re-issue that Cheque",
+      "",
+      "Counter Foils",
+      "For all types of Cheques, on the first half the counterfoil details will be printed and on the next half the Cheque details will be printed. The information printed on the counter foil and Cheque depends on the type of payment.",
+      "Note: Cheque Preview screen development is not in current scope. it will be covered as part of report development",
+      "Process Flow",
+      "NA",
+      "Bulk Upload/External Interface / Gateway / Scheduler changes",
+      "NA",
+      "Report or BO Universe or BI Changes",
+      "NA",
+      "Additional aspects if any",
+      "NA",
+      "Annexure:",
+      "Client specific documents",
+      "Base FS documents from .net as mentioned in Traceability matrix",
+      "Gateway /Scheduler / Interface Layout Specification Doc",
+      "NA",
+      "Report Layouts / Specification doc.",
+      "NA",
+      "Review Comments:",
+      "Review Comments",
+      "",
+      "",
+      "Issue Status",
+      "Open Items",
+      "Closed Items",
+      "",
+      "",
+      "Functional Specifications",
+      "February  2021",
+      "Version number:1.",
+      "",
+      "Oracle Corporation",
+      "World Headquarters",
+      "",
+      "",
+      "",
+      "",
+      "Worldwide Inquiries:",
+      "Phone: +1.650.506.7000",
+      "Fax: +1.650.506.7200",
+      "www.oracle.com/ financial_services/",
+      "",
+      "Copyright © 2021. All rights reserved.  \n\n\n\nNo part of this work may be reproduced, stored in a retrieval system, adopted or transmitted in any form or by any means, electronic, mechanical, photographic, graphic, optic recording or otherwise, translated in any language or computer language, without the prior written permission of Oracle Financial Services Software Limited and/or its affiliates.  \n\nDue care has been taken to make this FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing.docx and accompanying software package (if any) as accurate as possible. However, Oracle Financial Services Software Limited makes no representation or warranties with respect to the contents hereof and shall not be responsible for any loss or damage caused to the user by the direct or indirect use of this FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing.docx and the accompanying Software Product  (if any). Furthermore, Oracle Financial Services Software Limited reserves the right to alter, modify or otherwise change in any manner the content hereof, without obligation of Oracle Financial Services Software Limited to notify any person of such revision or changes. \n\nAll company and product names are trademarks of the respective companies with which they are associated.",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "full_text": "Functional Design Document\nCheque processing\nClient Name\t: PNB\nRelease Name\t\t\t\t\t\t\t\t\t: FCIS_14.4.0.0.0$ASNB_R1\nProject ID\t: 400030238\nDocument Ref                                \t: FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing.docx\nAuthor\t: Waseem Manchinkop\nCreation Date\t: January 29, 2021\nLast Updated\t: 9, 2021\nVersion\t: 1.\nTitle, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.\nTitle, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.\nTo add additional approval lines, press [Tab] from the last cell in the table above.\nYou can delete any elements of this cover page that you do not need for your document.\nDocument Control\nChange Record\n5\nReviewers\nApprovers\nTraceability Matrix\nFunctional Specifications\nTable of Contents\n1\tDocument Control\t2\n1.1\tChange Record\t2\n1.2\tReviewers\t2\n1.3\tApprovers\t2\n1.4\tTraceability Matrix\t3\n2.\tIntroduction\t5\n2.1.\tBackground\t5\n2.2.\tOrganization of the Document\t5\n2.3.\tAcronyms and Abbreviations\t5\n3.\tRequirements Summary\t6\n4.\tCheque Processing\t6\n4.1.\tRequirements Overview\t6\n4.2.\tExisting Functionality\t6\n4.3.\tAssumptions\t6\n4.4.\tFunctional Approach\t7\n4.4.1.\tMaintenance\t7\n4.4.2.\tScreen Changes\t13\n4.4.3.\tProcessing Changes\t14\n4.4.4.\tProcess Flow\t18\n4.4.5.\tBulk Upload/External Interface / Gateway / Scheduler changes\t18\n4.4.6.\tReport or BO Universe or BI Changes\t18\n4.4.7.\tAdditional aspects if any\t18\n5.\tAnnexure:\t19\n5.1.\tClient specific documents\t19\n5.2.\tGateway /Scheduler / Interface Layout Specification Doc\t19\n5.3.\tReport Layouts / Specification doc.\t19\n6.\tReview Comments:\t19\n6.1.\tReview Comments\t19\n7.\tIssue Status\t19\n7.1.\tOpen Items\t19\n7.2.\tClosed Items\t19\nIntroduction\nBackground\nPNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well. The scope of work is to enhance  current .net version of FCIS application to FCIS 14.4.0.0.0 base product with functionalities required for PNB.\nOrganization of the Document\nThe first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.\nAcronyms and Abbreviations\nRequirements Summary\nThe enhancements scoped in the document are relating to the Cheque processing that were customized for PNB as part of .Net enhancements. The Details are covered in the Traceability Matrix section. The summary of requirements is as below:\nCheque printing\nCheque Status\nGAP/New requirements are not part of this FS, these new Gaps will be discussed separately in detail and cover in different FS.\nCheque Processing\nRequirements Overview\nPNB makes payment to its unit holders and other entities through both cash and Cheque. The entire activities related to payment through Cheque except bank reconciliation is required to be handled in their proposed fund distribution system. The unique requirement is that one bank account is assigned to each function i.e.\nCheque printing to be integrated with the transaction screen i.e. on completion of transaction, Cheque printing should be available.\nTransmission Cheque to be printed for beneficiary\nThird party redemption Cheque payment to be available to print\nProvision to re-print a Cheque in case not printed correctly or lost or wrong payee details.\nFacility to track the Cheque status and make the Cheque status changes\nExisting Functionality\nExisting screen in AGY and FMGCheque printing (UTDCHKPR) screen can be used to initiate the printing of checks for Dividend payments, redemption payments, payment of fee or incentives etc..\nExisting screen in FMGCheque status summary (UTDCHKST) screen support to view Cheque status and allow to change the Cheque status as invalid or lost.\nAssumptions\nType of Cheque ‘Additional Khairat’ will be out of scope to upgrade in J2EE in both screens Cheque printing and Cheque status\nEPF redemption is always captured as Money transfer in EPF redemption screen hence the EPF redemption Cheque is out of scope for upgrade in J2EE\nDividend Cheques are extracted for printing by external system, this will be scoped in interface integration/Interfaces release\nCheque Preview screen development is not in current scope. it will be covered as part of future development\nCheque status upload will be covered as part of separate interface FDD\nPPRT loans repayment (From Dividend) is handled outside the system so Loan repayment Cheque will be out of scope for upgrade in J2EE\nFunctional Approach\nMaintenance\nSystem will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in FMGCheque printing screen (UTDCHKPR)\nSystem will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in AGYCheque printing screen (UTDCHKPR)\nSystem will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in FMGCheque status summary screen (UTDCHKST)\nSystem will be enhanced to add the following fields in FMGCheque status summary screen (UTDCHKST)\nThe field ‘UH IC No’ will display the\nSystem will not display the Fund ID and it will be disabled and blank if Type of Cheque is selected as ‘Subscription / IPO’ or  ‘EPF Subscription’ in Cheque status summary screen (UTDCHKST)\nSystem will be enhanced and restricted to show the following LOV values in field ‘Cheque Status’ in AGY/FMGCheque Status summary screen (UTDCHKST)\nExisting field ‘Cheque No’ will be renamed as ‘Cheque No./ File name’ in FMGCheque status summary screen (UTDCHKST)\nSystem will be enhanced to add the following fields in AGY/FMGCheque Printing screen (UTDCHKPR)\nRe-issue Reason column in Cheque detail section will be enable when user ticked the duplicate check box otherwise it will be disable with re-issue reason as Blank\nRe-issue reason column will have values as Invalid, Lost, wrong payee, Damaged, Others\nIf Re-issue reason is selected as ‘Wrong Payee’ then Payee details button enable, when user clicked this button system pops up window where user can correct the payee details,  payee details sub screen details given in above Maintenance in section 4.4.1.9\nExisting following fields labels in J2EE in Cheque printing screen will be renamed as per .Net and some the fields which are not required will make it invisible\nExisting following fields labels in J2EE in Cheque status summary screen will be renamed as per .Net and some the fields which are not required will make it invisible\nScreen Changes\nAGY/FMGCheque printing screen (UTDCHKPR)\nAGY/FMGCheque status summary screen (UTDCHKST)\nProcessing Changes\nCheque Printing\nUser can printing the Cheque in AGY or FMGCheque printing UTDCHKPR screen\nFirst User has to provide the details in search criteria such as Type of Cheque, Printing option, Output type, Fund Id, Amount range and click on ‘OK’ button\nBased on the above Search Criteria, system will fetch the Cheque records and display in Cheque details section if the user selected the ‘Display Records for selecting’ as Yes\nUser can select the Cheque record and click on ‘Preview button’ to print the Cheque\nCheque date field in FMGCheque printing (UTDCHKPR) screen will show by default as current application date while displaying Cheques which are pending to print, existing validation which does not allow the user to enter the back date in Cheque date field will remain and user will be allowed to give Cheque date as future date\nSystem will be restricted to display the following types of Cheques in FMGCheque printing screen UTDCHKPR\nDividend\nRedemption\nSubscription /IPO\nTransmission\nForced selling cases\nThird party Redemption-Invoking Block\nCancel Transaction\nHibah/Trust Declaration Claim\nSecond Transmission\nThird party Redemption Bankruptcy\nRedemption Allocation will be enhanced to extract the data for printing the Cheques online.\nFor historical pricing funds, redemption Cheque will be printed immediately on successful allocation of Redemption transaction using the redemption confirmation printing screen\nFor forward pricing funds, redemption Cheque will be printed after EOD batch allocation in FMG Cheque printing screen UTDCHKPR\nUser can re-print or re-issue the redemption Cheque from AGY or FMGCheque printing screen as duplicate Cheque\nOnce the redemption transaction Cheque is printing for all types of redemption, Cheque number will be updated for that redemption transaction under tab settlement details in field ‘Cheque number’\nIf the redemption Cheque is re-issued then the latest Cheque number will be updated in that redemption transaction screen under tab settlement detail in field Cheque number\nThis is applicable to all front teller and back office out going Cheques\nSystem will extract the Cheque data in daily EOD batch with activity ‘Payment Data Extraction’ for following type of Cheques:\nTransmission\nForced selling cases\nHibah/Trust Declaration Claim\nThird party Redemption-Invoking Block\nSecond Transmission\nThird party Redemption Bankruptcy\nOnce the EOD batch ‘Payment data extraction’ is executed successfully, Cheque data will be available for printing\nUser can print these Cheque by selecting particular type of Cheque in FMGCheque printing screen UTDCHKPR and preview the Cheque to print it\nDuring Beneficiary detail capture in Transmission screen, user will specify whether Cheque printing is required or not. If user specifies, Cheque printing is not required, (Suppress Cheque is ticked) then, system will generate payables for each beneficiary, however the payment type will be marked as Manual Cheque. Provision will be provided so that the user can retrieve those records and update the Manual Cheque number individually against each payable in AGYTransmission manual Cheque update screen. These Transmission Cheques will not be available for printing in Cheque printing screen UTDCHKPR.\nFor historical pricing funds, Cancel Transaction Cheque will be printed immediately on successful allocation of Redemption transaction using the redemption confirmation printing screen\nFor forward pricing funds, cancel redemption Cheque will be printed after EOD batch allocation in FMG Cheque printing screen UTDCHKPR\nCheques can be printed in a bulk based on Cheque type as required\nCheque status summary screen\nExisting Check Status Summary screen UTDCHKST in FMG will be used for tracking the status of the Cheque or changing the Cheque status.\nCheque status summary screen UTDCHKST will be also available in AGY module, the Drop down in field ‘type of Cheque’ will show only three values as Bonus, Redemption, Subscription /IPO\nAt the time of Cheque data extraction for Cheque printing itself the status of the Cheque will be ‘READY’ for printing.\nIf the Cheque has been printed in FMGCheque printing screen UTDCHKPR, the status will be automatically updated as ACTIVE.\nIf the unit holder has reported the loss of a Cheque, user has to update the Cheque status to STOP.\nIf the Cheque status is already marked as Cleared, Cheque status change to STOP will not be allowed.\nUser will be allowed to change the Cheque status only as ‘STOP’, other status will be automatically triggered in the system.\nCheque status will be updated by system as ‘EXPIRED’ in AGY/FMGCheque status summary screen, Daily EOD task will trigger to mark all ACTIVE Cheques to EXPIRED if six months have crossed since the date of issue.\nExample: Cheque was issued on 1-Jan-2020, if no one claims this Cheque on or before 1-July-2020 then on 2-July-2020 BOD batch will trigger and make the Cheque status as ‘Expired’ in Cheque status summary screen\nCheque will be updated by system as ‘UNCLAIMED’ once in year in FMGCheque status summary screen UTDCHKST if the Cheque remained unpaid for a period of more than one year, on every 31st -Dec BOD task will trigger and mark all EXPIRED Cheques to UNCLAIMED if one year has crossed since the date of issue.\nExample 1: Cheque was issued to UH on 10/2/2010, Cheque status was ACTIVE.\nWhen it crossed six (6) months (180 days), on 10/8/2010, system will update the Cheque status from ACTIVE to EXPIRED.\nThis Cheque will reach one (1) year on 10/2/2011 but system will update the Cheque status from EXPIRED to UNCLAIMED on 1st-Jan-2012 during the BOD batch processing\nExample 2: Cheque was issued to UH on 26/10/2010, Cheque status was ACTIVE.\nWhen it reached six (6) months, on 26/03/2011, system will update the Cheque status from ACTIVE to EXPIRED.\nThis Cheque will reach one (1) year on 26/10/2011 but system will update the Cheque status from EXPIRED to UNCLAIMED on 1st-Jan-2012 during the BOD batch processing\nExample 3: Cheque was issued to UH on 31/12/2010, Cheque status was ACTIVE.\nWhen it reached six (6) months, on 30/06/2011, system will update the Cheque status from ACTIVE to EXPIRED.\nThis Cheque will reach one (1) year on 31/12/2011, system will update the Cheque status from EXPIRED to UNCLAIMED on 1st-Jan-2012 during the BOD batch processing\nCheque status will be updated by system as ‘DUPLICATE’ when the Cheque is selected for re-issue and re-printed it\nTo see the Cheque replacement history for a particular Cheque, user can specify the Cheque transaction number in new search criteria field ‘Cheque Txn No’ in FMGCheque status summary screen UTDCHKST, system will show the list of all old Cheque details for that transaction in Cheque details section and the listing will be in the stopped/reissued order, new Cheque number will be displayed first.\nCheque Re-issue\nIn order to re-issue the Cheque, first user has to change the Cheque status as ‘Stop’ in AGY or FMGCheque status summary screen UTDCHKST.\nOnce the Cheque status is changed as ‘Stop’, it will be allowed to re-issue as Duplicate Cheque in AGY or FMGCheque printing screen\nOnce the Duplicate Cheque is printed, system will update the new Cheque number in column ‘New Cheque No’ in AGY/FMGCheque status summary screen UTDCHKST\nUser can select the field ‘Duplicate Cheque’ as Yes and search Cheques by providing the search criteria\nRe-issue Reason column in Cheque detail section will be enable when user selected the duplicate field as Yes\nRe-issue reason column will have values as Invalid, Lost, wrong payee, Damaged, Others\nIf Re-issue reason is selected as ‘Wrong Payee’ then Payee details button enable, when user clicked this button system will pops up window where user can correct the payee details, details of payee details fields given in Maintenance in section 4.4.18\nUser can select the Cheque for re-issue and click on ‘Preview’ button to print the Cheque\nIn case the Cheque is not printed correctly, user can go for re-printing the Cheques\nRe-issue/Duplicate issue of Cheque will be allowed from the branch of issue only.\nExample: Branch A is issued one redemption Cheque, same Cheque can be re-issued by the same Branch only which is Branch A, other Branches are not allowed to re-issue that Cheque\nCounter Foils\nFor all types of Cheques, on the first half the counterfoil details will be printed and on the next half the Cheque details will be printed. The information printed on the counter foil and Cheque depends on the type of payment.\nNote: Cheque Preview screen development is not in current scope. it will be covered as part of report development\nProcess Flow\nNA\nBulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any\nNA\nAnnexure:\nClient specific documents\nBase FS documents from .net as mentioned in Traceability matrix\nGateway /Scheduler / Interface Layout Specification Doc\nNA\nReport Layouts / Specification doc.\nNA\nReview Comments:\nReview Comments\nIssue Status\nOpen Items\nClosed Items\nFunctional Specifications\nFebruary  2021\nVersion number:1.\nOracle Corporation\nWorld Headquarters\nWorldwide Inquiries:\nPhone: +1.650.506.7000\nFax: +1.650.506.7200\nwww.oracle.com/ financial_services/\nCopyright © 2021. All rights reserved.  \n\n\n\nNo part of this work may be reproduced, stored in a retrieval system, adopted or transmitted in any form or by any means, electronic, mechanical, photographic, graphic, optic recording or otherwise, translated in any language or computer language, without the prior written permission of Oracle Financial Services Software Limited and/or its affiliates.  \n\nDue care has been taken to make this FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing.docx and accompanying software package (if any) as accurate as possible. However, Oracle Financial Services Software Limited makes no representation or warranties with respect to the contents hereof and shall not be responsible for any loss or damage caused to the user by the direct or indirect use of this FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing.docx and the accompanying Software Product  (if any). Furthermore, Oracle Financial Services Software Limited reserves the right to alter, modify or otherwise change in any manner the content hereof, without obligation of Oracle Financial Services Software Limited to notify any person of such revision or changes. \n\nAll company and product names are trademarks of the respective companies with which they are associated."
+  },
+  "extracted_tables": {
+    "file_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1.docx",
+    "table_count": 18,
+    "tables": [
+      {
+        "table_index": 0,
+        "row_count": 9,
+        "column_count": 4,
+        "rows": [
+          [
+            "Date",
+            "Author",
+            "Version",
+            "Change Reference"
+          ],
+          [
+            "29-Jan- 2021",
+            "Waseem Manchinkop",
+            "Draft",
+            "Initial Draft"
+          ],
+          [
+            "09-Feb-2021",
+            "Waseem Manchinkop",
+            "1.0",
+            "Incorporated Internal Review comments"
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Date | Author | Version | Change Reference\n29-Jan- 2021 | Waseem Manchinkop | Draft | Initial Draft\n09-Feb-2021 | Waseem Manchinkop | 1.0 | Incorporated Internal Review comments\n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | ",
+        "preceding_paragraph_index": 32,
+        "preceding_paragraph_text": "Change Record"
+      },
+      {
+        "table_index": 1,
+        "row_count": 3,
+        "column_count": 6,
+        "rows": [
+          [
+            "Name",
+            "Role",
+            "Status",
+            "Comments",
+            "Version Reviewed",
+            "Date"
+          ],
+          [
+            "Anil Kumar KS",
+            "Consulting Technical Manager",
+            "Reviewed",
+            "",
+            "1.0",
+            ""
+          ],
+          [
+            "Shan Natarajan",
+            "Senior Principal Consultant",
+            "Reviewed",
+            "",
+            "1.0",
+            ""
+          ]
+        ],
+        "text_representation": "Name | Role | Status | Comments | Version Reviewed | Date\nAnil Kumar KS | Consulting Technical Manager | Reviewed |  | 1.0 | \nShan Natarajan | Senior Principal Consultant | Reviewed |  | 1.0 | ",
+        "preceding_paragraph_index": 34,
+        "preceding_paragraph_text": "Reviewers"
+      },
+      {
+        "table_index": 2,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Name",
+            "Role",
+            "Status",
+            "Comments",
+            "Version Approved",
+            "Date"
+          ],
+          [
+            "Sudhakar Gali",
+            "Director - Banking Consulting - FLEXCUBE Investor Servicing",
+            "Approved",
+            "",
+            "1.0",
+            ""
+          ]
+        ],
+        "text_representation": "Name | Role | Status | Comments | Version Approved | Date\nSudhakar Gali | Director - Banking Consulting - FLEXCUBE Investor Servicing | Approved |  | 1.0 | ",
+        "preceding_paragraph_index": 37,
+        "preceding_paragraph_text": "Approvers"
+      },
+      {
+        "table_index": 3,
+        "row_count": 7,
+        "column_count": 7,
+        "rows": [
+          [
+            "S.No",
+            "Rel No",
+            "Title",
+            "Base FS Document Name",
+            "Base FS Section",
+            "New FS Document Name",
+            "New FS Section"
+          ],
+          [
+            "1",
+            "R01",
+            "PNB PWT Gaps Lot 3",
+            "FS-PNB-PWT Gaps-Lot3.Doc",
+            "3.2.2, 3.3.1, 3.4.2, 3.5.1, 3.6.2, 3.7.2, 3.8.2, 3.9.2, 3.10.2, 3.11.1",
+            "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0",
+            "4.4.3.1, 4.3.3, 4.4.3.1, 4.3.1, 4.4.3.1, 4.4.3.35, 4.4.3.23, 4.4.3.31, 4.4.3.32, 4.3.2"
+          ],
+          [
+            "2",
+            "R02",
+            "FS-FLEXCUBE V.IS Release 7.0.0.0.PERMMY.2.0",
+            "FS-FLEXCUBE V.IS Release 7.0.0.0.PERMMY.2.0.Doc",
+            "11.2, 13.1",
+            "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0",
+            "4.4.3.42, 4.4.3.47"
+          ],
+          [
+            "3",
+            "R07",
+            "Phase2 – Lot1 - 11 SCR Items",
+            "IFS-ORA206 - FCIS 7.0.0.7.0PERMMY_FS.doc",
+            "4.2, 6.2, 7.2,",
+            "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0",
+            "4.4.3.34, 4.4.3.6, 4.4.3.13"
+          ],
+          [
+            "4",
+            "R11",
+            "Automating Processing of Unclaimed Money in FDS",
+            "IFS-ORA715 - FCIS_7.0.0.0.0$PERMMY_R11_FS.doc",
+            "2.2,",
+            "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0",
+            "4.4.3.32,"
+          ],
+          [
+            "5",
+            "R13",
+            "FCIS Screen Changes",
+            "FS_FCIS_7 0 0 0 0$PERMMY_R13_FCIS Screen Changes.doc",
+            "2.3",
+            "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0",
+            "4.4.1.4"
+          ],
+          [
+            "6",
+            "R39",
+            "2018 Q3 SR Enhancements Lot 1",
+            "FS_Q3 2018 SR FDS Enhancements Lot1_v1.docx",
+            "2.3",
+            "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0",
+            "4.4.1.4"
+          ]
+        ],
+        "text_representation": "S.No | Rel No | Title | Base FS Document Name | Base FS Section | New FS Document Name | New FS Section\n1 | R01 | PNB PWT Gaps Lot 3 | FS-PNB-PWT Gaps-Lot3.Doc | 3.2.2, 3.3.1, 3.4.2, 3.5.1, 3.6.2, 3.7.2, 3.8.2, 3.9.2, 3.10.2, 3.11.1 | FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0 | 4.4.3.1, 4.3.3, 4.4.3.1, 4.3.1, 4.4.3.1, 4.4.3.35, 4.4.3.23, 4.4.3.31, 4.4.3.32, 4.3.2\n2 | R02 | FS-FLEXCUBE V.IS Release 7.0.0.0.PERMMY.2.0 | FS-FLEXCUBE V.IS Release 7.0.0.0.PERMMY.2.0.Doc | 11.2, 13.1 | FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0 | 4.4.3.42, 4.4.3.47\n3 | R07 | Phase2 – Lot1 - 11 SCR Items | IFS-ORA206 - FCIS 7.0.0.7.0PERMMY_FS.doc | 4.2, 6.2, 7.2, | FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0 | 4.4.3.34, 4.4.3.6, 4.4.3.13\n4 | R11 | Automating Processing of Unclaimed Money in FDS | IFS-ORA715 - FCIS_7.0.0.0.0$PERMMY_R11_FS.doc | 2.2, | FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0 | 4.4.3.32,\n5 | R13 | FCIS Screen Changes | FS_FCIS_7 0 0 0 0$PERMMY_R13_FCIS Screen Changes.doc | 2.3 | FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0 | 4.4.1.4\n6 | R39 | 2018 Q3 SR Enhancements Lot 1 | FS_Q3 2018 SR FDS Enhancements Lot1_v1.docx | 2.3 | FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.0 | 4.4.1.4",
+        "preceding_paragraph_index": 42,
+        "preceding_paragraph_text": "Traceability Matrix"
+      },
+      {
+        "table_index": 4,
+        "row_count": 17,
+        "column_count": 2,
+        "rows": [
+          [
+            "Abbreviation",
+            "Description"
+          ],
+          [
+            "FCIS",
+            "FLEXCUBE®™ Investor Servicing"
+          ],
+          [
+            "AMC",
+            "Asset Management Company"
+          ],
+          [
+            "BRD",
+            "Business Requirement Doccument"
+          ],
+          [
+            "FMG",
+            "Fund Manager Module in FCIS"
+          ],
+          [
+            "GTAP",
+            "Global Transfer Agent Platform"
+          ],
+          [
+            "UT",
+            "Unit Trust"
+          ],
+          [
+            "PNB",
+            "Permodalan Nasional Berhad"
+          ],
+          [
+            "ASNB",
+            "Amanah Saham Nasional Berhad"
+          ],
+          [
+            "FDS",
+            "Fund Distribution System"
+          ],
+          [
+            "OTC",
+            "Over the Counter"
+          ],
+          [
+            "FP",
+            "Fixed Priced Fund"
+          ],
+          [
+            "VP",
+            "Variable Priced Fund"
+          ],
+          [
+            "NFL",
+            "Non Financial load"
+          ],
+          [
+            "NRD",
+            "National Registration Department"
+          ],
+          [
+            "EPF",
+            "Epmloyee Provident Fund"
+          ],
+          [
+            "LOV",
+            "List of Values"
+          ]
+        ],
+        "text_representation": "Abbreviation | Description\nFCIS | FLEXCUBE®™ Investor Servicing\nAMC | Asset Management Company\nBRD | Business Requirement Doccument\nFMG | Fund Manager Module in FCIS\nGTAP | Global Transfer Agent Platform\nUT | Unit Trust\nPNB | Permodalan Nasional Berhad\nASNB | Amanah Saham Nasional Berhad\nFDS | Fund Distribution System\nOTC | Over the Counter\nFP | Fixed Priced Fund\nVP | Variable Priced Fund\nNFL | Non Financial load\nNRD | National Registration Department\nEPF | Epmloyee Provident Fund\nLOV | List of Values",
+        "preceding_paragraph_index": 92,
+        "preceding_paragraph_text": "Acronyms and Abbreviations"
+      },
+      {
+        "table_index": 5,
+        "row_count": 7,
+        "column_count": 6,
+        "rows": [
+          [
+            "Field Name",
+            "New Field",
+            "Data input type",
+            "Default Value",
+            "New Values",
+            "Description"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Bonus",
+            "Transmission",
+            "To see the Transmission Cheques and print it"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Bonus",
+            "Forced selling cases",
+            "To see the Forced selling redemption Cheques and print it"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Bonus",
+            "Third party Redemption-Invoking Block",
+            "To see the Third party Redemption-Invoking Block Cheques and print it"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Bonus",
+            "Hibah/Trust Declaration Claim",
+            "To see the Hibah Cheques and print it"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Bonus",
+            "Second Transmission",
+            "To see the Second Transmission Cheques and print it"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Bonus",
+            "Third party Redemption Bankruptcy",
+            "To see the third party Redemption Bankruptcy Cheques and print it"
+          ]
+        ],
+        "text_representation": "Field Name | New Field | Data input type | Default Value | New Values | Description\nType of Cheque | N | Drop Down | Bonus | Transmission | To see the Transmission Cheques and print it\nType of Cheque | N | Drop Down | Bonus | Forced selling cases | To see the Forced selling redemption Cheques and print it\nType of Cheque | N | Drop Down | Bonus | Third party Redemption-Invoking Block | To see the Third party Redemption-Invoking Block Cheques and print it\nType of Cheque | N | Drop Down | Bonus | Hibah/Trust Declaration Claim | To see the Hibah Cheques and print it\nType of Cheque | N | Drop Down | Bonus | Second Transmission | To see the Second Transmission Cheques and print it\nType of Cheque | N | Drop Down | Bonus | Third party Redemption Bankruptcy | To see the third party Redemption Bankruptcy Cheques and print it",
+        "preceding_paragraph_index": 123,
+        "preceding_paragraph_text": "System will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in FMGCheque printing screen (UTDCHKPR)"
+      },
+      {
+        "table_index": 6,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Field Name",
+            "New Field",
+            "Data input type",
+            "Default Value",
+            "New Values",
+            "Description"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Bonus",
+            "Cancel Transaction",
+            "To see the Cancel Transaction Cheques and print it"
+          ]
+        ],
+        "text_representation": "Field Name | New Field | Data input type | Default Value | New Values | Description\nType of Cheque | N | Drop Down | Bonus | Cancel Transaction | To see the Cancel Transaction Cheques and print it",
+        "preceding_paragraph_index": 126,
+        "preceding_paragraph_text": "System will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in AGYCheque printing screen (UTDCHKPR)"
+      },
+      {
+        "table_index": 7,
+        "row_count": 8,
+        "column_count": 6,
+        "rows": [
+          [
+            "Field Name",
+            "New Field",
+            "Data input type",
+            "Default Value",
+            "New Values",
+            "Description"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Dividend",
+            "Transmission",
+            "To see the Transmission Cheques Status"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Dividend",
+            "Forced selling cases",
+            "To see the Forced selling redemption Cheques Status"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Dividend",
+            "Third party Redemption-Invoking Block",
+            "To see the Third party Redemption-Invoking Block Cheques Status"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Dividend",
+            "Cancel Transaction",
+            "To see the Cancel Transaction Cheques Status"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Dividend",
+            "Hibah/Trust Declaration Claim",
+            "To see the Hibah Cheques Status"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Dividend",
+            "Second Transmission",
+            "To see the Second Transmission Cheques Status"
+          ],
+          [
+            "Type of Cheque",
+            "N",
+            "Drop Down",
+            "Dividend",
+            "Third party Redemption Bankruptcy",
+            "To see the hird party Redemption Bankruptcy Cheques Status"
+          ]
+        ],
+        "text_representation": "Field Name | New Field | Data input type | Default Value | New Values | Description\nType of Cheque | N | Drop Down | Dividend | Transmission | To see the Transmission Cheques Status\nType of Cheque | N | Drop Down | Dividend | Forced selling cases | To see the Forced selling redemption Cheques Status\nType of Cheque | N | Drop Down | Dividend | Third party Redemption-Invoking Block | To see the Third party Redemption-Invoking Block Cheques Status\nType of Cheque | N | Drop Down | Dividend | Cancel Transaction | To see the Cancel Transaction Cheques Status\nType of Cheque | N | Drop Down | Dividend | Hibah/Trust Declaration Claim | To see the Hibah Cheques Status\nType of Cheque | N | Drop Down | Dividend | Second Transmission | To see the Second Transmission Cheques Status\nType of Cheque | N | Drop Down | Dividend | Third party Redemption Bankruptcy | To see the hird party Redemption Bankruptcy Cheques Status",
+        "preceding_paragraph_index": 128,
+        "preceding_paragraph_text": "System will be enhanced to add the following Drop down values in field ‘Type of Cheque’ in FMGCheque status summary screen (UTDCHKST)"
+      },
+      {
+        "table_index": 8,
+        "row_count": 8,
+        "column_count": 9,
+        "rows": [
+          [
+            "New Field",
+            "New Field",
+            "Data Type",
+            "Size",
+            "Data input type",
+            "Mandatory",
+            "Amendable",
+            "Default Value",
+            "Field Description"
+          ],
+          [
+            "Cheque Txn No",
+            "Y",
+            "VARCHAR2",
+            "16",
+            "Free Text",
+            "No",
+            "No",
+            "Blank",
+            "This field will allow the user to give the Cheque transaction number if user wants to see the Cheque replacement history"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "UH Name",
+            "Y",
+            "VARCHAR2",
+            "NA",
+            "Read Only",
+            "Yes",
+            "Read Only",
+            "Blank",
+            "This field will show the Unit holder name"
+          ],
+          [
+            "UH IC No",
+            "Y",
+            "VARCHAR2",
+            "NA",
+            "Read Only",
+            "Yes",
+            "Read Only",
+            "Blank",
+            "This field will show the Unit holder IC Number"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "New Cheque number",
+            "Y",
+            "VARCHAR2",
+            "NA",
+            "Free Text",
+            "Yes",
+            "Read Only",
+            "Blank",
+            "This field will show Reissued Cheque number in case of duplicate Cheques"
+          ],
+          [
+            "Status change date",
+            "Y",
+            "Date",
+            "NA",
+            "Date",
+            "Yes",
+            "Read Only",
+            "Blank",
+            "This field will show the date on which Cheque status was changed to ‘Cleared’, if Cheque status changes to any other status then status change date will not show the change date"
+          ]
+        ],
+        "text_representation": "New Field | New Field | Data Type | Size | Data input type | Mandatory | Amendable | Default Value | Field Description\nCheque Txn No | Y | VARCHAR2 | 16 | Free Text | No | No | Blank | This field will allow the user to give the Cheque transaction number if user wants to see the Cheque replacement history\n |  |  |  |  |  |  |  | \nUH Name | Y | VARCHAR2 | NA | Read Only | Yes | Read Only | Blank | This field will show the Unit holder name\nUH IC No | Y | VARCHAR2 | NA | Read Only | Yes | Read Only | Blank | This field will show the Unit holder IC Number\n |  |  |  |  |  |  |  | \nNew Cheque number | Y | VARCHAR2 | NA | Free Text | Yes | Read Only | Blank | This field will show Reissued Cheque number in case of duplicate Cheques\nStatus change date | Y | Date | NA | Date | Yes | Read Only | Blank | This field will show the date on which Cheque status was changed to ‘Cleared’, if Cheque status changes to any other status then status change date will not show the change date",
+        "preceding_paragraph_index": 131,
+        "preceding_paragraph_text": "System will be enhanced to add the following fields in FMGCheque status summary screen (UTDCHKST)"
+      },
+      {
+        "table_index": 9,
+        "row_count": 8,
+        "column_count": 6,
+        "rows": [
+          [
+            "Field Name",
+            "New Field",
+            "Data input type",
+            "Default Value",
+            "New Values",
+            "Description"
+          ],
+          [
+            "Cheque Status",
+            "N",
+            "LOV",
+            "Blank",
+            "Ready",
+            "Cheque initial status will be Ready, once the Cheque is printed, status moves to 'Active'"
+          ],
+          [
+            "Cheque Status",
+            "N",
+            "LOV",
+            "Blank",
+            "Stop",
+            "User will be allowed to change the Cheque status as 'Stop'"
+          ],
+          [
+            "Cheque Status",
+            "N",
+            "LOV",
+            "Blank",
+            "Cleared",
+            "System will update the Cheque status based on Cheque status upload file"
+          ],
+          [
+            "Cheque Status",
+            "N",
+            "LOV",
+            "Blank",
+            "Rejected",
+            "System will update the Cheque status based on Cheque status upload file"
+          ],
+          [
+            "Cheque Status",
+            "N",
+            "LOV",
+            "Blank",
+            "Expired",
+            "System will update the Cheque status as Expired if the Cheque did not claim from six months"
+          ],
+          [
+            "Cheque Status",
+            "N",
+            "LOV",
+            "Blank",
+            "Unclaimed",
+            "System will update the Cheque status as Unclaimed if the Cheque did not claim from one year"
+          ],
+          [
+            "Cheque Status",
+            "N",
+            "LOV",
+            "Blank",
+            "Duplicate",
+            "System will update the Cheque status as Duplicate if Cheque is re-issued"
+          ]
+        ],
+        "text_representation": "Field Name | New Field | Data input type | Default Value | New Values | Description\nCheque Status | N | LOV | Blank | Ready | Cheque initial status will be Ready, once the Cheque is printed, status moves to 'Active'\nCheque Status | N | LOV | Blank | Stop | User will be allowed to change the Cheque status as 'Stop'\nCheque Status | N | LOV | Blank | Cleared | System will update the Cheque status based on Cheque status upload file\nCheque Status | N | LOV | Blank | Rejected | System will update the Cheque status based on Cheque status upload file\nCheque Status | N | LOV | Blank | Expired | System will update the Cheque status as Expired if the Cheque did not claim from six months\nCheque Status | N | LOV | Blank | Unclaimed | System will update the Cheque status as Unclaimed if the Cheque did not claim from one year\nCheque Status | N | LOV | Blank | Duplicate | System will update the Cheque status as Duplicate if Cheque is re-issued",
+        "preceding_paragraph_index": 135,
+        "preceding_paragraph_text": "System will be enhanced and restricted to show the following LOV values in field ‘Cheque Status’ in AGY/FMGCheque Status summary screen (UTDCHKST)"
+      },
+      {
+        "table_index": 10,
+        "row_count": 11,
+        "column_count": 9,
+        "rows": [
+          [
+            "New Field",
+            "New Field",
+            "Data Type",
+            "Size",
+            "Data input type",
+            "Mandatory",
+            "Amendable",
+            "Default Value",
+            "Field Description"
+          ],
+          [
+            "AMC ID",
+            "Y",
+            "VARCHAR2",
+            "NA",
+            "LOV",
+            "No",
+            "Read Only",
+            "",
+            "System will display the fund’s AMC for which Transaction or dividend is created"
+          ],
+          [
+            "Re-issue Reason",
+            "Y",
+            "VARCHAR2",
+            "2",
+            "Drop Down",
+            "Conditional",
+            "Yes",
+            "Blank",
+            "it will be used to specify the re-issue reason in case of duplicate Cheque"
+          ],
+          [
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked",
+            "Payee details subs screen open when payee details button clicked"
+          ],
+          [
+            "Payee Name",
+            "Y",
+            "VARCHAR2",
+            "180",
+            "Free Text",
+            "Conditional",
+            "Yes",
+            "Default to original Payee name",
+            "it will be used to specify the correct payee name if it is wrong"
+          ],
+          [
+            "Address Line1",
+            "Y",
+            "VARCHAR2",
+            "80",
+            "Free Text",
+            "Conditional",
+            "Yes",
+            "Default to Original Address Line1",
+            "it will be used to specify the correct Address Line1 if the original address line1 is wrong"
+          ],
+          [
+            "Address Line2",
+            "Y",
+            "VARCHAR2",
+            "80",
+            "Free Text",
+            "Conditional",
+            "Yes",
+            "Default to Original Address Line2",
+            "it will be used to specify the correct Address Line2 if the original address line2 is wrong"
+          ],
+          [
+            "Address Line3",
+            "Y",
+            "VARCHAR2",
+            "80",
+            "Free Text and LOV of City",
+            "Conditional",
+            "Yes",
+            "Default to Original Address Line3",
+            "it will be used to specify the correct Address Line3 if the original address line3 is wrong"
+          ],
+          [
+            "Address Line4",
+            "Y",
+            "VARCHAR2",
+            "80",
+            "LOV of State code",
+            "Conditional",
+            "Yes",
+            "Default to Original Address Line4",
+            "it will be used to specify the correct Address Line4 if the original address line4 is wrong"
+          ],
+          [
+            "Post code",
+            "Y",
+            "VARCHAR2",
+            "10",
+            "Free Text",
+            "Conditional",
+            "Yes",
+            "Default to Original Post code",
+            "it will be used to specify the correct Postal code if the original postal code is wrong"
+          ],
+          [
+            "Country",
+            "Y",
+            "VARCHAR2",
+            "3",
+            "LOV",
+            "Conditional",
+            "Yes",
+            "Default to Original country",
+            "it will be used to specify the correct country if the original country is wrong"
+          ]
+        ],
+        "text_representation": "New Field | New Field | Data Type | Size | Data input type | Mandatory | Amendable | Default Value | Field Description\nAMC ID | Y | VARCHAR2 | NA | LOV | No | Read Only |  | System will display the fund’s AMC for which Transaction or dividend is created\nRe-issue Reason | Y | VARCHAR2 | 2 | Drop Down | Conditional | Yes | Blank | it will be used to specify the re-issue reason in case of duplicate Cheque\nPayee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked | Payee details subs screen open when payee details button clicked\nPayee Name | Y | VARCHAR2 | 180 | Free Text | Conditional | Yes | Default to original Payee name | it will be used to specify the correct payee name if it is wrong\nAddress Line1 | Y | VARCHAR2 | 80 | Free Text | Conditional | Yes | Default to Original Address Line1 | it will be used to specify the correct Address Line1 if the original address line1 is wrong\nAddress Line2 | Y | VARCHAR2 | 80 | Free Text | Conditional | Yes | Default to Original Address Line2 | it will be used to specify the correct Address Line2 if the original address line2 is wrong\nAddress Line3 | Y | VARCHAR2 | 80 | Free Text and LOV of City | Conditional | Yes | Default to Original Address Line3 | it will be used to specify the correct Address Line3 if the original address line3 is wrong\nAddress Line4 | Y | VARCHAR2 | 80 | LOV of State code | Conditional | Yes | Default to Original Address Line4 | it will be used to specify the correct Address Line4 if the original address line4 is wrong\nPost code | Y | VARCHAR2 | 10 | Free Text | Conditional | Yes | Default to Original Post code | it will be used to specify the correct Postal code if the original postal code is wrong\nCountry | Y | VARCHAR2 | 3 | LOV | Conditional | Yes | Default to Original country | it will be used to specify the correct country if the original country is wrong",
+        "preceding_paragraph_index": 138,
+        "preceding_paragraph_text": "System will be enhanced to add the following fields in AGY/FMGCheque Printing screen (UTDCHKPR)"
+      },
+      {
+        "table_index": 11,
+        "row_count": 7,
+        "column_count": 2,
+        "rows": [
+          [
+            "Existing J2EE label",
+            "New label as per .Net"
+          ],
+          [
+            "Type of Transaction",
+            "Type of Cheque"
+          ],
+          [
+            "Check Number",
+            "Start Cheque Number"
+          ],
+          [
+            "Check Amount",
+            "Cheque Amount"
+          ],
+          [
+            "Check Currency",
+            "Cheque Currency"
+          ],
+          [
+            "Drawee Bank",
+            "Bank"
+          ],
+          [
+            "Drawee Branch",
+            "Branch"
+          ]
+        ],
+        "text_representation": "Existing J2EE label | New label as per .Net\nType of Transaction | Type of Cheque\nCheck Number | Start Cheque Number\nCheck Amount | Cheque Amount\nCheck Currency | Cheque Currency\nDrawee Bank | Bank\nDrawee Branch | Branch",
+        "preceding_paragraph_index": 143,
+        "preceding_paragraph_text": "Existing following fields labels in J2EE in Cheque printing screen will be renamed as per .Net and some the fields which are not required will make it invisible"
+      },
+      {
+        "table_index": 12,
+        "row_count": 6,
+        "column_count": 1,
+        "rows": [
+          [
+            "J2EE fields which are not require to display"
+          ],
+          [
+            "Depository ID"
+          ],
+          [
+            "Payment Number"
+          ],
+          [
+            "Product ID"
+          ],
+          [
+            "Module ID"
+          ],
+          [
+            "processed"
+          ]
+        ],
+        "text_representation": "J2EE fields which are not require to display\nDepository ID\nPayment Number\nProduct ID\nModule ID\nprocessed",
+        "preceding_paragraph_index": 143,
+        "preceding_paragraph_text": "Existing following fields labels in J2EE in Cheque printing screen will be renamed as per .Net and some the fields which are not required will make it invisible"
+      },
+      {
+        "table_index": 13,
+        "row_count": 3,
+        "column_count": 2,
+        "rows": [
+          [
+            "Existing J2EE label",
+            "New label"
+          ],
+          [
+            "Drawee Bank",
+            "Bank"
+          ],
+          [
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Existing J2EE label | New label\nDrawee Bank | Bank\n | ",
+        "preceding_paragraph_index": 147,
+        "preceding_paragraph_text": "Existing following fields labels in J2EE in Cheque status summary screen will be renamed as per .Net and some the fields which are not required will make it invisible"
+      },
+      {
+        "table_index": 14,
+        "row_count": 3,
+        "column_count": 1,
+        "rows": [
+          [
+            "J2EE fields which are not require to display"
+          ],
+          [
+            "Depository ID"
+          ],
+          [
+            "Payment Number"
+          ]
+        ],
+        "text_representation": "J2EE fields which are not require to display\nDepository ID\nPayment Number",
+        "preceding_paragraph_index": 147,
+        "preceding_paragraph_text": "Existing following fields labels in J2EE in Cheque status summary screen will be renamed as per .Net and some the fields which are not required will make it invisible"
+      },
+      {
+        "table_index": 15,
+        "row_count": 3,
+        "column_count": 7,
+        "rows": [
+          [
+            "Review comments by",
+            "RS Tag/ Req ID",
+            "FS Tag",
+            "Review Comment",
+            "Response",
+            "FS Updated",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Review comments by | RS Tag/ Req ID | FS Tag | Review Comment | Response | FS Updated | Status\n |  |  |  |  |  | \n |  |  |  |  |  | ",
+        "preceding_paragraph_index": 266,
+        "preceding_paragraph_text": "Review Comments"
+      },
+      {
+        "table_index": 16,
+        "row_count": 4,
+        "column_count": 6,
+        "rows": [
+          [
+            "Req ID.",
+            "Description",
+            "Resolution",
+            "Responsibility",
+            "Target date",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | \n |  |  |  |  | \n |  |  |  |  | ",
+        "preceding_paragraph_index": 270,
+        "preceding_paragraph_text": "Open Items"
+      },
+      {
+        "table_index": 17,
+        "row_count": 3,
+        "column_count": 6,
+        "rows": [
+          [
+            "Req ID.",
+            "Description",
+            "Resolution",
+            "Responsibility",
+            "Target date",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | \n |  |  |  |  | ",
+        "preceding_paragraph_index": 271,
+        "preceding_paragraph_text": "Closed Items"
+      }
+    ]
+  }
+}

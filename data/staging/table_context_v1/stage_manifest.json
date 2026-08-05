@@ -1,0 +1,61 @@
+{
+  "schema_version": "staged_fdd_rebuild_v1",
+  "status": "failed",
+  "created_at_utc": "2026-08-04T13:34:43.757558+00:00",
+  "index_generation": "table_context_v1",
+  "representation": "table_parent_context_v1",
+  "collection_name": "functional_specs_v3",
+  "embedding_input_version": "v1",
+  "embedding_record_artifact_version": "v1",
+  "embedding_model": "text-embedding-3-large",
+  "sources": [
+    {
+      "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_Cheque_Processing_v1.1.docx",
+      "sha256": "48f61756f8ec12b79e1edd781e27f42c023d17b260024be0475c514606d0ecda",
+      "size_bytes": 420957
+    },
+    {
+      "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_FinancialPlan_v1.1.docx",
+      "sha256": "5711d363994093ff9e2880f2889084493bff67c666e22c70c66d003fece7a2a7",
+      "size_bytes": 1340298
+    },
+    {
+      "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_Fund_Rule_v1.2.docx",
+      "sha256": "4eb7cd042128720b394d301f30330ae419d7f0e963886550f4ce25f6910dcecf",
+      "size_bytes": 2928668
+    },
+    {
+      "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx",
+      "sha256": "13a548f20f753e91c3ca34615d2d07cd333e5e30d0497020c290ce0fc6cdd4a3",
+      "size_bytes": 262310
+    },
+    {
+      "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R2_PNB_Branch Online Reports(BOR)_v1.2.docx",
+      "sha256": "3aea1e55d0f2e5390b2b35b1896d0d37035f867d61e77ce6386972879f341487",
+      "size_bytes": 5797771
+    },
+    {
+      "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R18_Minor_Program_v1.3.docx",
+      "sha256": "7e16a46576e8bce3d935c9c90014f0aeee186d0c9a932277b7cb5e5ee4f87b23",
+      "size_bytes": 15543355
+    },
+    {
+      "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R21_FDS_Enhancement_Phase1_v1.4.docx",
+      "sha256": "876c236848972ac6b62a45e48bc1d047e5ae2eaff6cee6f9e11ea4bd7f81c3a5",
+      "size_bytes": 5214829
+    },
+    {
+      "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx",
+      "sha256": "1541908f8b4208d6ff7d911162043b29ccf3c1bc809df74519eddb0762f703c5",
+      "size_bytes": 194578
+    }
+  ],
+  "totals": {
+    "records": 937,
+    "cached": 452,
+    "embedded": 485
+  },
+  "qdrant": {},
+  "failure_type": "RuntimeError",
+  "failure_message": "Conflicting cached embeddings found for cache_key=21e52f51d11f3849523d108131940c2fffd117dd5b295c6631ccf944c7e3344a"
+}

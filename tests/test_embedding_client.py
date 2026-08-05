@@ -18,8 +18,10 @@ from app.ingestion.table_chunker import chunk_tables_from_artifact
 
 
 class FakeEmbeddingItem:
-    def __init__(self, embedding: list[float]) -> None:
+    def __init__(self, embedding: list[float], index: int | None = None) -> None:
         self.embedding = embedding
+        if index is not None:
+            self.index = index
 
 
 class FakeEmbeddingResponse:
@@ -51,6 +53,21 @@ class MismatchedEmbeddingsAPI:
 class MismatchedFakeOpenAIClient:
     def __init__(self) -> None:
         self.embeddings = MismatchedEmbeddingsAPI()
+
+
+class OutOfOrderEmbeddingsAPI:
+    def create(self, model: str, input: list[str]) -> FakeEmbeddingResponse:
+        return FakeEmbeddingResponse(
+            [
+                FakeEmbeddingItem([2.0, 2.5], index=1),
+                FakeEmbeddingItem([1.0, 1.5], index=0),
+            ]
+        )
+
+
+class OutOfOrderFakeOpenAIClient:
+    def __init__(self) -> None:
+        self.embeddings = OutOfOrderEmbeddingsAPI()
 
 
 def test_embed_batch_updates_status_and_vectors(tmp_path: Path) -> None:
@@ -258,3 +275,66 @@ def test_embed_batch_reuses_one_new_vector_for_duplicate_content() -> None:
     assert fake_client.embeddings.calls == [["Repeated document boilerplate."]]
     assert embedded_batch.embedded_count == 2
     assert embedded_batch.records[0].vector == embedded_batch.records[1].vector
+
+
+def test_embed_batch_maps_provider_response_vectors_by_input_index() -> None:
+    records = [
+        EmbeddingRecord(
+            unit_id=f"unit-{index}",
+            unit_index=index,
+            source_kind="paragraph",
+            document_family="FS_ASNB",
+            release_label="R25",
+            content_hash=f"hash-{index}",
+            artifact_version="v1",
+            cache_key=f"cache-{index}",
+            text=f"Text {index}",
+            embedding_model="text-embedding-3-large",
+            embedding_status="pending",
+        )
+        for index in range(2)
+    ]
+
+    embedded_batch = embed_batch(
+        EmbeddingBatch(document_name="example.docx", total_records=2, records=records),
+        client=OutOfOrderFakeOpenAIClient(),
+    )
+
+    assert embedded_batch.records[0].vector == [1.0, 1.5]
+    assert embedded_batch.records[1].vector == [2.0, 2.5]
+
+
+def test_embed_batch_reuses_compatible_record_from_additional_cache_directory(tmp_path: Path) -> None:
+    record = EmbeddingRecord(
+        unit_id="unit-1",
+        unit_index=1,
+        source_kind="table",
+        document_family="FS_ASNB",
+        release_label="R21",
+        content_hash="hash-1",
+        artifact_version="v1",
+        cache_key="cache-1",
+        text="Parent context: Open Items",
+        embedding_model="text-embedding-3-large",
+        embedding_status="pending",
+    )
+    staged_cache = tmp_path / "staged-cache"
+    write_embedding_batch_to_json(
+        EmbeddingBatch(
+            document_name="earlier.docx",
+            total_records=1,
+            records=[replace(record, embedding_status="embedded", vector=[9.0, 9.1])],
+        ),
+        staged_cache,
+    )
+
+    embedded_batch = embed_batch(
+        EmbeddingBatch(document_name="later.docx", total_records=1, records=[record]),
+        client=FakeOpenAIClient(),
+        cache_directory=tmp_path / "active-cache",
+        additional_cache_directories=[staged_cache],
+    )
+
+    assert embedded_batch.cached_count == 1
+    assert embedded_batch.embedded_count == 0
+    assert embedded_batch.records[0].vector == [9.0, 9.1]

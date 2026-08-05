@@ -1,0 +1,348 @@
+{
+  "document_name": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx",
+  "document_family": "FS_FCIS_14.4.0.0.0$ASNB",
+  "release_label": "R1",
+  "total_chunks": 34,
+  "chunks": [
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_0",
+      "chunk_index": 0,
+      "paragraph_start_index": 0,
+      "paragraph_end_index": 4,
+      "paragraph_count": 5,
+      "text": "Functional Design Document\nNFL Enhancement\n5\nFunctional Specifications\nIntroduction",
+      "original_paragraph_start_index": 2,
+      "original_paragraph_end_index": 87
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_1",
+      "chunk_index": 1,
+      "paragraph_start_index": 5,
+      "paragraph_end_index": 9,
+      "paragraph_count": 5,
+      "text": "Background\nPNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well. The scope of work is to enhance  current .net version of FCIS application to FCIS 14.4.0.0.0 base product with functionalities required for PNB.\nOrganization of the Document\nThe first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.\nAcronyms and Abbreviations",
+      "original_paragraph_start_index": 88,
+      "original_paragraph_end_index": 92
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_2",
+      "chunk_index": 2,
+      "paragraph_start_index": 10,
+      "paragraph_end_index": 14,
+      "paragraph_count": 5,
+      "text": "Requirements Summary\nThe enhancements scoped in the document are relating to the Non-Financial load Enhancement that were customized for PNB as part of .net enhancements. The Details are covered in the Traceability Matrix section. The summary of requirements is as below:\nNon-Financial load setup\nProcess of calculating Non-financial load\nTransfer fee",
+      "original_paragraph_start_index": 94,
+      "original_paragraph_end_index": 99
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_3",
+      "chunk_index": 3,
+      "paragraph_start_index": 15,
+      "paragraph_end_index": 19,
+      "paragraph_count": 5,
+      "text": "SST on Non-financial load and BNM rounding\nGAP/New requirements are not part of this FS, these new Gaps will be discussed separately in detail and cover in different FS.\nNon-Financial load\nRequirements Overview\nSystem needs to parameterize the non-financial fees to be levied to customer per transaction.  While setting up the fees, when the fee is to be paid by unit holder, user should be able to indicate the fees to be collected from the unit holder or to be recovered from units.",
+      "original_paragraph_start_index": 100,
+      "original_paragraph_end_index": 106
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_4",
+      "chunk_index": 4,
+      "paragraph_start_index": 20,
+      "paragraph_end_index": 24,
+      "paragraph_count": 5,
+      "text": "GST (SST) is applicable for Non-Financial Services also where fee is collected. To cater GST (SST) and BNM rounding applicability on NFL services, NFL Maintenance will be enhanced to capture GST (SST) and BNM rounding applicability\nTransfer Fee to be charged for Transfer Transactions based on Transaction Channel and Fund Price Type\nExisting Functionality\nExisting AGYUH Status ChangeDetailUnit holder status change detail screen ‘UTDACCLS’ supports the user to mark the active unit holder as closed and mark closed Unit holder as Active.\nAssumptions",
+      "original_paragraph_start_index": 107,
+      "original_paragraph_end_index": 112
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_5",
+      "chunk_index": 5,
+      "paragraph_start_index": 25,
+      "paragraph_end_index": 29,
+      "paragraph_count": 5,
+      "text": "If any additional criteria require to apply on the load for non-financial events should be discussed and enhanced separately\nReports related to Non-financial transactions such as ‘Transaction summary’ will be covered as part of separate report FDD.\nGL related functionality and processing changes will be covered as part of separate FDD.\nUH Info screen will not be available in J2EE, user can modify the UH record from unit holder maintenance screen\nFollowing Non-financial events will be out of scope for upgrade in J2EE",
+      "original_paragraph_start_index": 113,
+      "original_paragraph_end_index": 117
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_6",
+      "chunk_index": 6,
+      "paragraph_start_index": 30,
+      "paragraph_end_index": 34,
+      "paragraph_count": 5,
+      "text": "Additional Khairat\nPassbook replacement - Non Chargeable\nPassbook replacement – Chargeable\nCheque status change- unclaimed\nCertificate re-issue",
+      "original_paragraph_start_index": 118,
+      "original_paragraph_end_index": 122
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_7",
+      "chunk_index": 7,
+      "paragraph_start_index": 35,
+      "paragraph_end_index": 39,
+      "paragraph_count": 5,
+      "text": "Monthly statement request for details transactions\nQuarterly statement request for details transactions\nFunctional Approach\nMaintenance\nSystem will be enhanced to add new system parameter ‘NFLEVENT’ which will be displayed in field Event in FMGNon-Financial load maintenance Details (UTDNFLM) screen, following parameter codes will be maintained:",
+      "original_paragraph_start_index": 123,
+      "original_paragraph_end_index": 129
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_8",
+      "chunk_index": 8,
+      "paragraph_start_index": 40,
+      "paragraph_end_index": 44,
+      "paragraph_count": 5,
+      "text": "System will be enhanced to add a new screen ‘Non-Financial load maintenance Details’ in FMG Non-Financial load maintenance Details  (UTDNFLM) screen for setting up loads for non-financial transactions. Screen fields are detailed below:\nThe following operations will be supported in FMGNon-Financial load maintenance Details  screen (UTDNFLM):\nNew: user can create new Non-Financial load setup by clicking on New button, once new button is clicked, system allows the user to enter the require fields to create new Non-financial load setup and allow to save it\nView: user has two option to retrieve the existing record to view, one in summary screen and another is from main screen\nSummary screen: user can provide the values in search fields and click on search button, based on search criteria, system fetches the result and display the records in body section, user can double click the record from summary screen, system opens the main screen, user can view all details",
+      "original_paragraph_start_index": 131,
+      "original_paragraph_end_index": 136
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_9",
+      "chunk_index": 9,
+      "paragraph_start_index": 45,
+      "paragraph_end_index": 49,
+      "paragraph_count": 5,
+      "text": "User can just enter the function ID which is screen ID in the top right corner like (UTDNFLM) and press enter or  arrow, system open main screen, user can click on Enter query button and provide key values in the main screen and then click on Execute query, based on key values system retrieve the record and display it\nNote: checker does not have option to reject the un-authorize record\nAmend: user can\nDelete: user can delete only un-authorize records and only maker can delete the created records, first search the record either through summary screen or main screen and click on ‘Delete button’ on top left corner in main screen, record will be deleted from system, authorized records cannot be deleted.\nCopy: If user want to create a new Non-Financial load setup with the same attributes of an existing maintenance, user can copy the attributes of an existing Non-Financial load setup record to a new one, first search existing record through summary screen or main screen, once the record is open from main screen click on ‘Copy’ button from top left corner, all attributes gets copy except event and Load ID, these two fields will be blank, then user can select the event and load ID and change the requires values in other fields and save the record, subsequently checker can authorize the record",
+      "original_paragraph_start_index": 137,
+      "original_paragraph_end_index": 142
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_10",
+      "chunk_index": 10,
+      "paragraph_start_index": 50,
+      "paragraph_end_index": 54,
+      "paragraph_count": 5,
+      "text": "A new Non-Financial load maintenance Summary (UTSNFLM) screen will be introduced in FMG  Non-financial load maintenance Summary (UTSNFLM) and it will have the following search fields:\nEvent code: system will display LOV of Event\nLoad ID: System will display list of Load IDs for which Non-Financial load is created\nFrom Entity: Entity types (Agent, AMC, Unit holder)\nTo Entity: Entity types (Agent, AMC, Unit holder)",
+      "original_paragraph_start_index": 144,
+      "original_paragraph_end_index": 148
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_11",
+      "chunk_index": 11,
+      "paragraph_start_index": 55,
+      "paragraph_end_index": 59,
+      "paragraph_count": 5,
+      "text": "Recover Units: it will show three option as All, Yes, No\nAuth Status: Authorize/un-Authorize\nDisabled status: All, Yes, No\nSystem display the list of records in body section based on the search criteria provided in header section, user can double click the record and system will open the main ‘Non-financial load’ screen\nA new Non-financial load maintenance Summary (UTSNFLM) screen will support J2EE standard product functions:",
+      "original_paragraph_start_index": 149,
+      "original_paragraph_end_index": 154
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_12",
+      "chunk_index": 12,
+      "paragraph_start_index": 60,
+      "paragraph_end_index": 64,
+      "paragraph_count": 5,
+      "text": "Search\nReset\nClear All\nExport\nNon-financial load can be mapped to agents in Non-Financial load maintenance Details screen If any one of the entities either ‘from’ or ‘to’ is an Agent, then Agent Code becomes mandatory, a grid will be available in non-financial load maintenance  screen where user can select multiple agents for an event, here agent is agency branch module Agent, if any Agency branch performs Non-financial events and this Agency Branch module Agent is mapped to these Non-financial load as ‘To’ entity, then this agent will get benefit of Non-financial load,",
+      "original_paragraph_start_index": 155,
+      "original_paragraph_end_index": 161
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_13",
+      "chunk_index": 13,
+      "paragraph_start_index": 65,
+      "paragraph_end_index": 69,
+      "paragraph_count": 5,
+      "text": "System will be enhanced to add new criteria in FMGLoad maintenance (UTDLOADM) screen which will be used to create criteria load and map as Non-financial load for event ‘Transfer’, new criteria as detailed below\nUsing the above criteria user can setup the criteria load based on Transaction Channel and Fund Price Type, as shown below:\nAll the Transaction Channel for all the Transactions other than OTC are considered as Online (Non-OTC)\nOnce the above loads are created in FMGLoad maintenance (UTDLOADM)screen, user can map these loads to event ‘Transfer’ in Non-Financial load maintenance Detail (UTDNFLM) screen\nScreen Changes",
+      "original_paragraph_start_index": 162,
+      "original_paragraph_end_index": 167
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_14",
+      "chunk_index": 14,
+      "paragraph_start_index": 70,
+      "paragraph_end_index": 74,
+      "paragraph_count": 5,
+      "text": "FMGNon financial Load maintenance (UTDNFLM) screen\nFMGNon financial Load maintenance summary (UTSNFLM) screen\nProcessing Changes\nThough the multiple events maintained under param code ‘NFLEVENT’, system will support only following Non-financial events for which system will calculate the Fee/commission and store in the table\nUH account creation",
+      "original_paragraph_start_index": 168,
+      "original_paragraph_end_index": 177
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_15",
+      "chunk_index": 15,
+      "paragraph_start_index": 75,
+      "paragraph_end_index": 79,
+      "paragraph_count": 5,
+      "text": "UH Info change (Modification of UH Record)-only information change as given below\nAuthRep ID\nAdressLine1 (Correspondence Address)\nAdressLine2 (Correspondence Address)\n(Correspondence Address)",
+      "original_paragraph_start_index": 178,
+      "original_paragraph_end_index": 184
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_16",
+      "chunk_index": 16,
+      "paragraph_start_index": 80,
+      "paragraph_end_index": 84,
+      "paragraph_count": 5,
+      "text": "(Correspondence Address)\nPost Code    (Correspondence Address)\nIdentification Type\nIdentification number\nOccupation",
+      "original_paragraph_start_index": 185,
+      "original_paragraph_end_index": 189
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_17",
+      "chunk_index": 17,
+      "paragraph_start_index": 85,
+      "paragraph_end_index": 89,
+      "paragraph_count": 5,
+      "text": "Bank Code\nAccount Number\nCountry\t(Correspondence Address)\nEmail\t\t(Correspondence Address)\n(Correspondence Address)",
+      "original_paragraph_start_index": 190,
+      "original_paragraph_end_index": 194
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_18",
+      "chunk_index": 18,
+      "paragraph_start_index": 90,
+      "paragraph_end_index": 94,
+      "paragraph_count": 5,
+      "text": "(Correspondence Address)\nPhone Number\t(Correspondence Address)\nPreferred Mail Mode\nUH account closure due to non-eligibility\nTransmission",
+      "original_paragraph_start_index": 195,
+      "original_paragraph_end_index": 199
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_19",
+      "chunk_index": 19,
+      "paragraph_start_index": 95,
+      "paragraph_end_index": 99,
+      "paragraph_count": 5,
+      "text": "Initial Khairat\nInsolvency\nTransfer\nHolding statement request\nDetail statement request",
+      "original_paragraph_start_index": 200,
+      "original_paragraph_end_index": 204
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_20",
+      "chunk_index": 20,
+      "paragraph_start_index": 100,
+      "paragraph_end_index": 104,
+      "paragraph_count": 5,
+      "text": "Annual statement request\nEPF Quarterly statement\nFirst user has to create the load in FMGLoad maintenance (UTDLOADM) screen and map these loads to events in FMGNon-Financial load (UTDNFLM) screen with additional details such as from Entity, to Entity, SST applicability and Agent code if applicable\nSystem will trigger calculation of fee/commission when the event is authorized using the load mapped to that event, some of these loads will not be deducted from unit holder balance or paid to any entity in FCIS system, it will be log and store in table.\nExample: UH creation",
+      "original_paragraph_start_index": 205,
+      "original_paragraph_end_index": 209
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_21",
+      "chunk_index": 21,
+      "paragraph_start_index": 105,
+      "paragraph_end_index": 109,
+      "paragraph_count": 5,
+      "text": "Assume fee is set as RM 3.00\nUH is created by the maker in UH creation screen when checker authorized the UH, system will calculate the fee as RM.3.00 which will not impact on UH balance and these Fee will be logged and stored in table.\nExample: UH Info change\nAssume fee is set as RM 5.00\nMaker makes the amendments to UH ( ) when checker authorized the UH amendments, system will calculate the fee as RM.5.00 which will not impact on UH balance and these Fee will be logged and stored in table.",
+      "original_paragraph_start_index": 210,
+      "original_paragraph_end_index": 215
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_22",
+      "chunk_index": 22,
+      "paragraph_start_index": 110,
+      "paragraph_end_index": 114,
+      "paragraph_count": 5,
+      "text": "Example:  Account closure\nAssume fee is set as RM 7.00\nMaker mark the UH as closed in unit holder status change detail UTDACCLS screen when checker authorized it, system will calculate the fee as RM.7.00 which will not impact on UH balance and these Fee will be logged and stored in table.\nExample: Transmission\nAssume fee is set as RM 5.00",
+      "original_paragraph_start_index": 217,
+      "original_paragraph_end_index": 222
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_23",
+      "chunk_index": 23,
+      "paragraph_start_index": 115,
+      "paragraph_end_index": 119,
+      "paragraph_count": 5,
+      "text": "when Transmission beneficiary details are captured in Transmission screen, system will calculate the fee as RM.5.00 and during EOD batch the job ‘First Transmission processing’ which will trigger the redemption transaction per fund which will have amount equal to fee RM 5.00 which will be deducted from UH balance from each fund.\nExample: Initial Khairat\nAssume fee is set as RM 4.00\nMaker mark the UH as Deceased in UH screen UTDUHFT and fill the initial khairat details in same UH lite screen when checker authorized these UH ‘Initial Khairat’ changes, system will calculate the fee as RM.4.00 which will not be deducted from initial khairat amount, or\nIf maker fill the khairat details in UH khairat subs screen and when checker authorized it, system will calculate the fee as RM.4.00 which will not be deducted from initial khairat amount.",
+      "original_paragraph_start_index": 223,
+      "original_paragraph_end_index": 228
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_24",
+      "chunk_index": 24,
+      "paragraph_start_index": 120,
+      "paragraph_end_index": 124,
+      "paragraph_count": 5,
+      "text": "Example: Insolvency\nAssume fee is set as RM 10.00\nWhen user attaches the RPO code ‘Insolvent’ to a UH in UH lite screen UTDUHFT and tag the UH in UH fund suspension screen in AGY UH fund suspension screen UTDFDSUS with reason as Insolvent, after 14 days( days can be Parameterized) system will calculate the fee as RM.10.00 and create redemption transaction of amount RM 10.00 which will be reduced from UH balance.\nExample: Holding statement request\nAssume fee is set as RM 5.00",
+      "original_paragraph_start_index": 230,
+      "original_paragraph_end_index": 235
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_25",
+      "chunk_index": 25,
+      "paragraph_start_index": 125,
+      "paragraph_end_index": 129,
+      "paragraph_count": 5,
+      "text": "When Holding statement is generated from statement request maintenance screen that time system will calculate the fee and store in table, it will not impact on UH balance,\nSimilarly, if below non-financial load events are setup then system will calculate the fee when statements are requested and generated from statement request maintenance screen\n•\tDetail statement request\n•\tAnnual statement request\n•\tEPF Quarterly statement",
+      "original_paragraph_start_index": 236,
+      "original_paragraph_end_index": 240
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_26",
+      "chunk_index": 26,
+      "paragraph_start_index": 130,
+      "paragraph_end_index": 134,
+      "paragraph_count": 5,
+      "text": "Non-financial load for Transfer: Once the Criteria load is created based on the fund type and transaction channels, user will map the load to event ‘Transfer’ in Non-financial load maintenance screen and configure should be from entity as UH and TO entity as AMC,\nWhen the transfer transaction is allocated for that particular fund type and transaction channel, system will calculate the fee and create the redemption transaction with same amount\nThis redemption transaction with ref type as ‘LF’ will be allocated on same day with same day NAV and same number of units will be deducted from transferor unit balance\nSales and Services Tax (SST): SST will be applied on Non-financial load amount if SST applicable field is set as Yes and SST rate is configured in Non-Financial load maintenance Details  (UTDNFLM) screen\nsystem will calculate the SST based on SST rate on Non-financial load where SST is applicable, for example",
+      "original_paragraph_start_index": 242,
+      "original_paragraph_end_index": 247
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_27",
+      "chunk_index": 27,
+      "paragraph_start_index": 135,
+      "paragraph_end_index": 139,
+      "paragraph_count": 5,
+      "text": "System calculate the SST only to those unit holders whose ’SST Exempted’ field is un-checked in Unit Holder Detail FT Maintenance Screen\nSystem will not calculate the SST to those unit holders whose ’GST Exempted’ field is checked in Unit Holder Detail FT Maintenance Screen\nBNM Rounding: System will be enhanced to perform the rounding based on the BNM rounding logic and it will be applied on all Non-financial loads\nBNM rounding logic will be applied to the final total amount of the transaction inclusive of SST. The actual SST amount will not be affected by rounding. The rounding gain or loss will be absorbed by ASNB.\nIf the total amount of a bill (including sales and services subject to tax) that ends in 1, 2, 6 and 7 sen, will be rounded downwards and 3, 4, 8 and 9 sen will be rounded upwards to the nearest multiple of 5 sen. This rounding mechanism will be applicable to all over the counter cash payments, below tables explain of NB round",
+      "original_paragraph_start_index": 250,
+      "original_paragraph_end_index": 254
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_28",
+      "chunk_index": 28,
+      "paragraph_start_index": 140,
+      "paragraph_end_index": 144,
+      "paragraph_count": 5,
+      "text": "BNM Rounding will be applied on the Transaction based Load  at the time of Calculating fee.\nSST will be computed and BNM rounding logic will applied for Non-financial load as mention below\nSST will be computed and BNM rounding logic will applied for Non-financial load ‘Transfer’ as mention below\nAfter BNM rounding, system will create the redemption transaction for amount 16.45 and same amount will be deducted from transferor UH balance\nProcess Flow",
+      "original_paragraph_start_index": 255,
+      "original_paragraph_end_index": 274
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_29",
+      "chunk_index": 29,
+      "paragraph_start_index": 145,
+      "paragraph_end_index": 149,
+      "paragraph_count": 5,
+      "text": "Non-Financial load\nTrigger\nBulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes",
+      "original_paragraph_start_index": 276,
+      "original_paragraph_end_index": 317
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_30",
+      "chunk_index": 30,
+      "paragraph_start_index": 150,
+      "paragraph_end_index": 154,
+      "paragraph_count": 5,
+      "text": "Transaction summary report which has the section – “FORM SUBMISSION SUMMARY’ which displays fund and teller-wise counts for various Non-Financial transactions will be part of Separate Report FDD\nAdditional aspects if any\nNA\nAnnexure:\nClient specific documents",
+      "original_paragraph_start_index": 318,
+      "original_paragraph_end_index": 322
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_31",
+      "chunk_index": 31,
+      "paragraph_start_index": 155,
+      "paragraph_end_index": 159,
+      "paragraph_count": 5,
+      "text": "Base FS documents from .net as mentioned in Traceability matrix.\nGateway /Scheduler / Interface Layout Specification Doc\nNA\nReport Layouts / Specification doc.\nNA",
+      "original_paragraph_start_index": 323,
+      "original_paragraph_end_index": 327
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_32",
+      "chunk_index": 32,
+      "paragraph_start_index": 160,
+      "paragraph_end_index": 164,
+      "paragraph_count": 5,
+      "text": "Review Comments:\nReview Comments\nIssue Status\nOpen Items\nClosed Items",
+      "original_paragraph_start_index": 328,
+      "original_paragraph_end_index": 335
+    },
+    {
+      "chunk_id": "FS_FCIS_14.4.0.0.0$ASNB_R1_NFL_Enhancement_v1.1.docx::chunk_33",
+      "chunk_index": 33,
+      "paragraph_start_index": 165,
+      "paragraph_end_index": 166,
+      "paragraph_count": 2,
+      "text": "Functional Specifications\nFebruary  2021",
+      "original_paragraph_start_index": 338,
+      "original_paragraph_end_index": 339
+    }
+  ]
+}

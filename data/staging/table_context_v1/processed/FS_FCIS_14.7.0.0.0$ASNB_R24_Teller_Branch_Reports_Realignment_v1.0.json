@@ -1,0 +1,685 @@
+{
+  "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx",
+  "parsed_name": {
+    "document_name": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx",
+    "document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0",
+    "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
+    "release_label": "R24",
+    "release_number": 24,
+    "variant_suffix": "Teller_Branch_Reports_Realignment_v1.0",
+    "source_type": "docx"
+  },
+  "extracted_text": {
+    "file_name": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx",
+    "paragraph_count": 181,
+    "non_empty_paragraph_count": 111,
+    "paragraphs": [
+      "",
+      "",
+      "Functional Design Document",
+      "",
+      "Teller and Branch Reports Re-alignment",
+      "",
+      "",
+      "Client Name                                   : PNB",
+      "Release Name\t\t\t\t\t    : FCIS_14.7.0.0.0$ASNB_R24",
+      "Project ID                                        : 400352227",
+      "Document Ref                                : FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx",
+      "Author                                             : Waseem Manchinkop",
+      "Creation Date                                 : Oct 29, 2025",
+      "Last Updated                                  : Oct 29, 2025",
+      "Version                                            : 1.0",
+      "Title, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.",
+      "",
+      "Title, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.",
+      "",
+      "",
+      "To add additional approval lines, press [Tab] from the last cell in the table above.",
+      "",
+      "You can delete any elements of this cover page that you do not need for your document.",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Document Control",
+      "",
+      "Change Record",
+      "7",
+      "Reviewers",
+      "",
+      "",
+      "Approvers",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Traceability Matrix",
+      "",
+      "",
+      "",
+      "",
+      "Functional Specifications",
+      "",
+      "Table of Contents",
+      "",
+      "1\tDocument Control\t2",
+      "1.1\tChange Record\t2",
+      "1.2\tReviewers\t2",
+      "1.3\tApprovers\t2",
+      "1.4\tTraceability Matrix\t3",
+      "2.\tIntroduction\t5",
+      "2.1.\tBackground\t5",
+      "2.2.\tOrganization of the Document\t5",
+      "2.3.\tAcronyms and Abbreviations\t5",
+      "3.\tRequirements Summary\t6",
+      "4.\tTeller and Branch Reports Re-alignment\t6",
+      "4.1.\tRequirements Overview\t6",
+      "4.2.\tExisting Functionality\t8",
+      "4.3.\tAssumptions\t8",
+      "4.4.\tFunctional Approach\t8",
+      "4.4.1.\tMaintenance\t8",
+      "4.4.2.\tScreen Changes\t8",
+      "4.4.3.\tProcessing Changes\t8",
+      "4.4.4.\tBulk Upload/External Interface / Gateway / Scheduler changes\t9",
+      "4.4.5.\tReport or BO Universe or BI Changes\t9",
+      "4.4.6.\tAdditional aspects if any\t10",
+      "5.\tAnnexure:\t11",
+      "5.1.1.\tClient specific documents\t11",
+      "5.1.2.\tGateway /Scheduler / Interface Layout Specification Doc\t11",
+      "5.1.3.\tReport Layouts / Specification doc.\t11",
+      "6.\tReview Comments:\t11",
+      "6.1.\tReview Comments\t11",
+      "7.\tIssue Status\t11",
+      "7.1.\tOpen Items\t11",
+      "7.2.\tClosed Items\t11",
+      "",
+      "",
+      "Introduction",
+      "Background",
+      "PNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well.",
+      "Organization of the Document",
+      "The first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.",
+      "Acronyms and Abbreviations",
+      "",
+      "Requirements Summary",
+      "",
+      "The enhancements scoped in the document are relating to multiple Teller reports consolidating into 1 and multiple Branch reports consolidating into single and remove the reports which are not required.",
+      "Teller and Branch Reports Re-alignment",
+      "Requirements Overview",
+      "Requirement with respect to FCIS:",
+      "",
+      "Existing Functionality",
+      "Currently a total of 23 reports need to be printed/downloaded by branch EOD for batching and reconciliation purpose.",
+      "Teller Report – 6",
+      "BO Report – 17",
+      "Assumptions",
+      "Extraction logic of all the reports remains same.",
+      "Functional Approach",
+      "Maintenance",
+      "NA.",
+      "Screen Changes",
+      "NA",
+      "Processing Changes",
+      "BOR - Teller Reports",
+      "Following Teller reports will undergo changes in FCIS:",
+      "T-1 report name will be changed to “T-1 Teller End of Day Report”",
+      "T -1 report layout will be changed as per below attached sample report:",
+      "",
+      "",
+      "BOR - Branch Reports",
+      "Following BOR reports will undergo changes in FCIS:",
+      "",
+      "B-01 report name will be changed to “B-01 Branch End of Day Report”",
+      "B-01 report layout will be changed as per below attached sample report:",
+      "",
+      "Bulk Upload/External Interface / Gateway / Scheduler changes",
+      "NA",
+      "Report or BO Universe or BI Changes",
+      "NA",
+      "Additional aspects if any",
+      "NA",
+      "",
+      "Annexure:",
+      "Client specific documents",
+      "BRD Realignment of Teller and Branch Online Reports in FDS v.2",
+      "Gateway /Scheduler / Interface Layout Specification Doc",
+      "NA",
+      "Report Layouts / Specification doc.",
+      "NA",
+      "Review Comments:",
+      "Review Comments",
+      "",
+      "Issue Status",
+      "Open Items",
+      "Closed Items",
+      "",
+      "",
+      "Functional Specifications",
+      "Oct 2025",
+      "Version number:1.0",
+      "",
+      "Oracle Corporation",
+      "World Headquarters",
+      "",
+      "",
+      "",
+      "",
+      "Worldwide Inquiries:",
+      "Phone: +1.650.506.7000",
+      "Fax: +1.650.506.7200",
+      "www.oracle.com/ financial_services/",
+      "",
+      "Copyright © 2025. All rights reserved.  \n\n\n\nNo part of this work may be reproduced, stored in a retrieval system, adopted or transmitted in any form or by any means, electronic, mechanical, photographic, graphic, optic recording or otherwise, translated in any language or computer language, without the prior written permission of Oracle Financial Services Software Limited and/or its affiliates.  \n\nDue care has been taken to make this FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx and accompanying software package (if any) as accurate as possible. However, Oracle Financial Services Software Limited makes no representation or warranties with respect to the contents hereof and shall not be responsible for any loss or damage caused to the user by the direct or indirect use of thisFS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx and the accompanying Software Product  (if any). Furthermore, Oracle Financial Services Software Limited reserves the right to alter, modify or otherwise change in any manner the content hereof, without obligation of Oracle Financial Services Software Limited to notify any person of such revision or changes. \n\nAll company and product names are trademarks of the respective companies with which they are associated.",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "full_text": "Functional Design Document\nTeller and Branch Reports Re-alignment\nClient Name                                   : PNB\nRelease Name\t\t\t\t\t    : FCIS_14.7.0.0.0$ASNB_R24\nProject ID                                        : 400352227\nDocument Ref                                : FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx\nAuthor                                             : Waseem Manchinkop\nCreation Date                                 : Oct 29, 2025\nLast Updated                                  : Oct 29, 2025\nVersion                                            : 1.0\nTitle, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.\nTitle, Subject, Last Updated Date, Reference Number, and Version are marked by a Word Bookmark so that they can be easily reproduced in the header and footer of documents.  When you change any of these values, be careful not to accidentally delete the bookmark.  You can make bookmarks visible by selecting the Office Button>Word Options>Advanced> and checking the Show bookmarks option in the Show document content region.\nTo add additional approval lines, press [Tab] from the last cell in the table above.\nYou can delete any elements of this cover page that you do not need for your document.\nDocument Control\nChange Record\n7\nReviewers\nApprovers\nTraceability Matrix\nFunctional Specifications\nTable of Contents\n1\tDocument Control\t2\n1.1\tChange Record\t2\n1.2\tReviewers\t2\n1.3\tApprovers\t2\n1.4\tTraceability Matrix\t3\n2.\tIntroduction\t5\n2.1.\tBackground\t5\n2.2.\tOrganization of the Document\t5\n2.3.\tAcronyms and Abbreviations\t5\n3.\tRequirements Summary\t6\n4.\tTeller and Branch Reports Re-alignment\t6\n4.1.\tRequirements Overview\t6\n4.2.\tExisting Functionality\t8\n4.3.\tAssumptions\t8\n4.4.\tFunctional Approach\t8\n4.4.1.\tMaintenance\t8\n4.4.2.\tScreen Changes\t8\n4.4.3.\tProcessing Changes\t8\n4.4.4.\tBulk Upload/External Interface / Gateway / Scheduler changes\t9\n4.4.5.\tReport or BO Universe or BI Changes\t9\n4.4.6.\tAdditional aspects if any\t10\n5.\tAnnexure:\t11\n5.1.1.\tClient specific documents\t11\n5.1.2.\tGateway /Scheduler / Interface Layout Specification Doc\t11\n5.1.3.\tReport Layouts / Specification doc.\t11\n6.\tReview Comments:\t11\n6.1.\tReview Comments\t11\n7.\tIssue Status\t11\n7.1.\tOpen Items\t11\n7.2.\tClosed Items\t11\nIntroduction\nBackground\nPNB is the market leader for unit trust business in Malaysia. PNB’s objective is to provide excellent unit trust services, innovative solutions for their customers and agents as well.\nOrganization of the Document\nThe first chapter of this document gives an introduction with brief background and organization of the document.  Subsequent chapters cover the details of the actual enhancements.\nAcronyms and Abbreviations\nRequirements Summary\nThe enhancements scoped in the document are relating to multiple Teller reports consolidating into 1 and multiple Branch reports consolidating into single and remove the reports which are not required.\nTeller and Branch Reports Re-alignment\nRequirements Overview\nRequirement with respect to FCIS:\nExisting Functionality\nCurrently a total of 23 reports need to be printed/downloaded by branch EOD for batching and reconciliation purpose.\nTeller Report – 6\nBO Report – 17\nAssumptions\nExtraction logic of all the reports remains same.\nFunctional Approach\nMaintenance\nNA.\nScreen Changes\nNA\nProcessing Changes\nBOR - Teller Reports\nFollowing Teller reports will undergo changes in FCIS:\nT-1 report name will be changed to “T-1 Teller End of Day Report”\nT -1 report layout will be changed as per below attached sample report:\nBOR - Branch Reports\nFollowing BOR reports will undergo changes in FCIS:\nB-01 report name will be changed to “B-01 Branch End of Day Report”\nB-01 report layout will be changed as per below attached sample report:\nBulk Upload/External Interface / Gateway / Scheduler changes\nNA\nReport or BO Universe or BI Changes\nNA\nAdditional aspects if any\nNA\nAnnexure:\nClient specific documents\nBRD Realignment of Teller and Branch Online Reports in FDS v.2\nGateway /Scheduler / Interface Layout Specification Doc\nNA\nReport Layouts / Specification doc.\nNA\nReview Comments:\nReview Comments\nIssue Status\nOpen Items\nClosed Items\nFunctional Specifications\nOct 2025\nVersion number:1.0\nOracle Corporation\nWorld Headquarters\nWorldwide Inquiries:\nPhone: +1.650.506.7000\nFax: +1.650.506.7200\nwww.oracle.com/ financial_services/\nCopyright © 2025. All rights reserved.  \n\n\n\nNo part of this work may be reproduced, stored in a retrieval system, adopted or transmitted in any form or by any means, electronic, mechanical, photographic, graphic, optic recording or otherwise, translated in any language or computer language, without the prior written permission of Oracle Financial Services Software Limited and/or its affiliates.  \n\nDue care has been taken to make this FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx and accompanying software package (if any) as accurate as possible. However, Oracle Financial Services Software Limited makes no representation or warranties with respect to the contents hereof and shall not be responsible for any loss or damage caused to the user by the direct or indirect use of thisFS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx and the accompanying Software Product  (if any). Furthermore, Oracle Financial Services Software Limited reserves the right to alter, modify or otherwise change in any manner the content hereof, without obligation of Oracle Financial Services Software Limited to notify any person of such revision or changes. \n\nAll company and product names are trademarks of the respective companies with which they are associated."
+  },
+  "extracted_tables": {
+    "file_name": "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment_v1.0.docx",
+    "table_count": 11,
+    "tables": [
+      {
+        "table_index": 0,
+        "row_count": 9,
+        "column_count": 4,
+        "rows": [
+          [
+            "Date",
+            "Author",
+            "Version",
+            "Change Reference"
+          ],
+          [
+            "29-Oct-2025",
+            "Waseem Manchinkop",
+            "1.0",
+            "Initial Draft"
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ],
+          [
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Date | Author | Version | Change Reference\n29-Oct-2025 | Waseem Manchinkop | 1.0 | Initial Draft\n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | \n |  |  | ",
+        "preceding_paragraph_index": 32,
+        "preceding_paragraph_text": "Change Record"
+      },
+      {
+        "table_index": 1,
+        "row_count": 3,
+        "column_count": 6,
+        "rows": [
+          [
+            "Name",
+            "Role",
+            "Status",
+            "Comments",
+            "Version Reviewed",
+            "Date"
+          ],
+          [
+            "Bhanu Pratap Singh",
+            "Consulting Practice Manager",
+            "Reviewed",
+            "",
+            "1.0",
+            ""
+          ],
+          [
+            "Shan Natarajan",
+            "Consulting Technical Manager",
+            "Reviewed",
+            "",
+            "1.0",
+            ""
+          ]
+        ],
+        "text_representation": "Name | Role | Status | Comments | Version Reviewed | Date\nBhanu Pratap Singh | Consulting Practice Manager | Reviewed |  | 1.0 | \nShan Natarajan | Consulting Technical Manager | Reviewed |  | 1.0 | ",
+        "preceding_paragraph_index": 34,
+        "preceding_paragraph_text": "Reviewers"
+      },
+      {
+        "table_index": 2,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Name",
+            "Role",
+            "Status",
+            "Comments",
+            "Version Approved",
+            "Date"
+          ],
+          [
+            "Sudhakar Gali",
+            "Director - Banking Consulting - FLEXCUBE Investor Servicing",
+            "Approved",
+            "",
+            "1.0",
+            ""
+          ]
+        ],
+        "text_representation": "Name | Role | Status | Comments | Version Approved | Date\nSudhakar Gali | Director - Banking Consulting - FLEXCUBE Investor Servicing | Approved |  | 1.0 | ",
+        "preceding_paragraph_index": 37,
+        "preceding_paragraph_text": "Approvers"
+      },
+      {
+        "table_index": 3,
+        "row_count": 3,
+        "column_count": 5,
+        "rows": [
+          [
+            "BRS - FS Traceability Matrix",
+            "BRS - FS Traceability Matrix",
+            "BRS - FS Traceability Matrix",
+            "BRS - FS Traceability Matrix",
+            "BRS - FS Traceability Matrix"
+          ],
+          [
+            "BRS Tag",
+            "BRD Name",
+            "FS Tag",
+            "FS name"
+          ],
+          [
+            "PPT",
+            "BRD Realignment of Teller and Branch Online Reports in FDS v.2",
+            "4.1",
+            "FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx"
+          ]
+        ],
+        "text_representation": "BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix | BRS - FS Traceability Matrix\nBRS Tag | BRD Name | FS Tag | FS name\nPPT | BRD Realignment of Teller and Branch Online Reports in FDS v.2 | 4.1 | FS_FCIS_14.7.0.0.0$ASNB_R24_Teller_Branch_Reports_Realignment.docx",
+        "preceding_paragraph_index": 43,
+        "preceding_paragraph_text": "Traceability Matrix"
+      },
+      {
+        "table_index": 4,
+        "row_count": 15,
+        "column_count": 2,
+        "rows": [
+          [
+            "Abbreviation",
+            "Description"
+          ],
+          [
+            "FCIS",
+            "FLEXCUBE®™ Investor Servicing"
+          ],
+          [
+            "FMG",
+            "Fund Manager Module in FCIS"
+          ],
+          [
+            "AGY",
+            "Agency Branch Manager Module in FCIS"
+          ],
+          [
+            "UT",
+            "Unit Trust"
+          ],
+          [
+            "PNB",
+            "Permodalan Nasional Berhad"
+          ],
+          [
+            "ASNB",
+            "Amanah Saham Nasional Berhad"
+          ],
+          [
+            "FDS",
+            "Fund Distribution System"
+          ],
+          [
+            "EOD",
+            "End of Day"
+          ],
+          [
+            "FCIS",
+            "Flexcube Investor Services"
+          ],
+          [
+            "FP",
+            "Fixed Priced Fund"
+          ],
+          [
+            "VP",
+            "Variable Priced Fund"
+          ],
+          [
+            "BOR",
+            "Branch Online Reports"
+          ],
+          [
+            "UH",
+            "Unit holder"
+          ],
+          [
+            "OTC",
+            "Over The Counter"
+          ]
+        ],
+        "text_representation": "Abbreviation | Description\nFCIS | FLEXCUBE®™ Investor Servicing\nFMG | Fund Manager Module in FCIS\nAGY | Agency Branch Manager Module in FCIS\nUT | Unit Trust\nPNB | Permodalan Nasional Berhad\nASNB | Amanah Saham Nasional Berhad\nFDS | Fund Distribution System\nEOD | End of Day\nFCIS | Flexcube Investor Services\nFP | Fixed Priced Fund\nVP | Variable Priced Fund\nBOR | Branch Online Reports\nUH | Unit holder\nOTC | Over The Counter",
+        "preceding_paragraph_index": 89,
+        "preceding_paragraph_text": "Acronyms and Abbreviations"
+      },
+      {
+        "table_index": 5,
+        "row_count": 5,
+        "column_count": 3,
+        "rows": [
+          [
+            "No.",
+            "Item",
+            "Business Requirement"
+          ],
+          [
+            "5.",
+            "Enhancement on FDS Reports (Teller)",
+            "1. T-1 Cash Cheque Analysis Report Propose new layout for T-1 To consolidate existing T-2 and T-3 into T-1 To rename report name to T-1 Teller End of Day Report Sample Report : T-01 Teller End of Day Report.xlsx 2. T-2 Teller Transaction Summary To remove from FDS 3. T-3 Teller Transaction Detail To remove from FDS 4. T-4 Teller Transaction Payment Report To rename report number T-4 to T-2 Sample Report: T-2 Teller Transaction Payment Report.pdf 5. T-5 Transaction Summary Report – Corporate Client To remove from FDS 6. T-6 PNB Group Employee Transaction Report To remove from FDS"
+          ],
+          [
+            "6.",
+            "Enhancement on FDS Reports (Branch Online) 1/3",
+            "1. B-01 Cash Cheque Analysis Report Propose new layout for B-01 To consolidate existing B-02, B-03, B-06 into B-01 To rename report name to B-01 Branch End of Day Report Sample Report: B-01 Branch End of Day Report.xlsx 2. B-10 Branch Transaction Payment Report To rename report number B-10 to B-02 Branch Transaction Payment Report Sample Report: B02 Branch Transaction Payment Report.pdf 3. B-14 Pending Cheque/ Money Transfer Status To rename report number B-14 to B-03 Pending Cheque/ Money Transfer Status Sample Report: B03 Pending Cheque Money Transfer Status.pdf 4. B-17 PNB Group Employee Transaction Report To rename report number B-17 to B-04 PNB Group Employee Transaction Report Sample Report: B04 PNB Group Employee Transaction Report.pdf"
+          ],
+          [
+            "7.",
+            "Enhancement on FDS Reports (Branch Online) 2/3",
+            "B-02 Teller Cash Balance Report To remove from FDS B-03 Branch Transaction Summary To remove from FDS B-04 Summary Transaction Approved by Supervisor To remove from FDS B-05 Transaction Summary by Teller To remove from FDS B-06 Transaction Summary by Fund To remove from FDS B-07 Transaction Summary by Time To remove from FDS B-08 Branch Cash/Non-Cash Transaction Summary To remove from FDS B-09 Branch Transaction Detail Report To remove from FDS B-11 Fund Switching Transaction To remove from FDS"
+          ],
+          [
+            "8.",
+            "Enhancement on FDS Reports (Branch Online) 3/3",
+            "B-12 Account Registration/ Closure Details To remove from FDS B-15 Fund Financial Plan Transaction To remove from FDS B-16 Transaction Summary Report – Corporate Client To remove from FDS"
+          ]
+        ],
+        "text_representation": "No. | Item | Business Requirement\n5. | Enhancement on FDS Reports (Teller) | 1. T-1 Cash Cheque Analysis Report Propose new layout for T-1 To consolidate existing T-2 and T-3 into T-1 To rename report name to T-1 Teller End of Day Report Sample Report : T-01 Teller End of Day Report.xlsx 2. T-2 Teller Transaction Summary To remove from FDS 3. T-3 Teller Transaction Detail To remove from FDS 4. T-4 Teller Transaction Payment Report To rename report number T-4 to T-2 Sample Report: T-2 Teller Transaction Payment Report.pdf 5. T-5 Transaction Summary Report – Corporate Client To remove from FDS 6. T-6 PNB Group Employee Transaction Report To remove from FDS\n6. | Enhancement on FDS Reports (Branch Online) 1/3 | 1. B-01 Cash Cheque Analysis Report Propose new layout for B-01 To consolidate existing B-02, B-03, B-06 into B-01 To rename report name to B-01 Branch End of Day Report Sample Report: B-01 Branch End of Day Report.xlsx 2. B-10 Branch Transaction Payment Report To rename report number B-10 to B-02 Branch Transaction Payment Report Sample Report: B02 Branch Transaction Payment Report.pdf 3. B-14 Pending Cheque/ Money Transfer Status To rename report number B-14 to B-03 Pending Cheque/ Money Transfer Status Sample Report: B03 Pending Cheque Money Transfer Status.pdf 4. B-17 PNB Group Employee Transaction Report To rename report number B-17 to B-04 PNB Group Employee Transaction Report Sample Report: B04 PNB Group Employee Transaction Report.pdf\n7. | Enhancement on FDS Reports (Branch Online) 2/3 | B-02 Teller Cash Balance Report To remove from FDS B-03 Branch Transaction Summary To remove from FDS B-04 Summary Transaction Approved by Supervisor To remove from FDS B-05 Transaction Summary by Teller To remove from FDS B-06 Transaction Summary by Fund To remove from FDS B-07 Transaction Summary by Time To remove from FDS B-08 Branch Cash/Non-Cash Transaction Summary To remove from FDS B-09 Branch Transaction Detail Report To remove from FDS B-11 Fund Switching Transaction To remove from FDS\n8. | Enhancement on FDS Reports (Branch Online) 3/3 | B-12 Account Registration/ Closure Details To remove from FDS B-15 Fund Financial Plan Transaction To remove from FDS B-16 Transaction Summary Report – Corporate Client To remove from FDS",
+        "preceding_paragraph_index": 96,
+        "preceding_paragraph_text": "Requirement with respect to FCIS:"
+      },
+      {
+        "table_index": 6,
+        "row_count": 7,
+        "column_count": 3,
+        "rows": [
+          [
+            "Sl No",
+            "Existing Teller Reports Name",
+            "Teller Reports - Realignment changes"
+          ],
+          [
+            "1",
+            "T-1 Cash Cheque Analysis Report",
+            "Existing Teller reports T-2 and T-3 will be consolidated into T-1 report."
+          ],
+          [
+            "2",
+            "T-2 Teller Transaction Summary",
+            "Remove from FCIS"
+          ],
+          [
+            "3",
+            "T-3 Teller Transaction Detail",
+            "Remove from FCIS"
+          ],
+          [
+            "4",
+            "T-4 Teller Cheque/Money Transfer/Debit Card Txn Report",
+            "It will be renamed as ‘T-2 Teller Transaction Payment Report’"
+          ],
+          [
+            "5",
+            "T-5 Transaction Summary Report – Corporate Client",
+            "Remove from FCIS"
+          ],
+          [
+            "6",
+            "T-6 PNB Group Employee Transaction Report",
+            "Remove from FCIS"
+          ]
+        ],
+        "text_representation": "Sl No | Existing Teller Reports Name | Teller Reports - Realignment changes\n1 | T-1 Cash Cheque Analysis Report | Existing Teller reports T-2 and T-3 will be consolidated into T-1 report.\n2 | T-2 Teller Transaction Summary | Remove from FCIS\n3 | T-3 Teller Transaction Detail | Remove from FCIS\n4 | T-4 Teller Cheque/Money Transfer/Debit Card Txn Report | It will be renamed as ‘T-2 Teller Transaction Payment Report’\n5 | T-5 Transaction Summary Report – Corporate Client | Remove from FCIS\n6 | T-6 PNB Group Employee Transaction Report | Remove from FCIS",
+        "preceding_paragraph_index": 111,
+        "preceding_paragraph_text": "Following Teller reports will undergo changes in FCIS:"
+      },
+      {
+        "table_index": 7,
+        "row_count": 17,
+        "column_count": 3,
+        "rows": [
+          [
+            "Sl No",
+            "Existing Branch online Reports Name",
+            "Branch Reports - Realignment changes"
+          ],
+          [
+            "1",
+            "B-01 Cash Cheque Analysis Report",
+            "Existing B-02, B-03 and B-06 will be consolidated into B-01 report."
+          ],
+          [
+            "2",
+            "B-02 Teller Cash Balance Report",
+            "Remove from FCIS"
+          ],
+          [
+            "3",
+            "B-03 Branch Transaction Summary",
+            "Remove from FCIS"
+          ],
+          [
+            "4",
+            "B-04 Summary Transaction Approved by Supervisor",
+            "Remove from FCIS"
+          ],
+          [
+            "5",
+            "B-05 Transaction Summary by Teller",
+            "Remove from FCIS"
+          ],
+          [
+            "6",
+            "B-06 Transaction Summary by Fund",
+            "Remove from FCIS"
+          ],
+          [
+            "7",
+            "B-07 Transaction Summary by Time",
+            "Remove from FCIS"
+          ],
+          [
+            "8",
+            "B-08 Branch Cash/Non-Cash Transaction Summary",
+            "Remove from FCIS"
+          ],
+          [
+            "9",
+            "B-09 Branch Transaction Detail Report",
+            "Remove from FCIS"
+          ],
+          [
+            "10",
+            "B-10 Branch Transaction Payment Report",
+            "It will be renamed as B-02 Branch Transaction Payment Report"
+          ],
+          [
+            "11",
+            "B-11 Fund Switching Transaction",
+            "Remove from FCIS"
+          ],
+          [
+            "12",
+            "B-12 Account Registration/ Closure Details",
+            "Remove from FCIS"
+          ],
+          [
+            "13",
+            "B-14 Pending Cheque/ Money Transfer Status",
+            "It will be renamed as B-03 Pending Cheque/ Money Transfer Status"
+          ],
+          [
+            "14",
+            "B-15 Fund Financial Plan Transaction",
+            "Remove from FCIS"
+          ],
+          [
+            "15",
+            "B-16 Transaction Summary Report – Corporate Client",
+            "Remove from FCIS"
+          ],
+          [
+            "16",
+            "B-17 PNB Group Employee Transaction Report",
+            "It will be renamed as B-04 PNB Group Employee Transaction Report"
+          ]
+        ],
+        "text_representation": "Sl No | Existing Branch online Reports Name | Branch Reports - Realignment changes\n1 | B-01 Cash Cheque Analysis Report | Existing B-02, B-03 and B-06 will be consolidated into B-01 report.\n2 | B-02 Teller Cash Balance Report | Remove from FCIS\n3 | B-03 Branch Transaction Summary | Remove from FCIS\n4 | B-04 Summary Transaction Approved by Supervisor | Remove from FCIS\n5 | B-05 Transaction Summary by Teller | Remove from FCIS\n6 | B-06 Transaction Summary by Fund | Remove from FCIS\n7 | B-07 Transaction Summary by Time | Remove from FCIS\n8 | B-08 Branch Cash/Non-Cash Transaction Summary | Remove from FCIS\n9 | B-09 Branch Transaction Detail Report | Remove from FCIS\n10 | B-10 Branch Transaction Payment Report | It will be renamed as B-02 Branch Transaction Payment Report\n11 | B-11 Fund Switching Transaction | Remove from FCIS\n12 | B-12 Account Registration/ Closure Details | Remove from FCIS\n13 | B-14 Pending Cheque/ Money Transfer Status | It will be renamed as B-03 Pending Cheque/ Money Transfer Status\n14 | B-15 Fund Financial Plan Transaction | Remove from FCIS\n15 | B-16 Transaction Summary Report – Corporate Client | Remove from FCIS\n16 | B-17 PNB Group Employee Transaction Report | It will be renamed as B-04 PNB Group Employee Transaction Report",
+        "preceding_paragraph_index": 117,
+        "preceding_paragraph_text": "Following BOR reports will undergo changes in FCIS:"
+      },
+      {
+        "table_index": 8,
+        "row_count": 2,
+        "column_count": 7,
+        "rows": [
+          [
+            "Review comments by",
+            "RS Tag/ Req ID",
+            "FS Tag",
+            "Review Comment",
+            "Response",
+            "FS Updated",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Review comments by | RS Tag/ Req ID | FS Tag | Review Comment | Response | FS Updated | Status\n |  |  |  |  |  | ",
+        "preceding_paragraph_index": 137,
+        "preceding_paragraph_text": "Review Comments"
+      },
+      {
+        "table_index": 9,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Req ID.",
+            "Description",
+            "Resolution",
+            "Responsibility",
+            "Target date",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+        "preceding_paragraph_index": 140,
+        "preceding_paragraph_text": "Open Items"
+      },
+      {
+        "table_index": 10,
+        "row_count": 2,
+        "column_count": 6,
+        "rows": [
+          [
+            "Req ID.",
+            "Description",
+            "Resolution",
+            "Responsibility",
+            "Target date",
+            "Status"
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
+        ],
+        "text_representation": "Req ID. | Description | Resolution | Responsibility | Target date | Status\n |  |  |  |  | ",
+        "preceding_paragraph_index": 141,
+        "preceding_paragraph_text": "Closed Items"
+      }
+    ]
+  }
+}
