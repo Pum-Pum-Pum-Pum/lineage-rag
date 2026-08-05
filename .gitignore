@@ -51,6 +51,7 @@ data/exports/*
 !data/exports/.gitkeep
 data/docs_embedded/
 data/raw_specs/
+data/staging/*
 
 
 # Evaluation outputs
