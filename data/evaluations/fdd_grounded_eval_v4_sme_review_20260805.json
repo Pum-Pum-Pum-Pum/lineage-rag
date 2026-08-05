@@ -46,5 +46,16 @@
       "rationale": "R21 directly states EPF Applicable defaults and amendment restrictions for Minor unit holders. The response safely refused, but the refusal was incorrect because direct R21 evidence exists.",
       "required_follow_up": "Add an explicit R21 Minor CIF EPF retrieval regression with direct source evidence."
     }
+  ],
+  "runtime_reviews": [
+    {
+      "case_id": "r18-minor-program-reinvestment-consumption-001",
+      "report": "data/exports/evaluations/fdd-grounded-v4-r18-reinvestment-20260805.json",
+      "trace": "data/exports/evaluations/fdd-grounded-eval-20260805T134140Z/answer_traces/fdd-grounded-eval-20260805T134140Z-r18-minor-program-reinvestment-consumption-001.json",
+      "reviewed_at": "2026-08-05",
+      "verdict": "accepted",
+      "rationale": "SME confirmed that the answer contained the required information.",
+      "required_follow_up": "None; answer accepted."
+    }
   ]
 }

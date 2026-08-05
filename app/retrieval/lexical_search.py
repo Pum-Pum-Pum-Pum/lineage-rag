@@ -46,6 +46,7 @@ class LexicalSearchDocument:
     document_family: str
     release_label: str
     text: str
+    document_id: str = ""
     retrieval_text: str = ""
     parent_unit_id: str | None = None
 
@@ -93,6 +94,7 @@ def load_retrieval_ready_documents(
     for artifact_file in sorted(directory.glob("*.retrieval_ready.json")):
         payload = json.loads(artifact_file.read_text(encoding="utf-8"))
         document_name = str(payload.get("document_name", artifact_file.name))
+        fallback_document_id = str(payload.get("document_id", ""))
         fallback_family = str(payload.get("document_family", ""))
         fallback_release = str(payload.get("release_label", ""))
 
@@ -106,6 +108,7 @@ def load_retrieval_ready_documents(
                     document_family=str(unit.get("document_family", fallback_family)),
                     release_label=str(unit.get("release_label", fallback_release)),
                     text=str(unit.get("text", "")),
+                    document_id=str(unit.get("document_id") or fallback_document_id),
                     retrieval_text=str(unit.get("retrieval_text") or unit.get("text", "")),
                     parent_unit_id=unit.get("parent_unit_id"),
                 )
@@ -157,6 +160,7 @@ def search_lexical_documents(
                 score=score,
                 payload={
                     "document_name": document.document_name,
+                    "document_id": document.document_id,
                     "unit_id": document.unit_id,
                     "unit_index": document.unit_index,
                     "source_kind": document.source_kind,

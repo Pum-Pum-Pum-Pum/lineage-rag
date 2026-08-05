@@ -5583,3 +5583,362 @@ end-to-end repair test, and rejected premature global fusion tuning.
 
 Step 113 is accepted. Implement explicit parent-table context relationships;
 do not modify the weighted-RRF algorithm in this step.
+
+## Step 116 — Separate embedding-input compatibility from index generation
+
+### Interview status
+
+The user explicitly skipped the interview check for this naming-hardening step.
+No questions were asked and no answers require evaluation.
+
+### Gate
+
+Proceed only to the paid isolated staging rebuild. Do not change API/UI
+configuration until staging integrity and grounded retrieval evaluation pass.
+
+## Steps 117–119 — Staged rebuild failure, cache repair, and retry plan
+
+### Interview questions
+
+#### Step 117
+
+1. Why was preserving the failed v3 stage and refusing Qdrant indexing safer
+   than choosing one conflicting vector and continuing?
+2. The run reports 452 cached and 485 newly embedded records. Why is this not
+   evidence that the resulting index is valid or cost-efficient?
+3. What evidence should an incident record retain after a paid embedding run
+   fails before indexing?
+
+#### Step 118
+
+4. Why is blindly zipping embedding response data to request inputs unsafe even
+   when the API often appears to return data in order?
+5. Why does one canonical vector per compatible cache key improve both cost and
+   correctness, while Qdrant still needs separate points for each occurrence?
+6. When merging active and staged cache sources, why must a vector conflict
+   fail closed instead of preferring either source by directory order?
+
+#### Step 119
+
+7. Why must a retry use `functional_specs_v4` and a new stage directory rather
+   than cleaning/reusing the failed v3 names?
+8. What does the successful retry dry run prove, and what does it deliberately
+   not prove?
+9. Why does the v4 retry require a new explicit paid-operation approval even
+   though the user previously approved the v3 attempt?
+
+### Correct-answer rubric
+
+1. A conflicting vector makes the cache identity untrustworthy. Choosing one
+   may attach a vector to the wrong evidence and corrupt grounded ranking;
+   preservation supports diagnosis, reproducibility, and audit.
+2. They describe execution/cost only. The run failed integrity before indexing;
+   they do not prove vector-to-text mapping, exact Qdrant points, retrieval,
+   citations, or answer quality. The high new count also needs cost analysis.
+3. Record immutable source hashes, versions/model, stage/collection names,
+   request timing/counts where available, cache-hit/miss totals, failure type
+   and message, partial-artifact paths, and the decision not to activate.
+4. A reordered response can silently assign a valid vector to the wrong text.
+   Provider-declared input indexes must be validated and mapped; malformed
+   indexes must fail closed.
+5. Equal compatible input has one semantic vector, so reuse avoids duplicate
+   API work and inconsistent records. Each source occurrence still needs a
+   distinct unit/document/release payload and point for filtering/citation.
+6. Directory order is not a trust rule. A conflict indicates data corruption,
+   model/input drift, or an earlier mapping error; accepting either hides the
+   condition and makes the generation non-reproducible.
+7. v3 may contain partial artifacts or an empty/partial collection. Reuse
+   mixes evidence and destroys forensic/rollback state. A named v4 generation
+   is isolated, reviewable, and reversible.
+8. It proves source selection/hashes and target absence/safety checks. It does
+   not call OpenAI, create vectors, index points, prove exact verification, or
+   evaluate retrieval, citations, abstention, and answer correctness.
+9. The retry makes new paid calls after a known failed run and may have a
+   different cost/impact. Explicit approval confirms the user accepts that
+   fresh external operation with the repaired design.
+
+### User answer evaluation
+
+Pass. All nine answers meet the Steps 117–119 production rubric. The user
+correctly explained fail-closed cache integrity, the limits of execution
+metrics, incident evidence, provider ordering, canonical vector reuse versus
+citation identity, cache conflict handling, versioned retry isolation, dry-run
+limits, and renewed authorization for paid work.
+
+### Gate
+
+Steps 117–119 are accepted. The next paid boundary remains the isolated v4
+retry; do not activate or alter the current v2 API/UI configuration.
+
+## Steps 120–122 — v4 rebuild, integrity, and R21 staged evidence
+
+### Interview questions
+
+#### Step 120
+
+1. Why is a successful paid v4 rebuild not, by itself, permission to change
+   `.env` from `functional_specs_v2` to `functional_specs_v4`?
+2. Why must v2 remain intact even after a v4 rebuild reports success?
+3. What operational evidence distinguishes a completed v4 generation from an
+   activated production generation?
+
+#### Step 121
+
+4. Why do `verified_records=937` and `functional_specs_v4_points=937` together
+   give stronger integrity evidence than either number alone?
+5. How can v4 have 937 citeable records but only 464 newly embedded vectors?
+6. Why is `conflicting_cache_keys=0` necessary but insufficient for grounded
+   answer safety?
+
+#### Step 122
+
+7. Why does the R21 table ranking 2nd prove the parent-context retrieval repair
+   is working, but not prove the final hybrid RAG answer is correct?
+8. Why must the system refuse “marital status is supported” even when it
+   retrieves nearby R21 CIF Data Correction evidence?
+9. What evaluation evidence is still required before switching the API/UI to
+   v4?
+
+### Correct-answer rubric
+
+1. Build success proves only staged construction/integrity. Activation needs
+   retrieval, grounding, citation, abstention, configuration/readiness, and
+   rollback evidence.
+2. v2 is the known working rollback generation. Retaining it prevents a new
+   generation failure from removing service continuity or comparison evidence.
+3. Completed means stage manifest/integrity succeeded. Activated means reviewed
+   evaluation passed, configuration changed deliberately, service restarted,
+   readiness verified, and rollback remains possible.
+4. The manifest shows exact artifact-to-point verification; the independent
+   collection count confirms no records are missing from the target namespace.
+   Either alone can conceal a wrong artifact set or extra/missing points.
+5. Many records reuse the same compatible embedding input/vector, while each
+   document/unit occurrence remains separately stored for source identity,
+   filtering, coverage, and citation.
+6. It proves cache consistency only. It does not establish retrieval relevance,
+   direct evidence, correct citations, refusal behavior, or LLM answer quality.
+7. It proves the controlled lexical candidate mechanism reaches the table. The
+   live path still includes dense retrieval, fusion, filtering, evidence
+   packing, prompting, citation validation, and answer behavior.
+8. Nearby topic evidence cannot establish the requested attribute. The cited
+   source lacks that field, so claiming support would violate direct grounding.
+9. Run staged dense/hybrid retrieval and answer evaluations, positive and
+   negative citation/refusal cases, reviewed FDD regressions, readiness/config
+   inspection, a v2 rollback rehearsal, and SME review of material answers.
+
+## Steps 123–125 — Coherent v4 automated evaluation and resumable baseline
+
+### Interview questions
+
+#### Step 123
+
+1. Why would evaluating v4 Qdrant vectors with v2 lexical artifacts invalidate
+   a hybrid evaluation, even if each source is individually valid?
+2. Why is an explicit CLI target override safer than changing `.env` merely to
+   run a staged evaluation?
+3. What must an evaluation report record so a reviewer can prove which dense
+   and lexical generation produced it?
+
+#### Step 124
+
+4. Why must a 30-case manifest with `sme_reviewed=false` be labelled a draft
+   baseline even when every deterministic check passes?
+5. What does a dry run prove about an evaluation, and what costly or semantic
+   behavior does it deliberately not prove?
+6. Why is `estimated_llm_cost=0.0` not evidence that the actual automated run
+   was free?
+
+#### Step 125
+
+7. Why does validating a resumed trace's case ID and query prevent an
+   interrupted run from silently mixing answers across cases?
+8. Why are all six abstention passes good safety evidence but insufficient to
+   accept v4 when seven answered/cross-release cases failed?
+9. Before changing retrieval weights, prompts, or release logic, how should the
+   seven failures be classified and reviewed?
+
+### Correct-answer rubric
+
+1. Hybrid fusion compares/ranks results from both lanes. Mixing generations
+   creates evidence that never coexisted in one index contract and makes scores,
+   citations, and regressions uninterpretable.
+2. CLI overrides are process-local and auditable; `.env` changes risk serving
+   staged data to the live API/UI or leaving an accidental state after testing.
+3. Record collection name, lexical artifact path, source/artifact generation,
+   retrieval mode/configuration, evaluation manifest, run ID, trace paths, and
+   draft/review status.
+4. Deterministic checks do not establish that expected claims are correct,
+   complete, unambiguous, or entailed. Only SME review can turn the benchmark
+   into a quality gate.
+5. It proves input parsing, selected cases, paired target scope, and planned
+   execution. It does not call models, write traces/reports, prove retrieval or
+   answer behavior, or incur/measure real cost.
+6. The application price settings are zero/unconfigured. Provider billing can
+   still occur; use provider usage/billing data and token measurements instead.
+7. A trace from another question may look structurally valid but represent a
+   different answer/evidence. Matching case identity and exact query prevents
+   false passes and duplicated/misassigned results.
+8. Abstention passes prove a bounded safety behavior. Answered/cross-release
+   failures reveal unresolved availability, release selection, citation, or
+   expectation issues that can still mislead users.
+9. Review each trace and source with an SME, label it as a bad expectation,
+   retrieval/ranking gap, release-scoping gap, citation-contract issue, or
+   correct refusal; measure category counts and only then make a targeted,
+   regression-tested change.
+
+## Step 126 — Deterministic SME review packet for v4 failures
+
+### Interview status
+
+No interview questions yet. This batch pauses at the manual SME review boundary;
+the seven verdicts and source-based rationales are required before the next
+evaluation/improvement steps can be selected.
+
+## Steps 127–129 — SME decision ledger and new functionality regression
+
+### Interview questions
+
+#### Step 127
+
+1. Why is a machine-readable SME decision ledger safer than retaining only a
+free-form chat summary of evaluation verdicts?
+2. Why must an `expected_case_incorrect` decision result in an evaluation-case
+change rather than retrieval tuning?
+3. Why should one failed case receive one primary verdict even if it has several
+symptoms in the automated report?
+
+#### Step 128
+
+4. Why is the R18 reinvestment-consumption question a stronger user-facing
+regression than a question that simply asks which release contains a feature?
+5. Why should this case require the exact R18 document and table-aware evidence
+instead of accepting any nearby Minor Program citation?
+6. Why does `sme_reviewed=true` not guarantee a future LLM response is correct?
+
+#### Step 129
+
+7. What does a one-case dry run prove about the newly added R18 regression?
+8. Why must the targeted paid run use v4 paired dense/lexical evidence rather
+than the live v2 configuration?
+9. Why should a single targeted regression run be reviewed before running the
+entire expanded manifest again?
+
+### Correct-answer rubric
+
+1. A durable structured ledger preserves case IDs, labels, rationales, and
+follow-ups for reproducibility, audit, aggregation, and future regression
+planning; chat is not an operational source of truth.
+2. The benchmark—not retrieval—is wrong or over-constrained. Tuning retrieval
+would hide a measurement defect and may regress valid queries.
+3. A primary verdict establishes accountable next action and measurable category
+counts. Secondary observations may be written in the rationale without making
+the remediation ambiguous.
+4. It mirrors how users ask about business behavior, exercises structured table
+evidence and conditional rules, and measures useful functionality rather than
+metadata recall.
+5. Nearby Minor Program text may omit or contradict the detailed conditional
+rules. Exact source/table evidence protects entailment and citation quality.
+6. Review validates the expected benchmark, not provider output at runtime.
+Retrieval, evidence selection, prompt generation, and citations may still fail.
+7. It proves schema validity, reviewed status, explicit scope, and paired target
+selection. It does not prove retrieval, answer correctness, citations, or cost.
+8. The regression measures the staged v4 generation under review. Running v2
+would test a different evidence contract and cannot justify v4 activation.
+9. It bounds cost and isolates diagnosis. If it fails, the trace identifies one
+mechanism; a full run would add noise and make causal analysis harder.
+
+### User answer evaluation
+
+Pass. All nine answers meet the Steps 127–129 production rubric. The user
+correctly distinguished durable evaluation records from chat, benchmark defects
+from retrieval defects, primary remediation ownership, table-aware functional
+evaluation, reviewed expectations from runtime answers, paired v4 measurement,
+and bounded-cost diagnosis.
+
+### Gate
+
+Steps 127–129 are accepted. Await explicit approval for one paid targeted v4
+runtime run before any broader evaluation or configuration change.
+
+## Step 130 — Targeted v4 R18 reinvestment runtime evaluation
+
+### Interview status
+
+No interview questions. The SME accepted the runtime answer on 2026-08-05,
+confirming it contains the required information. The decision is recorded in
+the structured SME review ledger; no retrieval or prompt change follows from
+this accepted one-case result.
+
+## Steps 131–133 — Release-gap diagnosis, trace diagnostics, and current-state scoping
+
+1. Why is a current-state query that mentions R2 as a historical baseline unsafe
+   to filter directly to R2?
+2. Why is broad retrieval followed by latest-relevant-release scoping safer for
+   this query class than increasing the global RRF lexical weight?
+3. Which authority may still intentionally pin a current-state query to one
+   release, and why is that different from a release merely mentioned in prose?
+
+4. Why must a trace preserve dense and lexical candidate-lane summaries rather
+   than only the final fused top-k result?
+5. Why do candidate-lane trace summaries exclude full source text even though
+   the selected answer evidence already records text?
+6. If an expected R21 unit appears in lexical candidates but not final fused
+   evidence, which layers remain possible causes before blaming the LLM?
+
+7. What does the `17 passed` focused suite prove about the new current-state
+   repair, and what does it not prove?
+8. Why should the next paid replay run only the two confirmed repaired
+   current-state cases, rather than all unresolved v4 failures?
+9. What evidence must be present before activating v4 after those targeted
+   replays succeed?
+
+### Correct-answer rubric
+
+1. Historical R2 baseline filtering can exclude newer deployed evidence and
+produce a stale current-state answer.
+2. Broad relevance-bounded retrieval plus temporal scoping fixes candidate
+eligibility locally; global weight changes can regress unrelated ranking.
+3. The explicit API/request `release_label` filter is the runtime pinning
+authority. An SME or benchmark may define it, unlike an ambiguous prose mention.
+4. Lane summaries identify whether evidence was found before fusion, filtering,
+packing, or generation.
+5. Candidate summaries should use identifiers and scores, not duplicate source
+text or blur provenance.
+6. Candidate generation, fusion, filtering, evidence packing, citation
+validation, and only then generation remain possible causes.
+7. The focused suite proves the deterministic contract under test, not live
+retrieval relevance, semantic correctness, citation entailment, or production
+readiness.
+8. Two confirmed cases bound cost and establish causality for this one repair.
+9. Activation requires staged retrieval and answer evidence, positive and
+negative grounding/citation behavior, reviewed regressions, integrity/readiness
+checks, rollback rehearsal, and SME approval.
+
+### User answer evaluation
+
+Pass. All nine answers meet the production rubric. The user accurately covered
+temporal grounding, relevance-bounded retrieval, candidate-lane diagnostics,
+failure-layer isolation, targeted paid validation, and release activation
+evidence. Precision note: an explicit API/request `release_label` is the
+runtime pinning authority; SMEs and benchmarks define its intended value.
+
+## Steps 134–136 — Multi-scope temporal retrieval and reviewed replay preflight
+
+1. Why must `effective_release_label` remain R24 while R2 evidence is retained
+   for a multi-part question?
+2. Why should the planner exclude unrelated R1 evidence even when it is highly
+   ranked?
+3. What is the difference between `referenced_release_labels` and an explicit
+   API/request `release_label` filter?
+
+4. Why does the R2/R24/R1 deterministic regression need all three releases?
+5. Why does an empty dense or lexical candidate lane remain useful diagnostic
+   evidence instead of being silently omitted?
+6. Why do the 18 focused tests still not justify v4 activation?
+
+7. Why create a separate reviewed two-case manifest rather than changing the
+   review flags of the full 30-case draft benchmark?
+8. Why is `draft=False` important before treating the paid replay as a
+   release-gate signal?
+9. What must the SME inspect in the two new traces beyond structural pass and
+   citation release labels?

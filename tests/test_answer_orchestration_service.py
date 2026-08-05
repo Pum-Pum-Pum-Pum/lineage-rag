@@ -257,3 +257,57 @@ def test_current_query_expands_candidates_scopes_latest_release_and_marks_answer
         trace_payload["retrieval_metadata"]["release_source"]
         == "retrieved_candidates"
     )
+
+
+def test_current_query_keeps_historical_release_mentions_out_of_retrieval_filter(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_retrieve_query_evidence(**kwargs):
+        captured["retrieve_kwargs"] = kwargs
+        return RoutedRetrievalResult(
+            retrieval_mode="hybrid",
+            results=[
+                QdrantSearchResult(
+                    point_id="r2",
+                    score=0.9,
+                    payload={"unit_id": "r2", "text": "R2", "release_label": "R2"},
+                ),
+                QdrantSearchResult(
+                    point_id="r24",
+                    score=0.8,
+                    payload={"unit_id": "r24", "text": "R24", "release_label": "R24"},
+                ),
+            ],
+        )
+
+    monkeypatch.setattr(answer_orchestration, "retrieve_query_evidence", fake_retrieve_query_evidence)
+    monkeypatch.setattr(
+        answer_orchestration,
+        "generate_grounded_answer",
+        lambda **kwargs: GroundedAnswerResponse(
+            query=kwargs["query"], answer="R24 [C1].", is_answered=True, refusal_reason=None, citations=[]
+        ),
+    )
+
+    result = run_grounded_answer_query(
+        qdrant_client=object(),
+        collection_name="lineage_chunks",
+        query_text=(
+            "Which current release contains the Teller and Branch Reports Re-alignment "
+            "change, rather than the original R2 report specifications?"
+        ),
+        embedding_model="test-embedding-model",
+        retrieval_config=_retrieval_config("hybrid"),
+        lexical_artifact_directory=tmp_path / "processed",
+        trace_output_directory=tmp_path / "answer_runs",
+    )
+
+    retrieve_kwargs = captured["retrieve_kwargs"]
+    assert retrieve_kwargs["release_label"] is None
+    assert [item.point_id for item in result.retrieval_results] == ["r2", "r24"]
+    trace_payload = json.loads(result.trace_output_path.read_text(encoding="utf-8"))
+    assert trace_payload["retrieval_metadata"]["effective_release_label"] == "R24"
+    assert trace_payload["retrieval_metadata"]["referenced_release_labels"] == ["R2"]

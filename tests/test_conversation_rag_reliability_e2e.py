@@ -205,7 +205,9 @@ def test_abstention_and_invalid_citation_are_persisted_as_safe_outcomes(
             result_count=1,
             top_score=0.82,
         ),
-        llm_client=_FakeLLMClient("Unsupported claim [C99]."),
+        llm_client=_FakeLLMClient(
+            "DECISION: ANSWER\nUnsupported claim [C99]."
+        ),
         model="test-model",
     )
     responses = iter(

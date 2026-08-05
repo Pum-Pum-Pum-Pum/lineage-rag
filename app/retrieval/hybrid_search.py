@@ -134,9 +134,13 @@ def _merge_results(
         )
 
         # Prefer the richer payload by retaining text/metadata already present,
-        # but fill in missing keys from later retrievers.
+        # but fill in missing or blank metadata from later retrievers.
         for payload_key, payload_value in payload.items():
-            state["payload"].setdefault(payload_key, payload_value)
+            existing_value = state["payload"].get(payload_key)
+            if payload_key not in state["payload"] or (
+                existing_value in (None, "") and payload_value not in (None, "")
+            ):
+                state["payload"][payload_key] = payload_value
 
         state["raw_rrf_score"] += rrf_contribution
         state["contributing_retrievers"].add(retriever_name)

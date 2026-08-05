@@ -30,6 +30,10 @@ class Settings(BaseSettings):
         alias="EMBEDDED_DOCS_DIR",
     )
     processed_dir: Path = ROOT_DIR / "data" / "processed"
+    ingestion_output_dir: Path = Field(
+        default=ROOT_DIR / "data" / "processed",
+        alias="INGESTION_OUTPUT_DIR",
+    )
     cache_dir: Path = ROOT_DIR / "data" / "cache"
     eval_dir: Path = ROOT_DIR / "data" / "eval"
     exports_dir: Path = ROOT_DIR / "data" / "exports"

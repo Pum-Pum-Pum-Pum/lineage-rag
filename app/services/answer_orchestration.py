@@ -145,8 +145,13 @@ def run_grounded_answer_query(
             "current_state_requested": temporal_plan.is_current_state,
             "effective_release_label": temporal_plan.effective_release_label,
             "release_source": temporal_plan.release_source,
+            "referenced_release_labels": list(temporal_plan.referenced_release_labels),
             "min_results": min_results,
             "min_top_score": min_top_score,
+            "candidate_lanes": {
+                "dense": _summarize_retrieval_candidates(routed.dense_candidates),
+                "lexical": _summarize_retrieval_candidates(routed.lexical_candidates),
+            },
         },
     )
     trace_output_path = write_answer_trace(trace, trace_output_directory)
@@ -159,3 +164,22 @@ def run_grounded_answer_query(
         trace=trace,
         trace_output_path=trace_output_path,
     )
+
+
+def _summarize_retrieval_candidates(
+    results: list[QdrantSearchResult],
+) -> list[dict[str, object]]:
+    """Keep retrieval-lane diagnostics without duplicating source text in traces."""
+
+    return [
+        {
+            "rank": rank,
+            "point_id": result.point_id,
+            "unit_id": str(result.payload.get("unit_id", "")),
+            "document_id": result.payload.get("document_id"),
+            "release_label": result.payload.get("release_label"),
+            "source_kind": result.payload.get("source_kind"),
+            "score": result.score,
+        }
+        for rank, result in enumerate(results, start=1)
+    ]

@@ -6145,3 +6145,770 @@ separate gates.
 Step 115 implementation and no-cost dry run are complete. Do not run the paid
 staging command or change `QDRANT_COLLECTION_NAME` until the interview check
 is accepted.
+
+## Step 116 — Separate embedding-input compatibility from index generation
+
+### Objective
+
+Remove the ambiguous meaning of “version” from the staged rebuild before any
+paid embedding/indexing operation. An index generation must not be mistaken for
+an attempt to transform old vectors into a new embedding space.
+
+### Python/code pattern
+
+```python
+batch = build_embedding_batch_contract(
+    retrieval_ready_artifact,
+    embedding_model=embedding_model,
+    # This legacy field now explicitly represents input compatibility,
+    # not the new Qdrant generation.
+    artifact_version=embedding_input_version,
+)
+
+manifest = {
+    "embedding_input_version": "v1",
+    "index_generation": "table_context_v1",
+    "collection_name": "functional_specs_v3",
+}
+```
+
+`stage_archived_fdd_rebuild.py` now exposes `--embedding-input-version` for
+cache/input compatibility and `--index-generation` for the retrieval/index
+generation. The staged manifest records both independently.
+
+### Failure-mode testing
+
+- Added a manifest test proving both version values persist independently.
+- Focused staged-rebuild/cache/Qdrant verification suite: `14 passed`.
+- The eight-FDD dry run reports `index_generation=table_context_v1` and
+  `embedding_input_version=v1`, with no artifact writes, OpenAI calls, Qdrant
+  point writes, or configuration change.
+- `git diff --check` passed.
+
+### Production interpretation
+
+Cached-vector reuse is exact reuse, never conversion. It is permitted only for
+identical retrieval text under the same model and input contract. The
+parent-enriched table text differs and is embedded anew. Any changed model,
+preprocessing contract, chunking, or retrieval text requires re-embedding the
+affected corpus; incompatible embedding spaces must not be mixed.
+
+### Gate
+
+Step 116 is complete. The user explicitly skipped the interview check for this
+naming-hardening step. The next bounded operation is the paid isolated all-FDD
+staging rebuild, still with no API/UI cutover.
+
+## Step 117 — Paid staged rebuild integrity failure
+
+### Objective
+
+Run the approved isolated all-FDD rebuild and stop safely if cache/index
+integrity cannot be proven.
+
+### Python/code and observed result
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\stage_archived_fdd_rebuild.py
+```
+
+The run processed eight immutable sources and made successful OpenAI embedding
+requests, but failed before Qdrant upsert because staged artifacts contained
+conflicting vectors for an identical `cache_key`.
+
+```text
+records=937  cached=452  embedded=485
+failure=Conflicting cached embeddings found for cache_key=...
+```
+
+### Failure-mode interpretation
+
+The fail-closed cache contract prevented an ambiguous vector from entering the
+index. The failed manifest is retained at
+`data/staging/table_context_v1/stage_manifest.json`; the new empty
+`functional_specs_v3` collection and all staged artifacts are preserved for
+diagnosis. They must not be deleted, reused, or activated.
+
+### Production interpretation
+
+The attempted run incurred embedding cost but produced no usable index. This
+is the correct outcome: a vector that could correspond to a different input
+unit would silently corrupt grounded retrieval more severely than a hard stop.
+
+## Step 118 — Cross-document cache and response-order hardening
+
+### Objective
+
+Prevent duplicate retrieval text across different FDDs from receiving multiple
+independent vectors, and protect against a provider response arriving in a
+different order from its request inputs.
+
+### Python/code pattern
+
+```python
+# Map provider items by their declared input index, never response position.
+response_items = _response_items_in_input_order(
+    response.data,
+    expected_count=len(request_records),
+)
+
+# Earlier staged outputs are read-only cache input for later source documents.
+embedded_batch = embed_batch(
+    batch,
+    cache_directory=active_cache,
+    additional_cache_directories=[staged_cache],
+)
+```
+
+- Added response-index validation for missing, invalid, or duplicate indexes.
+- Added compatible multi-directory cache loading with conflict rejection.
+- Each written staged artifact is now a cache source for subsequent documents,
+  so duplicate text receives one canonical vector across the generation.
+- Added deterministic tests for out-of-order provider items and cross-document
+  staged-cache reuse.
+
+### Failure-mode testing
+
+Focused embedding/cache/staging/Qdrant suite: `21 passed`. The tests prove
+that out-of-order response data is mapped back to its request input and that a
+later document reuses the first staged vector rather than making a duplicate
+embedding call.
+
+### Production interpretation
+
+This is a correctness and cost repair. It does not assume embedding API output
+is safely positional or repeatably identical across independent calls. It
+builds one canonical vector per compatible cache key while retaining separate
+document/unit Qdrant point identities for citations.
+
+## Step 119 — Clean retry generation preflight
+
+### Objective
+
+Plan a retry without touching failed v3 state or the live v2 service.
+
+### Python/code pattern
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\stage_archived_fdd_rebuild.py `
+  --dry-run `
+  --stage-directory data\staging\table_context_v1_retry1 `
+  --collection-name functional_specs_v4 `
+  --index-generation table_context_v1_retry1
+```
+
+### Failure-mode testing
+
+The dry run verified all eight archived source SHA-256 values, an absent retry
+stage directory, and an absent target collection. It made no OpenAI calls,
+Qdrant point writes, artifact writes, or API/UI configuration changes.
+
+### Production interpretation
+
+`functional_specs_v4` is a new generation, not a replacement of v3. A retry
+requires a new explicit paid-operation approval because it will issue OpenAI
+embedding requests again. v2 remains the live rollback target.
+
+### Batch gate
+
+Steps 117–119 are complete. Await the nine-question batch interview and a
+separate explicit approval before the paid v4 retry.
+
+### Batch interview evaluation
+
+Pass. All nine answers meet the production rubric. The user correctly explained
+why conflicting vectors fail closed, separated operational counters from
+grounding proof, retained incident evidence, validated provider response order,
+preserved distinct citation identities, rejected cache-source precedence,
+protected failed-generation isolation, bounded dry-run evidence, and required
+fresh approval for a new paid retry.
+
+### Gate
+
+Steps 117–119 are accepted. The next paid boundary remains the isolated v4
+retry; do not activate or alter the current v2 API/UI configuration.
+
+## Step 120 — Paid isolated v4 FDD rebuild
+
+### Python/code
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\stage_archived_fdd_rebuild.py `
+  --stage-directory data\staging\table_context_v1_retry1 `
+  --collection-name functional_specs_v4 `
+  --index-generation table_context_v1_retry1
+```
+
+The approved rebuild completed successfully against all eight archived FDDs.
+It wrote only the retry stage and `functional_specs_v4`; `.env` remains on
+`functional_specs_v2`.
+
+### Production interpretation
+
+The retry is a separate immutable generation. It applies cross-document vector
+reuse and response-index validation, but does not activate the new collection
+or make any claim about answer quality.
+
+## Step 121 — Staged v4 integrity and cost verification
+
+### Python/code
+
+```python
+manifest = json.loads((stage / "stage_manifest.json").read_text())
+assert manifest["status"] == "verified"
+assert manifest["qdrant"]["verified_records"] == 937
+assert client.count("functional_specs_v4").count == 937
+```
+
+### Verified evidence
+
+```text
+manifest_status=verified
+records=937
+cached=473
+embedded=464
+qdrant_verified_records=937
+functional_specs_v4_points=937
+staged_artifacts=8
+conflicting_cache_keys=0
+```
+
+### Failure-mode testing
+
+The earlier v3 failure had 485 newly embedded records and conflicting cache
+keys. v4 has zero conflicts and 464 new embeddings, avoiding 21 duplicate API
+embeddings while retaining 937 separate citeable evidence records.
+
+### Production interpretation
+
+Exact verification proves the intended staged artifact records and payloads
+exist in v4. It does not yet prove hybrid ranking, answer grounding, citation
+entailment, abstention, or production readiness.
+
+## Step 122 — R21 parent-table staged lexical evidence check
+
+### Python/code
+
+```python
+r21 = [unit for unit in documents if unit.release_label == "R21"]
+results = search_lexical_documents(r21, positive_question, limit=len(r21))
+rank = next(i for i, result in enumerate(results, 1) if result.point_id == table_id)
+assert rank <= 10
+assert "marital status" not in table_citation_text.lower()
+```
+
+### Verified evidence
+
+For the reported CIF Data Correction question, the R21 table
+`table_chunk_10` ranks `2` and is inside the top-10 bounded evidence set. Its
+original citation text contains all eleven fields: Race, Religion, Residential
+address Zip code/City/State/Country, PEP Status, and Mailing address Zip
+code/City/State/Country.
+
+For the deliberately unsupported `marital status` query, nearby R21 CIF
+evidence still ranks, but `marital status` is absent from the citeable table
+text. This verifies retrieval context does not establish unsupported fields;
+the grounded answer layer must refuse that claim.
+
+### Production interpretation
+
+The parent-table repair solves the controlled lexical candidate gap without
+altering the source citation. This is not yet a hybrid/LLM evaluation and does
+not authorize API/UI activation.
+
+### Batch gate
+
+Steps 120–122 are complete. Keep `.env` on `functional_specs_v2`. Await the
+nine-question interview before the next no-cost evaluation batch.
+
+## Step 123 — Generation-coherent staged evaluation target
+
+### Python/code
+
+```python
+target = resolve_evaluation_target(args=args, settings=settings)
+if bool(args.collection_name) != bool(args.lexical_artifact_directory):
+    raise ValueError("--collection-name and --lexical-artifact-directory must be supplied together")
+```
+
+`scripts/run_fdd_grounded_eval.py` now accepts paired
+`--collection-name` and `--lexical-artifact-directory` overrides. This allows
+v4 hybrid evaluation without changing live `.env`, and rejects a dangerous mix
+of v4 dense vectors with v2 lexical artifacts. Focused staged-target tests:
+`19 passed`.
+
+## Step 124 — Full v4 automated evaluation preflight
+
+### Python/code
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\run_fdd_grounded_eval.py `
+  --allow-unreviewed --dry-run `
+  --collection-name functional_specs_v4 `
+  --lexical-artifact-directory data\staging\table_context_v1_retry1\processed
+```
+
+The no-cost preflight validated all 30 JSONL cases against the paired v4 target.
+All cases are `sme_reviewed=false`, so any following run is a draft baseline,
+not a release-quality acceptance gate.
+
+## Step 125 — Resumable v4 automated draft baseline
+
+### Python/code
+
+```python
+# Reuse a durable interrupted trace only when it names the same case and query.
+resumed_results = load_resumed_evaluation_results(cases, trace_directory)
+cases_to_run = [case for case in cases if case.case_id not in resumed_results]
+```
+
+The first 30-case run reached the local command-time limit after eight durable
+traces. Added `--resume-trace-directory`, which validates one trace per case
+and reuses it only when the question and answer contract match. Focused resume
+tests initially caught a missing `json` import before any retry call; after the
+fix, `10 passed`. The resumed dry run scheduled only 22 new calls.
+
+The consolidated v4 report is:
+`data/exports/evaluations/fdd-grounded-v4-draft-20260805.json`.
+
+```text
+total_cases=30
+structural_passed_count=23
+claim_review_required_count=24
+resumed_case_count=8
+retrieval_mode=hybrid
+estimated_llm_cost=0.0 (configuration has no price values; this is not billing proof)
+```
+
+All six expected abstentions structurally passed. Seven answered/cross-release
+cases failed the deterministic contract:
+
+- `lineage-r2-r18-002`
+- `lineage-r24-006`
+- `confusion-release-001`, `003`, `004`, `005`, `006`
+
+Failures are direct evidence for targeted analysis: some safe abstentions
+occurred where the draft expected an answer; others omitted required historical
+or current-release citations. No retrieval weights, thresholds, prompts, or
+live configuration were changed.
+
+### Production interpretation
+
+Automation provides repeatable structural evidence and preserves answer traces,
+but it does not prove semantic entailment. The 24 answered cases require manual
+SME review; the seven failures must be classified as incorrect expectations,
+retrieval/release-selection gaps, citation-contract gaps, or valid safe
+refusals before any correction is attempted.
+
+### Batch gate
+
+Steps 123–125 are complete. Keep v2 live. Perform a targeted manual review and
+failure classification next; do not tune retrieval globally or activate v4 from
+this draft baseline.
+
+## Step 126 — Deterministic SME review packet for v4 failures
+
+### Python/code
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\export_fdd_manual_review_packet.py `
+  --report-file data\exports\evaluations\fdd-grounded-v4-draft-20260805.json `
+  --output-file data\exports\evaluations\fdd-grounded-v4-draft-20260805-manual-review.md
+```
+
+Added `scripts/export_fdd_manual_review_packet.py`. It joins each failed report
+case to its source JSONL expectations and validates exactly one durable trace
+from either the resumed or original run. The generated packet includes the
+question, expected claims/releases/documents, actual answer/refusal, returned
+citations, deterministic failures, trace path, and blank SME verdict fields.
+
+### Failure-mode testing
+
+- The exporter fails if a failed case is absent from the manifest or does not
+  have exactly one trace, preventing ambiguous manual review evidence.
+- Focused packet/evaluation suite: `11 passed`.
+- Generated local packet covers exactly the seven structural failures.
+
+### Production interpretation
+
+The packet makes manual review repeatable and auditable without allowing an
+automation result to masquerade as a semantic decision. SME verdicts must be
+one of `expected_case_incorrect`, `retrieval_or_release_gap`,
+`citation_contract_gap`, `correct_safe_refusal`, or `other`, with source-based
+rationale.
+
+### Gate
+
+Step 126 is complete. The batch pauses for SME/manual review of the seven local
+packet entries; do not change v4 retrieval or activation state before those
+verdicts are recorded.
+
+## Step 127 — Recorded normalized SME decisions for v4 draft failures
+
+### Local artifact
+
+Created `data/evaluations/fdd_grounded_eval_v4_sme_review_20260805.json` with
+the seven normalized, source-based decisions:
+
+- `expected_case_incorrect`: `lineage-r2-r18-002`,
+  `confusion-release-005`
+- `retrieval_or_release_gap`: `lineage-r24-006`,
+  `confusion-release-001`, `confusion-release-003`,
+  `confusion-release-004`, `confusion-release-006`
+
+Each decision records rationale and a bounded required follow-up. The ledger
+uses only the permitted review taxonomy and validates seven decisions.
+
+### Production interpretation
+
+The review distinguishes incorrect benchmark requirements from actual
+retrieval/release-selection failures. This prevents changing weighted-RRF or
+prompting to compensate for a bad expectation.
+
+## Step 128 — SME-reviewed R18 reinvestment-consumption regression
+
+### Python/code data contract
+
+```json
+{
+  "case_id": "r18-minor-program-reinvestment-consumption-001",
+  "required_citation_document_ids": ["...R18_Minor_Program_v1.3"],
+  "expected_release_labels": ["R18"],
+  "sme_reviewed": true,
+  "review_status": "approved_by_sme_2026-08-05"
+}
+```
+
+Appended the user-approved functionality-first question to
+`data/evaluations/fdd_grounded_eval_v1.jsonl`. It tests R18 reinvestment
+consumption behavior across Non-ADAM50 minors, ADAM50 Block/Non-Block cases,
+and the Fund Rule MP-bucket restriction, requiring the R18 source and table
+aware evidence.
+
+### Production interpretation
+
+This adds a realistic user-facing functional query rather than relying only on
+release-labelled questions. The case is SME-reviewed, but its runtime answer
+still needs structural and semantic evaluation.
+
+## Step 129 — No-cost validation of the new targeted regression
+
+### Python/code
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\run_fdd_grounded_eval.py `
+  --dry-run --case-id r18-minor-program-reinvestment-consumption-001 `
+  --collection-name functional_specs_v4 `
+  --lexical-artifact-directory data\staging\table_context_v1_retry1\processed
+```
+
+### Failure-mode testing
+
+The review ledger validated exactly seven permitted verdicts. The evaluator
+accepted the new case with `reviewed=1` and `draft=False`, confirming its
+schema, review status, paired v4 target, and explicit case selection. No
+embedding, LLM, Qdrant write, trace, or configuration change occurred.
+
+### Batch gate
+
+Steps 127–129 are complete. Keep v2 live. The next bounded action is one paid
+targeted v4 run for the approved R18 reinvestment regression, followed by SME
+review of its answer/trace before any broader correction.
+
+### Batch interview evaluation
+
+Pass. All nine answers meet the production rubric. The user correctly justified
+durable decision evidence, benchmark correction before tuning, primary verdict
+ownership, functionality-first/table-aware evaluation, the boundary between
+SME benchmark review and runtime behavior, paired-generation testing, and
+targeted cost-bounded diagnosis.
+
+### Gate
+
+Steps 127–129 are accepted. The next action is an explicit paid v4 runtime run
+for `r18-minor-program-reinvestment-consumption-001`; retain v2 as live and do
+not activate v4.
+
+## Step 130 — Targeted v4 R18 reinvestment runtime evaluation
+
+### Python/code
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\run_fdd_grounded_eval.py `
+  --case-id r18-minor-program-reinvestment-consumption-001 `
+  --collection-name functional_specs_v4 `
+  --lexical-artifact-directory data\staging\table_context_v1_retry1\processed `
+  --output-file data\exports\evaluations\fdd-grounded-v4-r18-reinvestment-20260805.json
+```
+
+### Structural result
+
+The one-case reviewed v4 run completed with `structural_passed=True`,
+`is_answered=True`, and five R18 citations. The report and trace are stored in
+`data/exports/evaluations/fdd-grounded-v4-r18-reinvestment-20260805.json` and
+`data/exports/evaluations/fdd-grounded-eval-20260805T134140Z/answer_traces/`.
+
+### Evidence review required
+
+The answer correctly described the main Non-ADAM50 and ADAM50
+Block/Non-Block reinvestment cases, but omitted the SME-required Fund Rule
+condition: when Minor Program=Yes and Restrict Consumption to MP Bucket=Yes,
+the system always consumes from the Minor Program bucket. It also added an
+unrelated unit-holder-merge note.
+
+This is not evidence absence: the trace retrieved R18 `chunk_18` and
+`table_chunk_11`, which contain the missing condition. The current structural
+evaluator checks answer state and document/release citations, not expected-claim
+completeness, so an SME semantic verdict is required.
+
+### Gate
+
+Step 130 is structurally complete. Await SME classification before treating the
+structural pass as semantic acceptance or considering v4 activation.
+
+### SME semantic review
+
+Accepted on 2026-08-05. The SME confirmed that the answer contained the
+required information. The result is recorded in
+`data/evaluations/fdd_grounded_eval_v4_sme_review_20260805.json` with the
+report and trace paths. No retrieval, prompt, index, or configuration change is
+justified by this accepted result.
+
+### Production interpretation
+
+Structural evaluation caught only answer-state and source/release citation
+contracts; the SME review is the authority for whether the functional answer
+actually meets the intended business requirement. An accepted single case is
+useful regression evidence but does not establish full v4 readiness.
+
+### Failure-mode testing
+
+The ledger now ties the acceptance to the exact case, v4 report, and answer
+trace. It prevents a later reviewer from treating a structurally passing trace
+from another question or generation as this SME approval.
+
+### Gate
+
+Step 130 is accepted. Keep v2 live. Do not activate v4 until the remaining
+reviewed lineage/release gaps have targeted regressions and the staged
+generation passes the agreed evaluation gate.
+
+## Step 131 — Evidence-based v4 release-gap diagnosis
+
+### Python/code
+
+```powershell
+$env:PYTHONIOENCODING='utf-8'
+@'
+from app.retrieval.lexical_search import search_lexical_artifacts
+
+results = search_lexical_artifacts(
+    'data/staging/table_context_v1_retry1/processed',
+    'Which current release contains the Teller and Branch Reports Re-alignment change, rather than the original R2 report specifications?',
+    limit=10,
+)
+for rank, result in enumerate(results, start=1):
+    print(rank, result.payload['release_label'], result.payload['unit_id'])
+'@ | & .\.venv\Scripts\python.exe -
+```
+
+### Result and production interpretation
+
+The saved v4 traces and a local lexical replay were classified in
+`data/evaluations/fdd_v4_release_gap_diagnosis_20260805.json`. Two failures
+are confirmed temporal-planning defects: a historical R2 mention inside a
+current-state question was incorrectly turned into a hard R2 filter, excluding
+R24 before fusion. The remaining three cannot be diagnosed reliably from old
+traces because they stored only the final fused results, not raw dense and
+lexical candidate lanes.
+
+### Failure-mode testing
+
+The diagnosis keeps confirmed findings distinct from unresolved ones. It does
+not infer a global ranking problem from a fused trace that cannot show which
+lane supplied or excluded a candidate. No OpenAI call, Qdrant write, embedding,
+or configuration change occurred.
+
+## Step 132 — Privacy-safe retrieval candidate-lane diagnostics
+
+### Python/code
+
+```python
+"candidate_lanes": {
+    "dense": _summarize_retrieval_candidates(routed.dense_candidates),
+    "lexical": _summarize_retrieval_candidates(routed.lexical_candidates),
+}
+```
+
+`RoutedRetrievalResult` now preserves the dense and lexical candidate lists.
+New answer traces record only rank, point ID, unit ID, document ID, release,
+source kind, and score for each lane; they intentionally do not duplicate
+source text.
+
+### Production interpretation
+
+A future failed answer can now be classified as candidate generation, fusion,
+temporal filtering, evidence packing, or generation behavior. The trace stays
+auditable without creating an extra copy of potentially sensitive FDD text.
+
+### Failure-mode testing
+
+Router tests cover dense-only, lexical-only, and hybrid modes, including
+candidate limits and lane membership. The absence of raw candidates in old
+traces remains explicit; old artifacts are not reinterpreted as having this
+new diagnostic evidence.
+
+## Step 133 — Correct current-state historical-release scoping
+
+### Python/code
+
+```python
+elif not is_current_state:
+    query_releases = extract_release_labels(original_query)
+    if len(query_releases) == 1:
+        effective_release_label = query_releases[0]
+        release_source = "query"
+```
+
+For current/latest queries, a release name written in the question no longer
+becomes a hard retrieval filter. The service retrieves broad candidates and
+then selects the highest relevant retrieved release. An explicit API
+`release_label` parameter remains a deliberate filter.
+
+### Production interpretation
+
+This fixes the R24 lineage pattern without changing embeddings, source text,
+weighted RRF weights, or unrelated historical-release questions. It addresses
+candidate eligibility before ranking, which is safer than tuning global scores.
+
+### Failure-mode testing
+
+```powershell
+& .\.venv\Scripts\python.exe -m pytest `
+  tests/test_temporal_query.py `
+  tests/test_retrieval_router.py `
+  tests/test_answer_orchestration_service.py `
+  --basetemp C:\tmp\fdd-v4-current-filter -p no:cacheprovider
+```
+
+Result: `17 passed`. New tests prove that an R2 baseline mention in a
+current-state question leaves retrieval unfiltered and scopes the returned R2
+and R24 candidates to R24. Existing tests retain explicit request-filter and
+conversation-reference behavior.
+
+### Batch gate
+
+Steps 131–133 are complete. Keep v2 live. The next action is a bounded paid
+v4 replay of the two repaired current-state cases, using the new candidate-lane
+trace contract, followed by SME review. Do not rerun the unresolved
+multi-release cases until those trace diagnostics establish their first broken
+layer.
+
+### Batch interview evaluation
+
+Pass. All nine answers distinguish historical baseline from deployed state,
+candidate eligibility from global ranking, lane-level observability from final
+fusion, and deterministic regression tests from semantic/production proof. One
+precision refinement: the runtime release-pinning authority is the explicit
+API/request `release_label` filter; an SME or benchmark may define its value,
+but a release mentioned only in prose is not that filter.
+
+### Gate
+
+Steps 131–133 are accepted. Await explicit approval for one paid, two-case v4
+replay of `lineage-r24-006` and `confusion-release-004`. It must use paired
+`functional_specs_v4` and `data/staging/table_context_v1_retry1/processed`,
+and its new candidate-lane traces must be reviewed before any broader replay or
+activation.
+
+## Step 134 — Preserve historical evidence for multi-part current-state questions
+
+### Python/code
+
+```python
+permitted_releases = {effective_release, *plan.referenced_release_labels}
+scoped = [
+    result
+    for result in results
+    if _normalized_payload_release(result) in permitted_releases
+]
+```
+
+For a current-state query, textual release mentions are now retained as
+historical evidence references, not retrieval filters. After broad retrieval,
+the planner scopes evidence to the latest retrieved release plus any explicit
+historical releases named in the question. `effective_release_label` still
+states the latest deployed state; `referenced_release_labels` makes the
+additional historical scope visible in the trace.
+
+### Production interpretation
+
+This supports questions such as “R2 PDF format and current T-1 name” with R2
+and R24 evidence in one grounded answer. It does not interpret every prose
+release name as an API filter; callers that need a single release retain the
+explicit request `release_label` authority.
+
+### Failure-mode testing
+
+The regression includes R1, R2, and R24 candidates. It proves R1 is excluded,
+R2 baseline evidence is preserved, and R24 remains the effective current
+release. This prevents repairing stale current answers by accidentally losing
+the historical sub-question.
+
+## Step 135 — Deterministic multi-scope and trace-contract verification
+
+### Python/code
+
+```powershell
+& .\.venv\Scripts\python.exe -m pytest `
+  tests/test_temporal_query.py `
+  tests/test_retrieval_router.py `
+  tests/test_answer_orchestration_service.py `
+  --basetemp C:\tmp\fdd-v4-multiscope -p no:cacheprovider
+```
+
+### Result and production interpretation
+
+Result: `18 passed`. Tests cover current-state historical references,
+multi-part R2/R24 scope preservation, explicit request filters, dense/lexical
+candidate lanes, and trace metadata. They prove the deterministic temporal and
+observability contracts, not live retrieval relevance or LLM answer quality.
+
+### Failure-mode testing
+
+The test uses an unrelated R1 candidate to confirm that preserving named R2
+evidence does not disable release bounds. A malformed or missing raw lane is
+still represented as an empty lane summary rather than silently inferred.
+
+## Step 136 — Reviewed two-case v4 replay manifest and no-cost preflight
+
+### Python/code
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\run_fdd_grounded_eval.py `
+  --dry-run `
+  --eval-file data\evaluations\fdd_v4_current_state_replay_20260805.jsonl `
+  --collection-name functional_specs_v4 `
+  --lexical-artifact-directory data\staging\table_context_v1_retry1\processed
+```
+
+### Result and production interpretation
+
+The dedicated manifest contains only the two SME-approved current-state
+regressions and preserves the 30-case source manifest as a draft baseline. The
+preflight reported `cases=2`, `reviewed=2`, and `draft=False`. This makes the
+next paid run eligible to produce release-gate evidence rather than a draft
+result.
+
+### Failure-mode testing
+
+An earlier dry run of the source manifest reported `reviewed=0` and
+`draft=True`; it was not used as a quality gate. The dedicated manifest fixes
+review governance without silently changing the original draft cases. The dry
+run made no OpenAI, Qdrant, trace, or configuration changes.
+
+### Batch gate
+
+Steps 134–136 are complete. Keep v2 live. The next action is a single paid v4
+run of the reviewed two-case manifest, followed by trace inspection and SME
+review. Do not activate v4 from a structural pass alone.

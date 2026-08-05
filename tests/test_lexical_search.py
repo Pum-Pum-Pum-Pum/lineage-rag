@@ -157,6 +157,7 @@ def test_load_retrieval_ready_documents_and_search_artifacts(tmp_path: Path) -> 
         json.dumps(
             {
                 "document_name": "example.docx",
+                "document_id": "FS_FCIS_R24_EXAMPLE",
                 "document_family": "FS_FCIS_14.7.0.0.0$ASNB",
                 "release_label": "R24",
                 "total_units": 2,
@@ -195,6 +196,7 @@ def test_load_retrieval_ready_documents_and_search_artifacts(tmp_path: Path) -> 
     assert len(documents) == 2
     assert len(results) == 1
     assert results[0].point_id == "example.docx::chunk_1"
+    assert results[0].payload["document_id"] == "FS_FCIS_R24_EXAMPLE"
     assert results[0].payload["retrieval_method"] == "lexical"
 
 

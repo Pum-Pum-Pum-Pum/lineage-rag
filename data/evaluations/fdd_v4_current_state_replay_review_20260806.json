@@ -1,0 +1,58 @@
+{
+  "schema_version": "fdd_v4_current_state_replay_review_v1",
+  "run_id": "fdd-grounded-eval-20260805T232225Z",
+  "reviewed_at": "2026-08-06",
+  "report": "data/exports/evaluations/fdd-grounded-v4-current-state-replay-20260806.json",
+  "target": {
+    "qdrant_collection_name": "functional_specs_v4",
+    "lexical_artifact_directory": "data/staging/table_context_v1_retry1/processed",
+    "draft": false
+  },
+  "summary": {
+    "total_cases": 2,
+    "structural_passed": 1,
+    "semantic_reviews_pending": 0,
+    "estimated_llm_cost": 0.0,
+    "cost_note": "Application price settings are unconfigured; zero is not provider billing proof."
+  },
+  "cases": [
+    {
+      "case_id": "lineage-r24-006",
+      "structural_passed": false,
+      "answer_state": "answered",
+      "observed_answer": "Correctly identifies R24 and cites direct R24 realignment evidence.",
+      "structural_failure": "Expected R2 citation release label was missing.",
+      "trace_diagnosis": "R2 was eligible and appeared in dense candidate ranks 6 and 7, but no R2 unit survived fused selection and temporal evidence packing. R24 remained the effective release and R2 remained a referenced release.",
+      "sme_decision_required": "Decide whether answering the current-release question requires a separately cited R2 baseline claim. If not, correct the benchmark; if yes, classify as referenced-release evidence coverage.",
+      "sme_verdict": "approved",
+      "sme_rationale": "R24 evidence directly supports the requested current-release identification. A separate R2 citation is not material to answering which current release contains the realignment change.",
+      "benchmark_follow_up": "The reviewed replay manifest now requires the R24 claim and R24 citation only."
+    },
+    {
+      "case_id": "confusion-release-004",
+      "structural_passed": true,
+      "answer_state": "answered",
+      "observed_answer": "Correctly assigns R2 to PDF output and R24 to the current T-1 Teller End of Day Report name.",
+      "trace_diagnosis": "The direct R2 PDF unit was selected, but its lexical payload omitted document_id even though the staged artifact contains it. A nearby R2 citation allowed the structural document check to pass without directly supporting the PDF claim.",
+      "remediation": "Lexical loading now preserves document_id and hybrid fusion backfills missing or blank metadata without overwriting nonblank values. Focused tests: 22 passed.",
+      "sme_decision_required": "Review functional completeness and citation entailment; record whether the answer content is accepted while retaining the historical trace's citation-contract observation.",
+      "sme_verdict": "accepted_for_development_with_known_citation_gap",
+      "sme_rationale": "The functional answer is acceptable for continued v4 development, but the historical trace's direct PDF citation lacked document identity. The deterministic lexical/fusion metadata repair must remain covered by regression tests."
+    }
+  ],
+  "activation_decision": "Activate v4 as the local development baseline with paired dense and lexical configuration. Retain functional_specs_v2 unchanged as rollback. This is not a production-readiness declaration.",
+  "activation_verification": {
+    "effective_collection": "functional_specs_v4",
+    "effective_lexical_artifact_directory": "data/indexes/functional_specs_v4/processed",
+    "promoted_from_stage": "data/staging/table_context_v1_retry1/processed",
+    "promotion_sha256_verification": "24 of 24 files matched",
+    "lexical_units": 937,
+    "manifest_status": "verified",
+    "manifest_qdrant_verified_records": 937,
+    "functional_specs_v4_points": 937,
+    "rollback_collection": "functional_specs_v2",
+    "rollback_points": 579,
+    "full_regression": "372 passed",
+    "warning": "One existing non-failing upstream Starlette TestClient/HTTPX deprecation warning."
+  }
+}

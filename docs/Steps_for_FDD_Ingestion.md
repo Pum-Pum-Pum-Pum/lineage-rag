@@ -1,3 +1,9 @@
+& .\.venv\Scripts\python.exe -m uvicorn app.api.main:app `
+  --host 127.0.0.1 --port 8000 --reload
+
+& .\.venv\Scripts\python.exe -m streamlit run app/ui/streamlit_app.py `
+  --server.address 127.0.0.1 --server.port 8501
+
 # Add FDD Documents to the RAG System
 
 Use this workflow for a reviewed, deployed FDD. The master command processes

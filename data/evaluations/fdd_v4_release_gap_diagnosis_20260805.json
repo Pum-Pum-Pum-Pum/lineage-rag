@@ -1,0 +1,54 @@
+{
+  "schema_version": "fdd_v4_release_gap_diagnosis_v1",
+  "reviewed_generation": {
+    "qdrant_collection_name": "functional_specs_v4",
+    "lexical_artifact_directory": "data/staging/table_context_v1_retry1/processed"
+  },
+  "source_traces": [
+    "data/exports/evaluations/fdd-grounded-eval-20260805T052438Z/answer_traces"
+  ],
+  "diagnosed_at": "2026-08-05",
+  "findings": [
+    {
+      "case_id": "lineage-r24-006",
+      "classification": "confirmed_temporal_planning_defect",
+      "first_broken_layer": "temporal_query_plan",
+      "evidence": "The prior trace marked current_state_requested=true but set effective_release_label=R2 from the historical baseline mention. A local v4 lexical search without that filter ranks R24 change units first and second.",
+      "remediation": "Do not derive a hard release filter from release text inside a current-state question; retrieve broadly, then scope to the latest retrieved release. Explicit API release filters remain authoritative.",
+      "status": "implemented_and_deterministically_tested"
+    },
+    {
+      "case_id": "confusion-release-004",
+      "classification": "confirmed_temporal_planning_defect",
+      "first_broken_layer": "temporal_query_plan",
+      "evidence": "The prior trace marked current_state_requested=true and filtered all candidates to R2, excluding the required R24 current report-name evidence. Local v4 lexical search ranks an R24 T-1 table first when unfiltered.",
+      "remediation": "Covered by the same current-state historical-reference scoping repair.",
+      "status": "implemented_and_deterministically_tested"
+    },
+    {
+      "case_id": "confusion-release-001",
+      "classification": "unresolved_multi_release_coverage",
+      "first_broken_layer": "not_provable_from_historical_trace",
+      "evidence": "The saved fused trace contains only R1 results, while a current local lexical replay ranks R18 Minor Program evidence first. Historical traces do not preserve raw dense and lexical candidate lanes, so the lane that excluded R18 cannot be identified reliably.",
+      "remediation": "Use the new privacy-safe candidate-lane trace summaries in a bounded replay before selecting a retrieval or evidence-packing repair.",
+      "status": "awaiting_targeted_replay"
+    },
+    {
+      "case_id": "confusion-release-003",
+      "classification": "likely_answer_decision_contract_gap",
+      "first_broken_layer": "answer_generation_or_contract",
+      "evidence": "The trace retrieved direct R18 B-12 evidence and the prose stated that R18 introduced the change, but phrased the answer as an inability to confirm R24 rather than directly answering No.",
+      "remediation": "Replay with candidate-lane diagnostics, then add a narrowly tested negative source-attribution answer rule only if the direct evidence remains selected.",
+      "status": "awaiting_targeted_replay"
+    },
+    {
+      "case_id": "confusion-release-006",
+      "classification": "unresolved_evidence_coverage",
+      "first_broken_layer": "not_provable_from_historical_trace",
+      "evidence": "The final trace includes R21 context but not the explicit EPF restriction unit. Current local lexical ranking contains R21 EPF units below the prior candidate cutoff. Raw lane candidates were not retained in the historical trace.",
+      "remediation": "Use the new candidate-lane trace summary in a bounded replay to distinguish candidate-limit, fusion, evidence-packing, and answer-generation causes.",
+      "status": "awaiting_targeted_replay"
+    }
+  ],
+  "activation_decision": "Keep v2 live. No paid replay, retrieval tuning, or v4 activation occurs from this diagnostic batch."
+}

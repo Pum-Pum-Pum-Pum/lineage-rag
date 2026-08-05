@@ -30,7 +30,10 @@ def main() -> None:
 
     for discovered in discovered_files:
         artifact = ingest_docx_file(discovered.file_path)
-        output_file = write_ingested_artifact_to_json(artifact, settings.processed_dir)
+        output_file = write_ingested_artifact_to_json(
+            artifact,
+            settings.ingestion_output_dir,
+        )
         normalized_artifact = build_normalized_artifact(artifact)
         chunked_document = chunk_normalized_artifact(normalized_artifact)
         chunked_tables = chunk_tables_from_artifact(normalized_artifact)
@@ -39,10 +42,13 @@ def main() -> None:
             chunked_document,
             chunked_tables,
         )
-        chunk_output_file = write_chunked_document_to_json(chunked_document, settings.processed_dir)
+        chunk_output_file = write_chunked_document_to_json(
+            chunked_document,
+            settings.ingestion_output_dir,
+        )
         retrieval_ready_output_file = write_retrieval_ready_artifact_to_json(
             retrieval_ready_artifact,
-            settings.processed_dir,
+            settings.ingestion_output_dir,
         )
         logger.info(
             "Ingested %s -> %s | chunked=%s | retrieval_ready=%s | paragraphs=%s | tables=%s | chunks=%s | retrieval_units=%s",

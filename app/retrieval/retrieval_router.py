@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from app.retrieval.hybrid_search import fuse_dense_and_lexical_results
@@ -16,6 +16,8 @@ SearchCallable = Callable[[int], list[Any]]
 class RoutedRetrievalResult:
     retrieval_mode: str
     results: list[QdrantSearchResult]
+    dense_candidates: list[QdrantSearchResult] = field(default_factory=list)
+    lexical_candidates: list[QdrantSearchResult] = field(default_factory=list)
 
 
 def route_retrieval(
@@ -35,21 +37,25 @@ def route_retrieval(
         raise ValueError("Retrieval limit must be greater than 0")
 
     if config.retrieval_mode == "dense":
+        dense_results = normalize_routed_results(dense_search(limit))
         return RoutedRetrievalResult(
             retrieval_mode="dense",
-            results=normalize_routed_results(dense_search(limit)),
+            results=dense_results,
+            dense_candidates=dense_results,
         )
 
     if config.retrieval_mode == "lexical":
+        lexical_results = normalize_routed_results(lexical_search(limit))
         return RoutedRetrievalResult(
             retrieval_mode="lexical",
-            results=normalize_routed_results(lexical_search(limit)),
+            results=lexical_results,
+            lexical_candidates=lexical_results,
         )
 
     if config.retrieval_mode == "hybrid":
         candidate_limit = max(limit, config.hybrid_candidate_limit)
-        dense_results = dense_search(candidate_limit)
-        lexical_results = lexical_search(candidate_limit)
+        dense_results = normalize_routed_results(dense_search(candidate_limit))
+        lexical_results = normalize_routed_results(lexical_search(candidate_limit))
         hybrid_results = fuse_dense_and_lexical_results(
             dense_results=dense_results,
             lexical_results=lexical_results,
@@ -60,6 +66,8 @@ def route_retrieval(
         return RoutedRetrievalResult(
             retrieval_mode="hybrid",
             results=normalize_routed_results(hybrid_results),
+            dense_candidates=dense_results,
+            lexical_candidates=lexical_results,
         )
 
     raise ValueError(f"Unsupported retrieval mode: {config.retrieval_mode}")

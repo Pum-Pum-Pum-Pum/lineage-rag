@@ -40,6 +40,8 @@ def test_route_retrieval_uses_dense_mode_only() -> None:
 
     assert routed.retrieval_mode == "dense"
     assert routed.results[0].payload["unit_id"] == "dense"
+    assert [item.point_id for item in routed.dense_candidates] == ["dense"]
+    assert routed.lexical_candidates == []
     assert calls == [("dense", 5)]
 
 
@@ -58,6 +60,8 @@ def test_route_retrieval_uses_lexical_mode_only() -> None:
 
     assert routed.retrieval_mode == "lexical"
     assert routed.results[0].payload["unit_id"] == "lexical"
+    assert routed.dense_candidates == []
+    assert [item.point_id for item in routed.lexical_candidates] == ["lexical"]
     assert calls == [("lexical", 5)]
 
 
@@ -78,7 +82,25 @@ def test_route_retrieval_uses_hybrid_mode_with_candidate_limit_and_weights() -> 
     assert routed.results[0].payload["unit_id"] == "shared"
     assert routed.results[0].payload["retrieval_method"] == "hybrid"
     assert routed.results[0].payload["contributing_retrievers"] == ["dense", "lexical"]
+    assert [item.point_id for item in routed.dense_candidates] == ["shared", "dense-only"]
+    assert [item.point_id for item in routed.lexical_candidates] == ["shared", "lexical-only"]
     assert calls == [("dense", 10), ("lexical", 10)]
+
+
+def test_hybrid_fusion_backfills_blank_dense_document_identity_from_lexical() -> None:
+    dense_result = _result("shared", 0.8)
+    dense_result.payload["document_id"] = ""
+    lexical_result = _result("shared", 12.0)
+    lexical_result.payload["document_id"] = "FS_FCIS_R24_REPORTS"
+
+    routed = route_retrieval(
+        _config("hybrid"),
+        lambda limit: [dense_result],
+        lambda limit: [lexical_result],
+        limit=1,
+    )
+
+    assert routed.results[0].payload["document_id"] == "FS_FCIS_R24_REPORTS"
 
 
 def test_route_retrieval_uses_limit_when_greater_than_candidate_limit() -> None:

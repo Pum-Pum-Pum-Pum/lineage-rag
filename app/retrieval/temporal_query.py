@@ -36,6 +36,7 @@ class TemporalQueryPlan:
     is_current_state: bool
     effective_release_label: str | None
     release_source: str | None
+    referenced_release_labels: tuple[str, ...] = ()
 
 
 def build_temporal_query_plan(
@@ -56,11 +57,12 @@ def build_temporal_query_plan(
     )
     effective_release_label: str | None = None
     release_source: str | None = None
+    referenced_release_labels: tuple[str, ...] = ()
 
     if requested_release_label:
         effective_release_label = normalize_release_label(requested_release_label)
         release_source = "request_filter"
-    else:
+    elif not is_current_state:
         query_releases = extract_release_labels(original_query)
         if len(query_releases) == 1:
             effective_release_label = query_releases[0]
@@ -70,6 +72,14 @@ def build_temporal_query_plan(
             if context_releases:
                 effective_release_label = latest_release_label(context_releases)
                 release_source = "conversation_context"
+    elif conversation_context and REFERENTIAL_PATTERN.search(original_query):
+        context_releases = extract_release_labels(conversation_context)
+        if context_releases:
+            effective_release_label = latest_release_label(context_releases)
+            release_source = "conversation_context"
+
+    if is_current_state and effective_release_label is None:
+        referenced_release_labels = tuple(extract_release_labels(original_query))
 
     retrieval_parts = [original_query]
     if effective_release_label and release_source == "conversation_context":
@@ -85,6 +95,7 @@ def build_temporal_query_plan(
         is_current_state=is_current_state,
         effective_release_label=effective_release_label,
         release_source=release_source,
+        referenced_release_labels=referenced_release_labels,
     )
 
 
@@ -115,10 +126,11 @@ def scope_results_to_temporal_plan(
     if effective_release is None:
         return list(results[:limit]), plan
 
+    permitted_releases = {effective_release, *plan.referenced_release_labels}
     scoped = [
         result
         for result in results
-        if _normalized_payload_release(result) == effective_release
+        if _normalized_payload_release(result) in permitted_releases
     ]
     updated_plan = replace(
         plan,
