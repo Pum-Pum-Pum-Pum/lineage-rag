@@ -575,3 +575,32 @@ versus ranking failure, structural versus semantic validation, harmless
 candidate-lane noise, explicit paid-retry authorization, hash-bound SME
 decisions, the limits of the Phase 1 gate, and the need for new lineage tests
 when the evidence contract changes. The batch is complete at 9/9 satisfactory.
+
+## Step 149 — Align the FDD ingestion runbook with the immutable v4 boundary
+
+### Python/code
+
+Rewrote `docs/Steps_for_FDD_Ingestion.md` around the executable post-v4 flow:
+new DOCX intake, process-local isolated intake settings, complete archived-source
+staging, retrieval/grounded evaluation, and paired vector/lexical activation.
+Added `tests/test_fdd_ingestion_runbook.py` to prevent the runbook from losing
+its active-v4 protection, isolated target settings, staged rebuild, paired
+activation, explicit paid-operation boundary, and rollback instructions.
+
+### Production interpretation
+
+The previous simple master command inherited `.env`, which points at active
+`functional_specs_v4`. It could append new vectors to the live collection while
+writing lexical artifacts outside the active lexical generation. The corrected
+runbook treats the master pipeline as verified intake only, then uses
+`stage_archived_fdd_rebuild.py` to create a complete, immutable release
+candidate from every archived FDD. Activation changes Qdrant and lexical
+settings together only after evaluation.
+
+### Failure-mode testing
+
+Fourteen focused ingestion, staging, and runbook tests passed. A real staged
+dry run read and hashed all eight archived sources and confirmed that the new
+stage name and collection were unused; it made no OpenAI calls, artifact writes,
+Qdrant writes, or configuration changes. `git diff --check` passed with only
+normal Windows line-ending notices.

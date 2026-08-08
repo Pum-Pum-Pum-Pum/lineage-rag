@@ -1,126 +1,198 @@
-& .\.venv\Scripts\python.exe -m uvicorn app.api.main:app `
-  --host 127.0.0.1 --port 8000 --reload
+--FastAPI::
+python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000 --reload
 
-& .\.venv\Scripts\python.exe -m streamlit run app/ui/streamlit_app.py `
-  --server.address 127.0.0.1 --server.port 8501
+--Streamlit::
+python -m streamlit run app/ui/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
 
 # Add FDD Documents to the RAG System
 
-Use this workflow for a reviewed, deployed FDD. The master command processes
-every `.docx` file currently in `data/raw_specs/` and archives only documents
-whose exact vectors have been verified in Qdrant.
+Use this workflow for reviewed, deployed FDDs. The currently active local
+generation is `functional_specs_v4`, paired with
+`data/indexes/functional_specs_v4/processed`. **Do not ingest new documents
+directly into that active pair.** Build and evaluate a new versioned generation,
+then activate its Qdrant collection and lexical directory together.
 
-## 1. Put FDDs in the input folder
+The commands below use `v5` as an example. If either target collection or stage
+directory already exists, increment the generation name; never delete or reuse a
+partially built generation.
 
-Copy one or more reviewed FDD DOCX files into `data/raw_specs/`.
+## 1. Put new FDDs in the intake folder
 
-Do not copy a filename that is already present in `data/docs_embedded/`. The
-master command rejects that duplicate before it runs ingestion or embeddings;
-rename only when it is genuinely a distinct, reviewed FDD with its own source
-identity.
+Copy one or more reviewed DOCX files into `data/raw_specs/`:
 
 ```powershell
 Copy-Item -LiteralPath 'C:\approved-fdds\FS_ASNB_R25_Teller_Change.docx' `
   -Destination 'data\raw_specs\FS_ASNB_R25_Teller_Change.docx'
 ```
 
-The file name must contain a numeric release label such as `R25`. `docs/`
-contains runbooks; it must not be used as a source-document folder.
+Requirements:
 
-The system keeps three different identities: `document_family` groups related
-FDDs across releases, `release_label` identifies the release (for example
-`R21`), and `document_id` is the full filename without `.docx`. Multiple FDDs
-can therefore belong to R21 without sharing a citeable document identity.
+- The filename must include a numeric release label such as `R25`.
+- Do not copy a filename already present in `data/docs_embedded/`.
+- A release may contain multiple FDDs. The full filename without `.docx` is the
+  citeable `document_id`; the release label alone is not a unique source ID.
+- `docs/` contains documentation only. Source documents belong under `data/`.
 
-## 2. Preview the batch first
+## 2. Preview an isolated intake run
 
-From the project root, prepare the locked environment once, then preview the
-files and commands. This does not call OpenAI, change Qdrant, or move files.
+Prepare the locked environment once:
 
 ```powershell
 uv sync --locked
+```
+
+Set process-local intake targets. These values apply only to the current
+PowerShell window and prevent the master command from writing into live v4:
+
+```powershell
+$env:QDRANT_COLLECTION_NAME='functional_specs_v5_intake'
+$env:INGESTION_OUTPUT_DIR='data/staging/functional_specs_v5_intake/processed'
+
 uv run --locked python scripts/master_ingestion_embedding_docs.py --dry-run
 ```
 
-## 3. Run the complete ingestion batch
+The dry run must list only the intended files. It does not call OpenAI, write to
+Qdrant, create ingestion artifacts, or move DOCX files.
+
+Before continuing, confirm that `functional_specs_v5_intake` is a new,
+disposable intake collection name. It is not a serving collection.
+
+## 3. Run extraction, embedding, intake indexing, and verification
+
+In the same PowerShell window:
 
 ```powershell
 uv run --locked python scripts/master_ingestion_embedding_docs.py
 ```
 
-The command runs these existing stages in order:
+The master command calls the existing Python stages in order:
 
-1. DOCX extraction, normalization, chunking, and retrieval-artifact creation.
-2. Full-document OpenAI embeddings for each FDD, sequentially. It sends at
-   most 64 unique uncached content units in each API request. Identical chunk
-   text reuses one vector, while keeping separate evidence records.
-3. Qdrant indexing.
-4. Exact Qdrant verification for every embedding artifact.
-5. Move verified DOCX files from `data/raw_specs/` to `data/docs_embedded/`.
+1. Extract, normalize, and chunk every DOCX in `data/raw_specs/`.
+2. Build paragraph and parent-linked table retrieval artifacts.
+3. Embed all unique uncached retrieval units with the configured OpenAI
+   embedding model, using at most 64 units per request.
+4. Index the embedding artifacts into the isolated intake collection.
+5. Verify each intended point, payload, and vector against Qdrant.
+6. Move the new DOCX files to `data/docs_embedded/` only after all stages pass.
 
-To use a smaller bounded OpenAI request size, for example during a cautious
-first batch, run:
-
-```powershell
-uv run --locked python scripts/master_ingestion_embedding_docs.py --request-batch-size 32
-```
-
-The size is **unique content units per API request**, not documents. Lower
-values reduce per-request failure blast radius but create more API requests and
-can increase latency.
-
-## Expected local artifacts
-
-| Result | Location |
-| --- | --- |
-| Source FDD waiting for processing | `data/raw_specs/` |
-| Inspectable extraction and chunk artifacts | `data/processed/` |
-| Embeddings and metadata | `data/cache/embeddings/` |
-| Persistent local vectors | `data/qdrant_local/` |
-| Successfully verified source FDD archive | `data/docs_embedded/` |
-
-## Failure behavior
-
-If ingestion, OpenAI embedding, Qdrant indexing, or exact-Qdrant verification
-fails, the master command stops and does **not** archive the affected source
-DOCX files. Fix the reported problem and rerun; deterministic embedding cache
-keys and Qdrant point IDs make a safe rerun possible.
-
-If the same filename appears in both `data/raw_specs/` and
-`data/docs_embedded/`, the command also stops before every child stage,
-including `--dry-run`. This prevents accidental duplicate ingestion and repeat
-embedding cost. Remove the accidental raw copy or investigate the archived
-source before retrying; never overwrite the archived file.
-
-### Explicit recovery for a duplicate-embedding cache conflict
-
-If the command reports `Conflicting cached embeddings found for cache_key`, do
-not delete files or archive the source DOCX. The embedded local Qdrant client
-does not reliably clear old points after delete-and-recreate, so do **not** use
-`--rebuild` or `--rebuild-qdrant`.
-
-First, choose a new versioned collection name and set it in your local `.env`:
-
-```text
-QDRANT_COLLECTION_NAME=functional_specs_v2
-```
-
-Restart the API/UI after changing this setting. Then preview the recovery:
+To reduce the failure blast radius per paid request:
 
 ```powershell
 uv run --locked python scripts/master_ingestion_embedding_docs.py `
-  --dry-run --replace-existing-embedding-artifacts
+  --request-batch-size 32
 ```
 
-After reviewing scope, run the same command without `--dry-run`.
+The batch size counts unique content units, not documents. Lower values create
+more requests and latency. Compatible cached vectors may be reused, but every
+document/chunk occurrence still receives its own identity for filtering and
+citations.
 
-This explicitly quarantines the selected prior embedding artifact outside the
-active cache rather than deleting it, regenerates the selected document's
-embeddings with duplicate-content deduplication, and indexes every active
-embedding record into the new collection. The old collection remains untouched
-for investigation and rollback. Do not point the API/UI to the new collection
-until exact verification has passed.
+## 4. Build the complete next generation from the archive
 
-Do not use a conversation summary as evidence that a document was indexed.
-Confirm the command output, local artifacts, Qdrant verification, and grounded
-answer citations.
+The intake collection proves the new files can be processed, but it is not the
+release candidate. Rebuild all archived FDDs into one isolated, complete
+generation:
+
+```powershell
+uv run --locked python scripts/stage_archived_fdd_rebuild.py `
+  --dry-run `
+  --source-directory data/docs_embedded `
+  --stage-directory data/staging/functional_specs_v5 `
+  --collection-name functional_specs_v5 `
+  --index-generation functional_specs_v5
+```
+
+Review the source count, filenames, SHA-256 hashes, target directory, target
+collection, embedding model, and cache-reuse plan. Then explicitly authorize
+the paid operation and rerun without `--dry-run`:
+
+```powershell
+uv run --locked python scripts/stage_archived_fdd_rebuild.py `
+  --source-directory data/docs_embedded `
+  --stage-directory data/staging/functional_specs_v5 `
+  --collection-name functional_specs_v5 `
+  --index-generation functional_specs_v5
+```
+
+The stage must finish with `status: verified` in
+`data/staging/functional_specs_v5/stage_manifest.json`. Unchanged compatible
+embedding inputs reuse cached vectors. New or changed retrieval text—including
+new parent-linked table context—is embedded again.
+
+## 5. Evaluate before activation
+
+Keep `.env` pointing at v4 while evaluating v5 through explicit paired
+overrides. At minimum:
+
+```powershell
+uv run --locked python scripts/run_fdd_retrieval_gate.py `
+  --eval-file data/evaluations/fdd_grounded_eval_v2_reviewed.jsonl `
+  --collection-name functional_specs_v5 `
+  --lexical-artifact-directory data/staging/functional_specs_v5/processed
+```
+
+Run reviewed document-specific and lineage cases for the newly added FDDs as
+well as the existing regression set. Paid grounded-answer evaluation requires
+explicit authorization because questions and retrieved internal evidence are
+sent to OpenAI.
+
+Do not activate the generation unless all required checks pass:
+
+- stage manifest and exact Qdrant verification;
+- complete expected document/point coverage and vector dimension;
+- reviewed retrieval, release-selection, table-linkage, citation, conflict,
+  abstention, and answer-correctness gates;
+- readiness check and a retained rollback generation.
+
+## 6. Promote and activate the pair
+
+After approval, copy the verified lexical artifacts to a stable runtime path,
+verify file counts and SHA-256 hashes against the stage, and update both values
+in `.env` together:
+
+```text
+QDRANT_COLLECTION_NAME=functional_specs_v5
+PROCESSED_DIR=data/indexes/functional_specs_v5/processed
+```
+
+Restart FastAPI and Streamlit, verify their effective configuration and
+readiness, run a known grounded query with citations, and retain v4 for rollback.
+Changing only one of these settings creates a mixed vector/lexical generation
+and is a release-blocking error.
+
+## Artifact locations
+
+| Purpose | Location |
+| --- | --- |
+| New source awaiting verified intake | `data/raw_specs/` |
+| Verified source archive | `data/docs_embedded/` |
+| Disposable isolated intake artifacts | `data/staging/functional_specs_v5_intake/` |
+| Complete immutable release-candidate stage | `data/staging/functional_specs_v5/` |
+| Embedding reuse cache | `data/cache/embeddings/` |
+| Persistent local Qdrant state | `data/qdrant_local/` |
+| Stable active lexical artifacts after promotion | `data/indexes/functional_specs_v5/processed/` |
+
+These are mutable/generated data artifacts and must remain excluded from Git.
+The source manifest, hashes, evaluation reports, SME decisions, and activation
+decision provide the audit trail.
+
+## Failure and recovery behavior
+
+- If extraction, embedding, indexing, or exact verification fails, the affected
+  DOCX remains in `data/raw_specs/`. Fix the cause and rerun.
+- If one filename exists in both `data/raw_specs/` and `data/docs_embedded/`, the
+  master command fails before child stages—even during `--dry-run`.
+- If a stage directory or target collection exists, choose a new versioned name.
+  Do not delete/recreate or append to it.
+- If cached vectors conflict for the same cache key, preserve both conflicting
+  artifacts for diagnosis. Do not silently choose one or use
+  `--replace-existing-embedding-artifacts` as routine ingestion behavior.
+- `--rebuild-qdrant` is intentionally unsupported for embedded local Qdrant.
+- A failed release candidate must not change `.env`; the active v4 pair remains
+  the rollback baseline.
+- Successful point counts alone are insufficient: stale, duplicate, wrong-ID,
+  wrong-payload, or wrong-schema points can still exist.
+
+Conversation summaries and prior successful answers are never indexing proof.
+Use current manifests, exact verification, retrieval traces, citations, and SME
+evaluation evidence.

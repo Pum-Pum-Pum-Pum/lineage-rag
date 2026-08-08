@@ -262,3 +262,9 @@ grouped after Step 148.
 **Batch assessment: 9/9 satisfactory.** Steps 146–148 are complete. The Phase 1
 evaluation gate passes for the current eight-document v4 corpus, with unindexed
 documents explicitly outside that claim.
+
+## Step 149 — Interview status
+
+Step 149 is the first step of the next batch. It corrects the FDD runbook so new
+documents cannot be ingested directly into the active v4 vector/lexical pair.
+Its questions will be grouped with Steps 150–151.
