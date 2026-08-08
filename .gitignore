@@ -53,6 +53,7 @@ data/docs_embedded/
 data/raw_specs/
 data/staging/*
 data/indexes/*
+data/tmp/
 
 
 # Evaluation outputs

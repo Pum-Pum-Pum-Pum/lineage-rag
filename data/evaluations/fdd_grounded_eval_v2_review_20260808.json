@@ -1,0 +1,29 @@
+{
+  "schema_version": "fdd_eval_sme_review_v1",
+  "reviewed_manifest": "data/evaluations/fdd_grounded_eval_v2_reviewed.jsonl",
+  "source_draft": "data/evaluations/fdd_grounded_eval_v2.jsonl",
+  "reviewed_generation": "functional_specs_v4",
+  "reviewed_at": "2026-08-08",
+  "review_scope": {
+    "total_cases": 31,
+    "newly_approved_cases": 30,
+    "previously_approved_cases": 1,
+    "question_contract": "User-facing questions contain no explicit R<number> release labels; release expectations remain hidden evaluation metadata."
+  },
+  "decision": "approved_for_retrieval_and_grounded_evaluation",
+  "review_note": "The SME confirmed that the rephrased evaluation set looks good and approved proceeding to the next evaluation step.",
+  "expectation_corrections": [
+    {
+      "case_id": "lineage-r2-r18-002",
+      "decision": "Require the direct Minor Program change source; the old B-12 baseline is not material to the user question."
+    },
+    {
+      "case_id": "confusion-release-005",
+      "decision": "Require the direct FE/LG transaction-draft source; the unrelated Non-Financial Load source is not material to the user question."
+    },
+    {
+      "case_id": "lineage-r24-006",
+      "decision": "Require direct realignment evidence for the material release and change claims; an additional historical release citation is not required."
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "schema_version": "fdd_grounded_sme_review_v1",
+  "review_file": "data\\evaluations\\fdd_v4_user_questions_grounded_sme_review_20260808.md",
+  "review_sha256": "634542436112f7ffc67b2847a763f487998a492e96376001b2296e5d524d4138",
+  "report_file": "data\\exports\\evaluations\\fdd-v4-user-questions-grounded-reviewed-final-20260808.json",
+  "report_sha256": "d8d51ad48a5052cb1da0d8284ee451f85d6b30d306061f08ef633c8f1b57a593",
+  "eval_file": "data\\evaluations\\fdd_grounded_eval_v2_reviewed.jsonl",
+  "eval_sha256": "57d98580d1199f2dd7396713bed7188e4ebd44b9cfc9bb137d7fb90c7577ef18",
+  "summary": {
+    "total_claim_reviews": 25,
+    "verdict_counts": {
+      "accepted": 23,
+      "expected_case_incorrect": 1,
+      "conditionally_accepted": 1
+    },
+    "unconditional_accepted_count": 23,
+    "unconditional_acceptance_rate": 0.92,
+    "minimum_acceptance_rate": 0.9,
+    "acceptance_threshold_passed": true,
+    "unresolved_review_count": 2,
+    "requires_remediation_decision": true
+  },
+  "decisions": [
+    {
+      "case_id": "r1-nfl-001",
+      "question": "What can users configure when setting up a non-financial fee?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r1-nfl-002",
+      "question": "Which tax and rounding applicability options are captured in Non-Financial Load maintenance?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r1-nfl-003",
+      "question": "How is the transfer fee determined for transfer transactions?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r18-minor-program-001",
+      "question": "When a Minor Program unit holder subscribes to a fund configured for the Minor Program, which bucket is consumed first?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r18-minor-program-002",
+      "question": "What happens if a Minor Program subscription would breach the investment limit for the period?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r18-minor-program-003",
+      "question": "What appears in BOR report B-12's Remark column for a Minor Program unit holder?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r21-fds-001",
+      "question": "Which cheque statuses can be selected for Mark Status Change, and in which modules is this supported?",
+      "verdict": "expected_case_incorrect",
+      "rationale": "The Mark Status Change operation is enhanced in R21 to support additional cheque statuses in the HQ and FMG modules.\n\n        Supported modules\n\n        The enhancement applies to the Cheque Status Summary (UTDCHKST) screen in:\n\n        HQ Module\n        FMG Module\n\n        The exception status changes are further restricted to ASNBHQ001 and FMGPNB modules.\n\n        Cheque statuses that can be selected\n\n        The enhancement enables Mark Status Change for the following current cheque statuses:\n\n        Active\n        Stop\n        Cleared\n        Rejected\n        Expired\n        Unclaimed\n        Duplicate\n\n        Previously, Mark Status Change was supported only when the current cheque status was Active.\n\n        Existing behavior retained\n\n        The existing functionality remains unchanged for Active cheques:\n\n        Current Status: Active\n        Allowed target statuses:\n        Rejected\n        Cleared\n        Stop\n\n        This behavior continues as before.\n\n        Additional R21 enhancements\n\n        The processing rules were relaxed so that, in HQ and FMG modules, Mark Status Change is also allowed when the current cheque status is:\n\n        Cleared\n        Expired\n        Rejected\n        Unclaimed\n        Duplicate\n        (plus the existing Active status)\n\n        If another current status is selected, the system displays:\n\n        \"Cheque Status should be Active, Cleared, Expired, Rejected, Unclaimed and Duplicate when Operation is Mark Status\".\n\n        The document also specifies:\n\n        Only valid status transition combinations are permitted; otherwise the system displays:\n\n        \"Status Change is not allowed for the selected Cheque Status and Mark Status\".\n\n        A Remarks field is introduced for exception status changes.\n        All exception status changes can be viewed through UTDCHKST → View All Records.\n        Certain transitions (for example, some transitions involving Duplicate) have additional business restrictions such as preventing cheque re-issue or disallowing changes when a re-issued cheque already exists.\n        Source checked\n        Metadata/index: R21 FDS Enhancement Phase 1 identified as the relevant candidate for \"Change cheque status\".\n        Selected source FDD: FS_FCIS_14.7.0.0.0$ASNB_R21_FDS_Enhancement_Phase1_v1.4.docx",
+      "required_follow_up": "Yes, it did not answer correctly"
+    },
+    {
+      "case_id": "r21-fds-002",
+      "question": "What additional information appears on transaction draft prints for selected subscription transactions?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r21-fds-003",
+      "question": "What controls apply when removing the HA/TD flag?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r24-reports-001",
+      "question": "Before the Teller and Branch EOD report re-alignment, how many branch EOD reports existed, and how were they split?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r24-reports-002",
+      "question": "What is the current name of teller report T-1?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r24-reports-003",
+      "question": "What is the current name of branch report B-01?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "lineage-r2-001",
+      "question": "Which document defines the original B-12 Account Registration/Closure Details report specification?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "lineage-r2-r18-002",
+      "question": "What changed in the existing B-12 report's Remark column for Minor Program unit holders, and when was it introduced?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "lineage-r2-003",
+      "question": "In what format is the T-2 Teller Transaction Summary report generated?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "lineage-r21-004",
+      "question": "What is the current rule for changing a unit holder's status from Deceased to Normal?",
+      "verdict": "conditionally_accepted",
+      "rationale": "It did answer correctly for the R21 latest update, originally \n    R2 (Death Claim) provides the original Deceased → Normal workflow related to death claims and Khairat reversal.\n    R21 extends this capability by introducing a controlled Change UH Account Status process for correcting incorrect tagging, with authorization and role restrictions rather than a general status-edit capability. The metadata indicates this as a correction path, not a removal of the original R2 scenario.",
+      "required_follow_up": "We should look for the latest change also look for the old working, only if the new overrided the old one, then we can say it is correct. Otherwise, we should state both old and new as they are both accurate."
+    },
+    {
+      "case_id": "lineage-r21-005",
+      "question": "Can the EPF Applicable field be amended for an existing minor unit holder, including through the REST API?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "lineage-r24-006",
+      "question": "Which release introduced the Teller and Branch Reports Re-alignment, and how does it relate to the original Branch Online Reports specification?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "confusion-release-001",
+      "question": "Does the Non-Financial Load enhancement define Minor Program investment-limit validation, or is that governed elsewhere?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "confusion-release-002",
+      "question": "Can a cheque in Cleared status be selected for Mark Status Change, and where is this supported?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "confusion-release-003",
+      "question": "Does the Teller and Branch report re-alignment introduce the B-12 Minor Program Remark-column behavior, or is it governed elsewhere?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "confusion-release-004",
+      "question": "Is the original branch report produced in PDF, and what is the current name of teller report T-1?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "confusion-release-005",
+      "question": "What enhancement added FE/LG and fundwise guardian information to transaction draft printing?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "confusion-release-006",
+      "question": "What restrictions apply to the EPF Applicable field for minor unit holders?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    },
+    {
+      "case_id": "r18-minor-program-reinvestment-consumption-001",
+      "question": "How are dividend reinvestment units consumed for Minor Program unit holders?",
+      "verdict": "accepted",
+      "rationale": "Answer is accurate and supported by the FDD",
+      "required_follow_up": "No"
+    }
+  ]
+}

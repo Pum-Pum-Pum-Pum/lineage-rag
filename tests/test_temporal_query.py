@@ -88,6 +88,60 @@ def test_current_query_preserves_explicit_historical_and_latest_release_evidence
     assert [item.point_id for item in scoped] == ["r2-pdf", "r24-t1"]
 
 
+def test_current_query_ignores_one_weak_newer_release_outlier() -> None:
+    plan = build_temporal_query_plan(
+        "What is the current rule for changing a unit holder from Deceased to Normal?"
+    )
+
+    scoped, updated = scope_results_to_temporal_plan(
+        [
+            _result("r21-1", "R21"),
+            _result("r21-2", "R21"),
+            _result("r21-3", "R21"),
+            _result("r21-4", "R21"),
+            _result("r21-5", "R21"),
+            _result("r24-unrelated", "R24"),
+        ],
+        plan,
+        limit=10,
+    )
+
+    assert updated.effective_release_label == "R21"
+    assert [item.point_id for item in scoped] == [
+        "r21-1",
+        "r21-2",
+        "r21-3",
+        "r21-4",
+        "r21-5",
+    ]
+
+
+def test_current_query_preserves_implicit_original_and_current_evidence() -> None:
+    plan = build_temporal_query_plan(
+        "Is the original branch report produced in PDF, and what is the current T-1 name?"
+    )
+
+    scoped, updated = scope_results_to_temporal_plan(
+        [
+            _result("r24-current", "R24"),
+            _result("r2-original", "R2"),
+            _result("r24-layout", "R24"),
+            _result("r2-pdf", "R2"),
+        ],
+        plan,
+        limit=10,
+    )
+
+    assert plan.historical_context_requested is True
+    assert updated.effective_release_label == "R24"
+    assert [item.point_id for item in scoped] == [
+        "r24-current",
+        "r2-original",
+        "r24-layout",
+        "r2-pdf",
+    ]
+
+
 def test_referential_query_inherits_release_from_conversation_context() -> None:
     plan = build_temporal_query_plan(
         "Give me a summary of it. What is current?",

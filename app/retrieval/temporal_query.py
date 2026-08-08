@@ -19,6 +19,10 @@ REFERENTIAL_PATTERN = re.compile(
     r"\b(it|its|this|that|these|those|same|there|them)\b",
     re.IGNORECASE,
 )
+HISTORICAL_CONTEXT_PATTERN = re.compile(
+    r"\b(original|previous|previously|prior|before|historical|formerly)\b",
+    re.IGNORECASE,
+)
 RELEASE_PATTERN = re.compile(r"\bR(\d+)\b", re.IGNORECASE)
 
 CURRENT_STATE_RETRIEVAL_EXPANSION = (
@@ -37,6 +41,7 @@ class TemporalQueryPlan:
     effective_release_label: str | None
     release_source: str | None
     referenced_release_labels: tuple[str, ...] = ()
+    historical_context_requested: bool = False
 
 
 def build_temporal_query_plan(
@@ -54,6 +59,10 @@ def build_temporal_query_plan(
     is_current_state = (
         CURRENT_STATE_PATTERN.search(original_query) is not None
         and NON_TEMPORAL_CURRENT_PATTERN.search(original_query) is None
+    )
+    historical_context_requested = (
+        is_current_state
+        and HISTORICAL_CONTEXT_PATTERN.search(original_query) is not None
     )
     effective_release_label: str | None = None
     release_source: str | None = None
@@ -96,6 +105,7 @@ def build_temporal_query_plan(
         effective_release_label=effective_release_label,
         release_source=release_source,
         referenced_release_labels=referenced_release_labels,
+        historical_context_requested=historical_context_requested,
     )
 
 
@@ -114,11 +124,7 @@ def scope_results_to_temporal_plan(
     release_source = plan.release_source
 
     if plan.is_current_state and effective_release is None:
-        candidate_releases = [
-            str(result.payload.get("release_label", ""))
-            for result in results
-            if str(result.payload.get("release_label", "")).strip()
-        ]
+        candidate_releases = _relevance_bounded_release_labels(results)
         if candidate_releases:
             effective_release = latest_release_label(candidate_releases)
             release_source = "retrieved_candidates"
@@ -127,6 +133,12 @@ def scope_results_to_temporal_plan(
         return list(results[:limit]), plan
 
     permitted_releases = {effective_release, *plan.referenced_release_labels}
+    if (
+        plan.is_current_state
+        and plan.historical_context_requested
+        and not plan.referenced_release_labels
+    ):
+        permitted_releases.update(_relevance_bounded_release_labels(results))
     scoped = [
         result
         for result in results
@@ -178,3 +190,36 @@ def _normalized_payload_release(
         return normalize_release_label(raw_label)
     except ValueError:
         return None
+
+
+def _relevance_bounded_release_labels(
+    results: Sequence[QdrantSearchResult],
+) -> list[str]:
+    """Keep releases with repeated rank support or a top-three result.
+
+    A numerically newer release must not become the current functional state
+    merely because one weak, unrelated unit entered a broad candidate set.
+    Rank support is intentionally computed after fusion, so dense and lexical
+    evidence contribute through the configured weighted-RRF contract.
+    """
+
+    support_by_release: dict[str, float] = {}
+    best_rank_by_release: dict[str, int] = {}
+    for rank, result in enumerate(results, start=1):
+        release_label = _normalized_payload_release(result)
+        if release_label is None:
+            continue
+        support_by_release[release_label] = (
+            support_by_release.get(release_label, 0.0) + (1.0 / rank)
+        )
+        best_rank_by_release.setdefault(release_label, rank)
+
+    if not support_by_release:
+        return []
+    strongest_support = max(support_by_release.values())
+    return [
+        release_label
+        for release_label, support in support_by_release.items()
+        if best_rank_by_release[release_label] <= 3
+        or support >= strongest_support * 0.25
+    ]

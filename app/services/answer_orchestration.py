@@ -13,13 +13,12 @@ from app.retrieval.evidence_sufficiency import (
 )
 from app.retrieval.hybrid_search import DEFAULT_RRF_RANK_CONSTANT
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
-from app.retrieval.temporal_query import (
-    build_temporal_query_plan,
-    scope_results_to_temporal_plan,
-)
 from app.services.answer_generation import generate_grounded_answer
 from app.services.answer_trace import AnswerTrace, build_answer_trace, write_answer_trace
-from app.services.query_retrieval import retrieve_query_evidence
+from app.services.query_retrieval import (
+    retrieve_planned_query_evidence,
+    retrieve_query_evidence,
+)
 from app.vectorstore.qdrant_search import QdrantSearchResult
 
 
@@ -65,34 +64,24 @@ def run_grounded_answer_query(
     one tested answer path.
     """
 
-    temporal_plan = build_temporal_query_plan(
-        query_text,
-        requested_release_label=release_label,
-        conversation_context=conversation_context,
-    )
-    retrieval_limit = (
-        max(limit, retrieval_config.hybrid_candidate_limit)
-        if temporal_plan.is_current_state
-        else limit
-    )
-    routed = retrieve_query_evidence(
+    planned_retrieval = retrieve_planned_query_evidence(
         qdrant_client=qdrant_client,
         collection_name=collection_name,
-        query_text=temporal_plan.retrieval_query,
+        query_text=query_text,
         embedding_model=embedding_model,
         embedding_client=embedding_client,
         retrieval_config=retrieval_config,
         lexical_artifact_directory=lexical_artifact_directory,
-        limit=retrieval_limit,
-        document_family=document_family,
-        release_label=temporal_plan.effective_release_label,
-        source_kind=source_kind,
-    )
-    retrieval_results, temporal_plan = scope_results_to_temporal_plan(
-        routed.results,
-        temporal_plan,
         limit=limit,
+        document_family=document_family,
+        release_label=release_label,
+        source_kind=source_kind,
+        conversation_context=conversation_context,
+        retrieval_callable=retrieve_query_evidence,
     )
+    routed = planned_retrieval.routed
+    retrieval_results = planned_retrieval.results
+    temporal_plan = planned_retrieval.temporal_plan
 
     sufficiency = assess_evidence_sufficiency(
         retrieval_results,
@@ -139,10 +128,11 @@ def run_grounded_answer_query(
             "hybrid_fusion_method": "weighted_rrf",
             "hybrid_rrf_rank_constant": DEFAULT_RRF_RANK_CONSTANT,
             "limit": limit,
-            "retrieval_candidate_limit": retrieval_limit,
+            "retrieval_candidate_limit": planned_retrieval.retrieval_candidate_limit,
             "original_query": temporal_plan.original_query,
             "retrieval_query": temporal_plan.retrieval_query,
             "current_state_requested": temporal_plan.is_current_state,
+            "historical_context_requested": temporal_plan.historical_context_requested,
             "effective_release_label": temporal_plan.effective_release_label,
             "release_source": temporal_plan.release_source,
             "referenced_release_labels": list(temporal_plan.referenced_release_labels),

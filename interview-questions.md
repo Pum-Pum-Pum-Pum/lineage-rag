@@ -161,3 +161,36 @@ nine-question batch. No additional interview is required at this point.
 **Batch assessment:** 9/9 satisfactory. The key production distinction is
 clear: artifact integrity and local activation are necessary gates, but neither
 is sufficient evidence for production readiness.
+
+## Steps 143–145 — User-realistic evaluation, retrieval gate, and grounded-answer gate
+
+1. Why should release labels remain hidden evaluation metadata instead of being
+   included in ordinary user questions?
+2. Why must the reviewed evaluation manifest be preserved after a paid run,
+   even when an SME later finds an expectation ambiguous?
+3. What does validating expected document IDs against promoted lexical
+   artifacts prove, and what semantic property does it not prove?
+
+4. Why is retrieval-only evaluation useful before paying for grounded-answer
+   generation?
+5. Why is relevance-bounded latest-release selection safer than selecting the
+   numerically newest release found anywhere in the candidate pool?
+6. If the correct document appears in a candidate lane but not final evidence,
+   which retrieval layers should be investigated before changing the LLM?
+
+7. Why do 31/31 structural passes not prove 31 semantically correct results?
+8. Why should a 92% SME acceptance rate still leave the gate pending when the
+   remaining two findings concern material grounding or lineage?
+9. Why must provider usage records be used for cost assessment when the local
+   report records `estimated_llm_cost=0.0`?
+
+### Answer status
+
+Pending user answers. Step 145's semantic decision is recorded as 23/25
+unconditionally accepted with two bounded remediation actions; this is not a
+Phase 1 release approval.
+
+## Step 146 — Interview status
+
+Step 146 is the first step of the next batch. Its questions will be grouped with
+Steps 147–148 after those bounded remediation steps are completed.

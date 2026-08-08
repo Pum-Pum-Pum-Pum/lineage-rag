@@ -48,17 +48,41 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         required=True,
         help="Markdown packet path to create.",
     )
+    parser.add_argument(
+        "--include-passed-claim-reviews",
+        action="store_true",
+        help=(
+            "Include every case whose answer claims require SME review, even when "
+            "deterministic structural checks passed."
+        ),
+    )
     return parser.parse_args(argv)
 
 
 def load_failed_review_entries(report_path: Path, eval_path: Path) -> list[ManualReviewEntry]:
+    return load_review_entries(
+        report_path,
+        eval_path,
+        include_passed_claim_reviews=False,
+    )
+
+
+def load_review_entries(
+    report_path: Path,
+    eval_path: Path,
+    *,
+    include_passed_claim_reviews: bool,
+) -> list[ManualReviewEntry]:
     report = json.loads(report_path.read_text(encoding="utf-8"))
     eval_cases = _load_eval_cases(eval_path)
     trace_directories = _resolve_trace_directories(report, report_path)
     entries: list[ManualReviewEntry] = []
 
     for result in report.get("cases", []):
-        if result.get("structural_passed"):
+        if include_passed_claim_reviews:
+            if not result.get("claim_review_required"):
+                continue
+        elif result.get("structural_passed"):
             continue
         case_id = str(result["case_id"])
         expected = eval_cases.get(case_id)
@@ -84,17 +108,37 @@ def load_failed_review_entries(report_path: Path, eval_path: Path) -> list[Manua
     return entries
 
 
-def write_manual_review_packet(entries: list[ManualReviewEntry], output_path: Path) -> Path:
+def write_manual_review_packet(
+    entries: list[ManualReviewEntry],
+    output_path: Path,
+    *,
+    include_passed_claim_reviews: bool = False,
+) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    packet_title = (
+        "# FDD v4 grounded answers — SME semantic review packet"
+        if include_passed_claim_reviews
+        else "# FDD v4 draft baseline — SME manual review packet"
+    )
+    outcome_choices = (
+        "`accepted`, `expected_case_incorrect`, `retrieval_or_release_gap`, "
+        "`citation_contract_gap`, or `other`."
+        if include_passed_claim_reviews
+        else "`expected_case_incorrect`, `retrieval_or_release_gap`, "
+        "`citation_contract_gap`, `correct_safe_refusal`, or `other`."
+    )
     lines = [
-        "# FDD v4 draft baseline — SME manual review packet",
+        packet_title,
         "",
-        "This packet contains only deterministic evaluation failures. It is not a release approval, "
-        "and its preliminary signals are not SME verdicts.",
+        (
+            "This packet contains every generated answer requiring semantic SME review. "
+            if include_passed_claim_reviews
+            else "This packet contains only deterministic evaluation failures. "
+        )
+        + "It is not a release approval, and its preliminary signals are not SME verdicts.",
         "",
         "For every case, review the cited source text in the trace, then choose one outcome:",
-        "`expected_case_incorrect`, `retrieval_or_release_gap`, `citation_contract_gap`, "
-        "`correct_safe_refusal`, or `other`.",
+        outcome_choices,
         "",
     ]
     for entry in entries:
@@ -173,8 +217,16 @@ def _bullets(values: list[str]) -> list[str]:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
-    entries = load_failed_review_entries(args.report_file, args.eval_file)
-    output_path = write_manual_review_packet(entries, args.output_file)
+    entries = load_review_entries(
+        args.report_file,
+        args.eval_file,
+        include_passed_claim_reviews=args.include_passed_claim_reviews,
+    )
+    output_path = write_manual_review_packet(
+        entries,
+        args.output_file,
+        include_passed_claim_reviews=args.include_passed_claim_reviews,
+    )
     print(f"manual_review_cases={len(entries)}")
     print(f"packet={output_path}")
 

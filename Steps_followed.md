@@ -367,3 +367,126 @@ isolation, immutable staging provenance, SHA-256 promotion limits, and Git
 exclusion of generated indexes. The remaining production gate is broader than
 artifact integrity: security, capacity, live configuration, operational
 supervision, and rollback evidence are still required.
+
+## Step 143 — User-realistic reviewed FDD evaluation contract
+
+### Python/code
+
+Added `app/llm/fdd_eval_manifest_validation.py` and
+`scripts/validate_fdd_eval_manifest.py`. The validator fingerprints the JSONL
+manifest, cross-checks expected document/release identities against promoted
+lexical artifacts, rejects explicit `R<number>` labels in user-facing
+questions, and separates structural errors from pending SME gate blockers.
+
+The original draft remains v1. Rephrased v2 questions and the separate reviewed
+manifest are stored under `data/evaluations/`; release labels remain hidden
+evaluation metadata for lineage and citation validation.
+
+### Production interpretation
+
+Users are not expected to know ten years of release history. Natural business
+questions drive retrieval, while the benchmark privately verifies whether the
+system discovers the correct release and source. SME approval remains separate
+from automated validation.
+
+### Failure-mode testing
+
+The strict validator rejects duplicate questions, invalid evidence locators,
+missing promoted documents, inconsistent citation identities, unreviewed cases,
+and release-label leakage. The reviewed manifest passed with 31 reviewed cases,
+zero errors, and zero gate blockers.
+
+## Step 144 — Production-parity retrieval-only v4 gate
+
+### Python/code
+
+Added `app/retrieval/fdd_retrieval_gate.py` and
+`scripts/run_fdd_retrieval_gate.py`. Temporal planning and retrieval were
+extracted into `retrieve_planned_query_evidence()` so evaluation and live answer
+orchestration share the same weighted-RRF implementation.
+
+The first reviewed run produced document recall@10 of `0.8710`. Two failures
+were corrected as over-constrained expectations. Two temporal failures were
+repaired by selecting the latest relevance-supported release and retaining
+relevance-bounded historical evidence for mixed original/current questions.
+Global dense/lexical weights were not changed.
+
+### Production interpretation
+
+The retrieval-only layer isolates source-selection failures before LLM cost and
+generation variability. Candidate-lane and final-result identities are
+persisted without duplicating full source text.
+
+### Failure-mode testing
+
+The four-case targeted replay passed at `1.00` recall. The final 31-case run
+then passed all 25 positive cases at document recall@10 `1.00`; six abstention
+cases remained for the answer-stage safety gate. The full deterministic suite
+passed `384/384` with one existing non-failing Starlette/HTTPX warning.
+
+## Step 145 — Grounded-answer v4 gate (SME decision recorded)
+
+### Python/code
+
+The reviewed 31-case run used `run_fdd_grounded_eval.py` with
+`functional_specs_v4` paired to
+`data/indexes/functional_specs_v4/processed`. It generated one answer trace per
+case. A full semantic-review option was added to
+`scripts/export_fdd_manual_review_packet.py` so structurally passing answers are
+not excluded from SME review.
+
+### Production interpretation
+
+The initial paid run had 29/31 structural passes. One case was an already-known
+over-constrained historical citation expectation. The other safely refused when
+the model omitted citation markers despite receiving correct evidence; one
+targeted replay passed, recording live-model contract variability rather than a
+retrieval gap. Thirty original traces plus the successful replay were assembled
+locally without additional model calls.
+
+### Failure-mode testing and gate decision
+
+The assembled final report has 31/31 structural passes: 25 grounded answers and
+6 expected safe refusals. The completed SME review accepted 23 of 25 claim
+answers unconditionally (`0.92`), meeting the numeric `>=0.90` threshold. One
+cheque-status answer was incomplete/ambiguous and one Deceased-to-Normal answer
+was accepted only conditionally pending historical-lineage evidence. Therefore
+the semantic evaluation step is complete, but the Phase 1 release gate remains
+`pending_material_remediation`; a percentage threshold does not waive material
+grounding gaps.
+
+## Step 146 — Convert SME findings into bounded remediation gates
+
+### Python/code
+
+Added `app/llm/fdd_sme_remediation.py` and
+`scripts/build_fdd_sme_remediation.py`. The validator requires every
+non-accepted SME decision to have exactly one remediation action and checks
+required source patterns against the active lexical artifacts. The durable plan
+is `data/evaluations/fdd_v4_sme_remediation_plan_20260808.json`; its generated
+status report records both input hashes and the active artifact inventory.
+
+The original paid-run manifest remains immutable. A separate one-case manifest,
+`data/evaluations/fdd_grounded_eval_v2_sme_remediation.jsonl`, now distinguishes
+eligible **current** cheque statuses from permitted **target** statuses when the
+current status is Active. It also requires the answer to disclose the source's
+overview-versus-detailed-processing distinction for `Stop`.
+
+### Production interpretation
+
+The cheque case is a bounded benchmark/answer-completeness repair and can be
+replayed without changing global retrieval weights. The Deceased-to-Normal case
+is not a ranking defect: no R2 Death Claim artifact exists in the eight-document
+v4 corpus. The system may state the R21 controlled correction rules, but it
+cannot claim that the older Death Claim flow coexists or was overridden until
+that source is ingested and freshly retrieved.
+
+### Failure-mode testing and current gate
+
+The remediation manifest passed structural validation (`1/1`, zero errors and
+zero blockers). The remediation report fails when an unresolved SME case is
+omitted, when an unsupported status is used, or when a case marked as
+`blocked_missing_source` actually has all required artifacts. Focused tests
+passed `4/4` after rerouting pytest from an inaccessible Windows temp directory
+to a workspace-local base. The current report correctly remains
+`pending_material_remediation` for `r21-fds-001` and `lineage-r21-004`.
