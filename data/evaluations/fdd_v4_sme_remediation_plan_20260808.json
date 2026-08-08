@@ -4,22 +4,28 @@
     {
       "case_id": "r21-fds-001",
       "classification": "benchmark_ambiguity_and_answer_completeness",
-      "status": "benchmark_revised_pending_replay",
+      "status": "accepted_after_paid_replay",
       "required_artifact_patterns": [
         "*R21_FDS_Enhancement_Phase1*.retrieval_ready.json"
       ],
       "target_manifest": "data/evaluations/fdd_grounded_eval_v2_sme_remediation.jsonl",
+      "paid_run_report": "data/exports/evaluations/fdd-v4-sme-remediation-cheque-paid-20260808.json",
+      "paid_run_trace": "data/exports/evaluations/fdd-grounded-eval-20260808T144807Z/answer_traces/fdd-grounded-eval-20260808T144807Z-r21-fds-001-sme-remediation.json",
+      "structural_result": "passed",
+      "semantic_observation": "The answer correctly separates detailed eligible current statuses from Active target statuses, but it does not explicitly disclose that the requirements overview also lists Stop while the detailed current-status validation omits it.",
+      "sme_review_ledger": "data/evaluations/fdd_v4_sme_remediation_cheque_review_20260808.json",
+      "sme_verdict": "accepted",
+      "sme_rationale": "good",
+      "required_follow_up": "no",
       "production_interpretation": "Separate eligible current statuses from allowed target transitions and disclose the overview-versus-processing-rule distinction.",
       "failure_test": "The answer must not silently classify Stop as both an eligible current status and a target status."
     },
     {
       "case_id": "lineage-r21-004",
-      "classification": "corpus_lineage_gap",
-      "status": "blocked_missing_source",
-      "required_artifact_patterns": [
-        "*R2*Death*Claim*.retrieval_ready.json"
-      ],
-      "production_interpretation": "R21 supports the current controlled correction path, but the indexed corpus cannot establish whether the older Death Claim workflow coexists or was overridden.",
+      "classification": "out_of_scope_expectation_unindexed_source",
+      "status": "accepted_no_action",
+      "required_artifact_patterns": [],
+      "production_interpretation": "Accept the R21 answer for the evaluated current-rule question. Track R2 Death Claim lineage as a future corpus-expansion case only after that FDD is ingested.",
       "failure_test": "Do not infer the historical workflow or override relationship from SME memory, conversation memory, or the R21 document alone."
     }
   ]

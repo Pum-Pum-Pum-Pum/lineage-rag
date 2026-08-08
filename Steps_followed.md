@@ -488,5 +488,90 @@ zero blockers). The remediation report fails when an unresolved SME case is
 omitted, when an unsupported status is used, or when a case marked as
 `blocked_missing_source` actually has all required artifacts. Focused tests
 passed `4/4` after rerouting pytest from an inaccessible Windows temp directory
-to a workspace-local base. The current report correctly remains
+to a workspace-local base. The initial report remained
 `pending_material_remediation` for `r21-fds-001` and `lineage-r21-004`.
+
+The SME then confirmed that the R2 Death Claim FDD had not been ingested and
+that using its facts in the current benchmark was an out-of-scope expectation.
+The original review ledger remains immutable; remediation records
+`lineage-r21-004` as `accepted_no_action` for the R21 question actually
+evaluated. Historical R2-to-R21 behavior becomes a future test only after the
+missing FDD is ingested. The remaining gate blocker is the one-case
+cheque-status replay.
+
+## Step 147 — Paid targeted v4 cheque-status remediation replay
+
+### Python/code
+
+Executed exactly one reviewed case from
+`data/evaluations/fdd_grounded_eval_v2_sme_remediation.jsonl` with explicit
+process-local overrides for `functional_specs_v4` and
+`data/indexes/functional_specs_v4/processed`. The run made one OpenAI embedding
+request and one `gpt-5-mini` grounded-answer request. The trace recorded 1,587
+prompt tokens, 1,336 completion tokens, and 2,923 total chat tokens.
+
+The remediation state machine now supports
+`paid_replay_pending_semantic_review`, and the plan records the immutable report
+and trace paths rather than treating a structural pass as final approval.
+
+### Production interpretation
+
+The case passed deterministic structure and cited only the expected R21 FDD.
+The answer correctly separated detailed eligible current statuses
+(`Active`, `Cleared`, `Expired`, `Rejected`, `Unclaimed`, `Duplicate`) from the
+retained targets when current status is `Active` (`Rejected`, `Cleared`,
+`Stop`) and identified UTDCHKST in HQ/FMG.
+
+However, it did not explicitly disclose that the Requirements Overview also
+lists `Stop` while the detailed current-status validation omits it. That source
+qualification was a material expected claim, so the gate remains pending an SME
+decision rather than being closed automatically.
+
+### Failure-mode testing and current gate
+
+The preflight dry run proved the scope was exactly one reviewed case and the
+paired v4 generation. The paid run returned HTTP 200 for both provider calls,
+`structural_passed=true`, `is_answered=true`, and five citations from the exact
+R21 document. A dedicated manual-review packet was generated. Local cost remains
+reported as zero because pricing is unconfigured; provider usage is still the
+authoritative billing record. No retry was made after the semantically incomplete
+qualification, preventing an unauthorized extra paid call.
+
+## Step 148 — Persist SME acceptance and close the Phase 1 evaluation gate
+
+### Python/code
+
+Persisted the SME decision in
+`data/evaluations/fdd_v4_sme_remediation_cheque_review_20260808.md` and imported
+it into a hash-bound JSON ledger using the existing strict review importer. The
+remediation state machine now distinguishes `accepted_after_paid_replay` from a
+pending semantic review and treats both accepted resolution paths as
+non-blocking.
+
+### Production interpretation
+
+The final decision preserves three immutable layers: the original 31-case
+evaluation and review, the corrected one-case paid replay, and the SME decision
+on that replay. The absent R2 Death Claim document remains explicitly outside
+the evaluated corpus and is not silently converted into a functional claim.
+
+With both remediation actions resolved, the automated remediation report may
+change from `pending_material_remediation` to `passed`. This closes the bounded
+Phase 1 FDD evaluation gate for the current eight-document v4 corpus; it does
+not establish production deployment readiness or coverage of unindexed FDDs.
+
+### Failure-mode testing
+
+The importer rejects mismatched case IDs/questions and incomplete review fields.
+The remediation tests prove that a pending paid replay remains blocking while an
+explicitly accepted paid replay removes the blocker. The regenerated report,
+input hashes, focused tests, and whitespace checks are the release evidence.
+
+### Interview evaluation for Steps 146–148
+
+The user answered all nine questions satisfactorily. The answers correctly
+covered durable remediation state, immutable paid-run contracts, corpus absence
+versus ranking failure, structural versus semantic validation, harmless
+candidate-lane noise, explicit paid-retry authorization, hash-bound SME
+decisions, the limits of the Phase 1 gate, and the need for new lineage tests
+when the evidence contract changes. The batch is complete at 9/9 satisfactory.

@@ -184,13 +184,81 @@ is sufficient evidence for production readiness.
 9. Why must provider usage records be used for cost assessment when the local
    report records `estimated_llm_cost=0.0`?
 
-### Answer status
+### User answers and mentor evaluation
 
-Pending user answers. Step 145's semantic decision is recorded as 23/25
-unconditionally accepted with two bounded remediation actions; this is not a
-Phase 1 release approval.
+All nine answers were satisfactory. The user correctly distinguished user
+business language from hidden temporal metadata, preserved the paid manifest as
+an immutable run contract, and explained the limits of artifact identity
+checks. The retrieval answers correctly covered cost isolation,
+relevance-bounded release selection, and diagnosis across fusion, filtering,
+scoping, deduplication, candidate limits, and evidence packing. The answer-stage
+responses correctly separated structural validity from semantic entailment,
+treated severity as more important than aggregate pass rate, and identified
+provider usage and billing as authoritative cost evidence.
+
+**Batch assessment: 9/9 satisfactory.** The user also confirmed that the R2
+Death Claim FDD was never ingested. Therefore the R21 current-rule answer is
+accepted within the evaluated corpus; the absent R2 lineage is deferred until
+its source is ingested and must not be supplied from conversation or SME memory.
 
 ## Step 146 — Interview status
 
 Step 146 is the first step of the next batch. Its questions will be grouped with
 Steps 147–148 after those bounded remediation steps are completed.
+
+## Step 147 — Interview status
+
+Step 147 is the second step of the current batch. Its one-case paid replay
+passed structural validation but remains pending SME semantic judgment because
+one explicit source-ambiguity qualification was omitted. Questions will be
+grouped after Step 148.
+
+## Steps 146–148 — SME remediation, paid replay, and gate closure
+
+1. Why should unresolved SME findings be represented as structured remediation
+   states rather than only described in chat or free-form notes?
+2. Why was the corrected cheque question placed in a new manifest instead of
+   editing the manifest used by the original paid run?
+3. Why was missing R2 Death Claim history classified as an out-of-scope corpus
+   expectation rather than a retrieval-ranking failure?
+
+4. What did the paid replay's structural pass prove, and why did semantic review
+   remain necessary?
+5. Why was the R18 lexical outlier in candidate diagnostics not evidence of a
+   grounded-answer failure in this run?
+6. Why was no automatic paid retry made when the answer omitted the requested
+   source-ambiguity qualification?
+
+7. Why should the final SME acceptance be stored in a hash-bound ledger tied to
+   the exact report and evaluation manifest?
+8. What does closing the Phase 1 gate establish for v4, and what important
+   production or corpus properties remain unproven?
+9. If the R2 Death Claim FDD is ingested later, why must its lineage behavior be
+   evaluated as a new case instead of treating today's accepted answer as proof?
+
+### User answers and mentor evaluation
+
+1. **Satisfactory.** Structured remediation states make ownership, rationale,
+   status, and follow-up durable and machine-readable; chat is not an auditable
+   system of record.
+2. **Satisfactory.** A separate corrected manifest preserves the original paid
+   run contract while making remediation independently reproducible.
+3. **Satisfactory.** Retrieval cannot rank an absent source. This is a
+   corpus/benchmark scope error, not a reason to tune RRF or another ranker.
+4. **Satisfactory.** Structural validation proved the machine contract; SME
+   review remained necessary for completeness, qualification, temporal meaning,
+   and citation entailment.
+5. **Satisfactory.** Candidate lanes are intentionally broad diagnostics. The
+   R18 outlier was harmless because it was excluded from final evidence.
+6. **Satisfactory.** An automatic retry would add external cost and model
+   variability while weakening diagnosis of the preserved first result.
+7. **Satisfactory.** Hash binding ties the verdict to exact inputs and outputs,
+   preventing modified artifacts from being mistaken for the reviewed run.
+8. **Satisfactory.** The answer correctly bounded the Phase 1 result and listed
+   important production properties that remain unproven.
+9. **Satisfactory.** A newly ingested R2 source changes the evidence contract,
+   requiring a new lineage, isolation, and citation evaluation case.
+
+**Batch assessment: 9/9 satisfactory.** Steps 146–148 are complete. The Phase 1
+evaluation gate passes for the current eight-document v4 corpus, with unindexed
+documents explicitly outside that claim.

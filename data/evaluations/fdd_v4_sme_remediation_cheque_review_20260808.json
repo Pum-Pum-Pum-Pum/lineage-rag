@@ -1,0 +1,30 @@
+{
+  "schema_version": "fdd_grounded_sme_review_v1",
+  "review_file": "data\\evaluations\\fdd_v4_sme_remediation_cheque_review_20260808.md",
+  "review_sha256": "ffd2bca8a5a84538b1df6353eee1e82db95326a9f331756ac2484d9b7c6199c3",
+  "report_file": "data\\exports\\evaluations\\fdd-v4-sme-remediation-cheque-paid-20260808.json",
+  "report_sha256": "169fc38f5fa09a927988d2b0fa33b3bcf7a432b0802141b328aed5c5f3b8d876",
+  "eval_file": "data\\evaluations\\fdd_grounded_eval_v2_sme_remediation.jsonl",
+  "eval_sha256": "97770d23338543531ecdee64c52500cec602e1c156b7faa921f35b3fea216a67",
+  "summary": {
+    "total_claim_reviews": 1,
+    "verdict_counts": {
+      "accepted": 1
+    },
+    "unconditional_accepted_count": 1,
+    "unconditional_acceptance_rate": 1.0,
+    "minimum_acceptance_rate": 0.9,
+    "acceptance_threshold_passed": true,
+    "unresolved_review_count": 0,
+    "requires_remediation_decision": false
+  },
+  "decisions": [
+    {
+      "case_id": "r21-fds-001-sme-remediation",
+      "question": "For Mark Status Change, which current cheque statuses are eligible, which target statuses are allowed when the current status is Active, and where is the operation supported?",
+      "verdict": "accepted",
+      "rationale": "good",
+      "required_follow_up": "no"
+    }
+  ]
+}

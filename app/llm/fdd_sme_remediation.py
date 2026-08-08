@@ -10,8 +10,10 @@ from typing import Any
 ALLOWED_STATUSES = frozenset(
     {
         "benchmark_revised_pending_replay",
+        "paid_replay_pending_semantic_review",
         "blocked_missing_source",
         "accepted_no_action",
+        "accepted_after_paid_replay",
     }
 )
 
@@ -79,7 +81,12 @@ def build_remediation_report(
             f"extra={sorted(seen - unresolved_review_ids)}"
         )
 
-    blocking = [action["case_id"] for action in actions if action["status"] != "accepted_no_action"]
+    non_blocking_statuses = {"accepted_no_action", "accepted_after_paid_replay"}
+    blocking = [
+        action["case_id"]
+        for action in actions
+        if action["status"] not in non_blocking_statuses
+    ]
     return {
         "schema_version": "fdd_sme_remediation_v1",
         "review_ledger": str(review_ledger_path),
