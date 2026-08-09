@@ -25,6 +25,22 @@ class Settings(BaseSettings):
     root_dir: Path = ROOT_DIR
     data_dir: Path = ROOT_DIR / "data"
     raw_specs_dir: Path = ROOT_DIR / "data" / "raw_specs"
+    raw_code_dir: Path = Field(
+        default=ROOT_DIR / "data" / "raw_code",
+        alias="RAW_CODE_DIR",
+    )
+    code_snapshots_dir: Path = Field(
+        default=ROOT_DIR / "data" / "code_snapshots",
+        alias="CODE_SNAPSHOTS_DIR",
+    )
+    code_staging_dir: Path = Field(
+        default=ROOT_DIR / "data" / "staging" / "code",
+        alias="CODE_STAGING_DIR",
+    )
+    code_indexes_dir: Path = Field(
+        default=ROOT_DIR / "data" / "indexes" / "code",
+        alias="CODE_INDEXES_DIR",
+    )
     embedded_docs_dir: Path = Field(
         default=ROOT_DIR / "data" / "docs_embedded",
         alias="EMBEDDED_DOCS_DIR",

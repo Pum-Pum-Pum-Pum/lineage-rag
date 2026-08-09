@@ -1127,3 +1127,41 @@ into microservices.
 Proceed sequentially: FDD expansion, code retrieval, deterministic combined
 analysis, bounded tool orchestration, and then Text-to-SQL. Each phase must
 pass its evaluation gate before implementation begins on the next phase.
+
+---
+
+## 20. Approved Phase 2 custom PL/SQL architecture
+
+Phase 2 begins with complete curated custom-code snapshots under
+`data/raw_code/<snapshot-request>/source`. Snapshot requests bind a module set
+to an SVN revision, application build, reviewer, optional prior snapshot, and
+optional expected changed packages. Local snapshot publication is
+content-addressed, atomic, no-overwrite, and separate from active retrieval.
+
+The first allowlist is case-insensitive `.sql`, `.prc`, `.fnc`, and `.ddl`.
+Files above 5 MiB are warned about and later parsed with resource isolation;
+size alone is not a rejection condition. Streaming validation rejects binary,
+unsupported, symlinked, and potential secret-bearing inputs without exposing
+secret values. Complete manifests determine added, modified, deleted,
+unchanged, and unambiguous exact-rename changes; the reviewer does not need to
+provide changed line ranges.
+
+PL/SQL parsing will preserve original citeable source, conditional-compilation
+regions and exact line maps. It will use full, segmented, fallback, or failed
+parser states rather than silently treating degraded parsing as complete.
+Unquoted Oracle identifiers canonicalize to uppercase while quoted identifiers
+retain exact case. Overload-safe symbol identity will include a deterministic
+parameter discriminator, with a separate full declaration hash for semantic
+diffs.
+
+Code retrieval units will keep exact source separate from compact derived
+package context and linked declaration units. Static DDL and synonym targets
+will carry explicit resolution states; unavailable kernel code, unresolved
+dynamic SQL, compiler branches, and external schemas remain qualified unknowns.
+
+FDD and code evidence remain in separate artifacts, indexes, Qdrant
+collections, thresholds, citations, and evaluation suites. Reviewed lineage
+mappings may target modules, files, or overload-specific symbols. Explicit
+`fdd`, `code`, and later `combined` modes are required; automatic routing and
+code generation remain out of scope until the deterministic combined gate is
+passed.

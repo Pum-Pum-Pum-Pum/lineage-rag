@@ -51,6 +51,8 @@ data/exports/*
 !data/exports/.gitkeep
 data/docs_embedded/
 data/raw_specs/
+data/raw_code/
+data/code_snapshots/
 data/staging/*
 data/indexes/*
 data/tmp/
