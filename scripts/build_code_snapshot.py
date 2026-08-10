@@ -18,6 +18,7 @@ from app.code_ingestion.snapshot_builder import (
     load_snapshot_request,
 )
 from app.core.config import get_settings
+from app.core.ingestion_policy import load_ingestion_source_policy
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -46,9 +47,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
+    settings = get_settings()
+    policy = load_ingestion_source_policy(settings.ingestion_source_policy_path)
     request = load_snapshot_request(args.intake_directory / SNAPSHOT_REQUEST_FILE)
     if args.validate_only:
-        report = validate_code_intake(args.intake_directory / "source")
+        report = validate_code_intake(
+            args.intake_directory / "source",
+            source_policy=policy,
+        )
         print(
             json.dumps(
                 {
@@ -57,6 +63,7 @@ def main(argv: Sequence[str] | None = None) -> None:
                     "svn_revision": request.svn_revision,
                     "file_count": len(report.files),
                     "warning_count": len(report.warnings),
+                    "ingestion_policy_sha256": report.ingestion_policy_sha256,
                     "writes_performed": False,
                     "external_calls_performed": False,
                 },
@@ -65,7 +72,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         )
         return
 
-    manifest = build_code_snapshot(args.intake_directory, args.snapshot_root)
+    manifest = build_code_snapshot(
+        args.intake_directory,
+        args.snapshot_root,
+        source_policy=policy,
+    )
     diff = manifest.diff
     print(
         json.dumps(
@@ -74,6 +85,7 @@ def main(argv: Sequence[str] | None = None) -> None:
                 "snapshot_id": manifest.snapshot_id,
                 "snapshot_directory": str((args.snapshot_root / manifest.snapshot_id).resolve()),
                 "file_count": len(manifest.files),
+                "ingestion_policy_sha256": manifest.ingestion_policy_sha256,
                 "warning_count": sum(len(entry.warnings) for entry in manifest.files),
                 "diff": {
                     "added": len(diff.added),
@@ -93,4 +105,3 @@ def main(argv: Sequence[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -5,6 +5,7 @@ import hashlib
 import re
 from pathlib import Path
 
+from app.core.ingestion_policy import IngestionSourcePolicy, load_ingestion_source_policy
 from app.code_ingestion.snapshot_models import (
     CodeFileManifestEntry,
     IntakeValidationReport,
@@ -12,7 +13,6 @@ from app.code_ingestion.snapshot_models import (
 )
 
 
-ALLOWED_CODE_EXTENSIONS = frozenset({".sql", ".prc", ".fnc", ".ddl"})
 DEFAULT_LARGE_FILE_WARNING_BYTES = 5 * 1024 * 1024
 DEFAULT_STREAM_CHUNK_BYTES = 1024 * 1024
 
@@ -42,11 +42,14 @@ class CodeIntakeValidationError(ValueError):
 def validate_code_intake(
     source_directory: Path,
     *,
+    source_policy: IngestionSourcePolicy | None = None,
     large_file_warning_bytes: int = DEFAULT_LARGE_FILE_WARNING_BYTES,
     stream_chunk_bytes: int = DEFAULT_STREAM_CHUNK_BYTES,
 ) -> IntakeValidationReport:
     """Validate and hash an allowlisted custom-code source tree without mutating it."""
 
+    policy = source_policy or load_ingestion_source_policy()
+    extension_handlers = policy.extension_map("code")
     if large_file_warning_bytes <= 0:
         raise ValueError("large_file_warning_bytes must be greater than zero")
     if stream_chunk_bytes <= 0:
@@ -97,13 +100,13 @@ def validate_code_intake(
         seen_paths.add(casefold_path)
 
         extension = path.suffix.lower()
-        if extension not in ALLOWED_CODE_EXTENSIONS:
+        if extension not in extension_handlers:
             errors.append(
                 ValidationIssue(
                     severity="error",
                     code="extension_not_allowed",
                     path=relative_path,
-                    message=f"Allowed extensions are {sorted(ALLOWED_CODE_EXTENSIONS)}.",
+                    message=f"Allowed extensions are {sorted(extension_handlers)}.",
                 )
             )
             continue
@@ -112,6 +115,7 @@ def validate_code_intake(
             entry, file_warnings = _analyze_code_file(
                 path,
                 relative_path=relative_path,
+                source_handler=extension_handlers[extension],
                 large_file_warning_bytes=large_file_warning_bytes,
                 stream_chunk_bytes=stream_chunk_bytes,
             )
@@ -135,6 +139,8 @@ def validate_code_intake(
 
     return IntakeValidationReport(
         source_directory=str(source_directory.resolve()),
+        ingestion_policy_schema_version=policy.schema_version,
+        ingestion_policy_sha256=policy.policy_sha256,
         files=tuple(sorted(entries, key=lambda entry: entry.path.casefold())),
         warnings=tuple(warnings),
     )
@@ -144,6 +150,7 @@ def _analyze_code_file(
     path: Path,
     *,
     relative_path: str,
+    source_handler: str,
     large_file_warning_bytes: int,
     stream_chunk_bytes: int,
 ) -> tuple[CodeFileManifestEntry, list[ValidationIssue]]:
@@ -233,6 +240,7 @@ def _analyze_code_file(
         CodeFileManifestEntry(
             path=relative_path,
             extension=path.suffix.lower(),
+            source_handler=source_handler,
             sha256=exact_digest.hexdigest(),
             normalized_text_sha256=normalized_digest,
             size_bytes=size_bytes,
@@ -322,4 +330,3 @@ def _scan_decoded_text(
     consume(final_text.replace("\r\n", "\n").replace("\r", "\n"))
     line_count = 0 if not saw_text else newline_count + (0 if final_character == "\n" else 1)
     return normalized_digest.hexdigest(), line_count, secret_ids
-

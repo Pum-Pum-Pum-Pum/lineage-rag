@@ -5,6 +5,8 @@ from pathlib import Path
 
 from docx import Document
 
+from app.core.ingestion_policy import IngestionSourcePolicy, load_ingestion_source_policy
+
 
 @dataclass(frozen=True)
 class ExtractedDocxText:
@@ -15,7 +17,11 @@ class ExtractedDocxText:
     full_text: str
 
 
-def extract_docx_text(file_path: str | Path) -> ExtractedDocxText:
+def extract_docx_text(
+    file_path: str | Path,
+    *,
+    source_policy: IngestionSourcePolicy | None = None,
+) -> ExtractedDocxText:
     """Extract paragraph text from a DOCX file.
 
     This first extraction step intentionally handles paragraph text only.
@@ -25,8 +31,13 @@ def extract_docx_text(file_path: str | Path) -> ExtractedDocxText:
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"DOCX file does not exist: {path}")
-    if path.suffix.lower() != ".docx":
-        raise ValueError(f"Expected a .docx file, got: {path.name}")
+    policy = source_policy or load_ingestion_source_policy()
+    enabled_extensions = policy.extensions_for("fdd", handler="docx")
+    if path.suffix.lower() not in enabled_extensions:
+        raise ValueError(
+            f"Expected a configured FDD docx-handler extension {sorted(enabled_extensions)}, "
+            f"got: {path.name}"
+        )
 
     document = Document(path)
     paragraphs = [paragraph.text.strip() for paragraph in document.paragraphs]

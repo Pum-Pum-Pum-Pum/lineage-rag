@@ -11,6 +11,7 @@ from app.code_ingestion.snapshot_builder import (
     build_snapshot_diff,
     load_snapshot_manifest,
 )
+from app.core.ingestion_policy import load_ingestion_source_policy
 
 
 def _write_intake(
@@ -82,6 +83,41 @@ def test_snapshot_identity_does_not_change_with_large_file_warning_policy(tmp_pa
     assert default_policy.snapshot_content_sha256 == warning_policy.snapshot_content_sha256
     assert default_policy.files[0].is_large_file is False
     assert warning_policy.files[0].is_large_file is True
+
+
+def test_snapshot_identity_and_diff_record_ingestion_policy_change(tmp_path: Path) -> None:
+    default_policy = load_ingestion_source_policy()
+    policy_path = tmp_path / "expanded-policy.toml"
+    policy_path.write_text(
+        "schema_version = \"ingestion_source_policy_v1\"\n"
+        "[fdd.extensions]\n"
+        '".docx" = "docx"\n'
+        "[code.extensions]\n"
+        '".sql" = "plsql"\n".prc" = "plsql"\n".fnc" = "plsql"\n'
+        '".ddl" = "ddl"\n".pkb" = "plsql"\n',
+        encoding="utf-8",
+    )
+    expanded_policy = load_ingestion_source_policy(policy_path)
+    snapshot_root = tmp_path / "snapshots"
+    base = build_code_snapshot(
+        _write_intake(tmp_path, revision="98", files={"pkg.sql": "select 1 from dual;\n"}),
+        snapshot_root,
+        source_policy=default_policy,
+    )
+    current = build_code_snapshot(
+        _write_intake(
+            tmp_path,
+            revision="99",
+            files={"pkg.sql": "select 1 from dual;\n"},
+            base_snapshot_id=base.snapshot_id,
+        ),
+        snapshot_root,
+        source_policy=expanded_policy,
+    )
+
+    assert base.ingestion_policy_sha256 != current.ingestion_policy_sha256
+    assert current.diff.ingestion_policy_changed_from_base is True
+    assert current.diff.unchanged == ("pkg.sql",)
 
 
 def test_snapshot_detects_added_modified_deleted_unchanged_and_exact_rename(tmp_path: Path) -> None:

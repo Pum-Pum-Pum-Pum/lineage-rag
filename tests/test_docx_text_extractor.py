@@ -43,6 +43,6 @@ def test_extract_docx_text_invalid_suffix(tmp_path: Path) -> None:
     try:
         extract_docx_text(text_file)
     except ValueError as exc:
-        assert "Expected a .docx file" in str(exc)
+        assert "Expected a configured FDD docx-handler extension" in str(exc)
     else:
         raise AssertionError("Expected ValueError for non-DOCX input")

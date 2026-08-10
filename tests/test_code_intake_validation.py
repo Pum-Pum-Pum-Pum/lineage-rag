@@ -20,6 +20,7 @@ def test_intake_accepts_allowlisted_extensions_case_insensitively(tmp_path: Path
 
     assert [entry.extension for entry in report.files] == [".fnc", ".sql", ".prc", ".ddl"]
     assert all(entry.encoding == "utf-8" for entry in report.files)
+    assert {entry.source_handler for entry in report.files} == {"plsql", "ddl"}
 
 
 def test_line_ending_normalization_does_not_change_normalized_hash(tmp_path: Path) -> None:
@@ -86,4 +87,3 @@ def test_windows_1252_source_is_accepted_with_visible_warning(tmp_path: Path) ->
 
     assert report.files[0].encoding == "cp1252"
     assert "legacy_encoding" in report.files[0].warnings
-

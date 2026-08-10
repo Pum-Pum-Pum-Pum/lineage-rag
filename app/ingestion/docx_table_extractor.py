@@ -7,6 +7,8 @@ from docx import Document
 from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 
+from app.core.ingestion_policy import IngestionSourcePolicy, load_ingestion_source_policy
+
 
 @dataclass(frozen=True)
 class ExtractedTable:
@@ -30,7 +32,11 @@ def _normalize_cell_text(text: str) -> str:
     return " ".join(text.split())
 
 
-def extract_docx_tables(file_path: str | Path) -> ExtractedDocxTables:
+def extract_docx_tables(
+    file_path: str | Path,
+    *,
+    source_policy: IngestionSourcePolicy | None = None,
+) -> ExtractedDocxTables:
     """Extract table content from a DOCX file.
 
     This step handles tables separately from paragraph extraction so table behavior
@@ -40,8 +46,13 @@ def extract_docx_tables(file_path: str | Path) -> ExtractedDocxTables:
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"DOCX file does not exist: {path}")
-    if path.suffix.lower() != ".docx":
-        raise ValueError(f"Expected a .docx file, got: {path.name}")
+    policy = source_policy or load_ingestion_source_policy()
+    enabled_extensions = policy.extensions_for("fdd", handler="docx")
+    if path.suffix.lower() not in enabled_extensions:
+        raise ValueError(
+            f"Expected a configured FDD docx-handler extension {sorted(enabled_extensions)}, "
+            f"got: {path.name}"
+        )
 
     document = Document(path)
     parent_context_by_table_index = _extract_parent_context_by_table_index(document)

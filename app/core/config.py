@@ -41,6 +41,20 @@ class Settings(BaseSettings):
         default=ROOT_DIR / "data" / "indexes" / "code",
         alias="CODE_INDEXES_DIR",
     )
+    code_parse_timeout_seconds: float = Field(
+        default=120.0,
+        alias="CODE_PARSE_TIMEOUT_SECONDS",
+        gt=0,
+    )
+    code_parse_memory_limit_mib: int = Field(
+        default=1024,
+        alias="CODE_PARSE_MEMORY_LIMIT_MIB",
+        gt=0,
+    )
+    ingestion_source_policy_path: Path = Field(
+        default=ROOT_DIR / "config" / "ingestion_sources.toml",
+        alias="INGESTION_SOURCE_POLICY_PATH",
+    )
     embedded_docs_dir: Path = Field(
         default=ROOT_DIR / "data" / "docs_embedded",
         alias="EMBEDDED_DOCS_DIR",

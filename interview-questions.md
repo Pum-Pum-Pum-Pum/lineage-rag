@@ -30,8 +30,7 @@
 
 ### Evaluation
 
-Overall result: **8/9 accepted; one boundary correction required before the
-gate is accepted.**
+Overall result: **9/9 accepted after the corrected Answer 9.**
 
 1. **Accepted.** The deterministic comparison is the authority;
    `expected_changed_packages` is a reviewer assertion used to expose missing
@@ -61,9 +60,9 @@ gate is accepted.**
 8. **Accepted.** Multiple same-hash deleted or added files do not prove which
    old path became which new path, so the system reports ambiguity rather than
    inventing lineage.
-9. **Revision required.** The answer incorrectly included future activation
-   gates. A verified Step 152 snapshot proves only that the reviewed request was
-   valid, allowlisted source bytes were copied completely, hashes and manifest
+9. **Accepted after revision.** A verified Step 152 snapshot proves only that
+   the reviewed request was valid, allowlisted source bytes were copied
+   completely, hashes and manifest
    identity agree, the archive was published without overwrite, and the
    file-level diff is reproducible. It proves nothing yet about ANTLR parsing,
    conditional compilation, symbols, dependencies, embeddings, Qdrant points,
@@ -71,4 +70,35 @@ gate is accepted.**
    concurrency, performance, deployed behavior, or rollback of an active code
    index.
 
-Gate status: **pending corrected Answer 9 acknowledgement.**
+Gate status: **accepted. Steps 150-152 are complete.**
+
+## Steps 153-155 - Interview gate (pending)
+
+### Step 153 - Grammar and conditional compilation
+
+1. Why must conditional preprocessing use a separate line-preserving parse
+   view while immutable original source remains the only citation authority?
+2. How should answer behavior differ when compiler context proves a branch is
+   active versus when `$IF` conditions remain `conditional_unknown`?
+3. Why do pinned grammar/runtime versions, source hashes, and real directive
+   fixtures provide stronger reproducibility than merely observing directive
+   tokens in the lexer grammar?
+
+### Step 154 - Isolated and degraded parsing
+
+4. Why is a token-aware structural splitter safer than ordinary regular
+   expressions for procedures containing nested blocks, comments, and strings?
+5. What does the successful >5 MiB timeout test prove, and what parser
+   performance or semantic-correctness property does it still not prove?
+6. How should operations treat `complete_with_degradation` differently from
+   `complete` and `failed` before any later indexing or activation?
+
+### Step 155 - Context-enriched retrieval units
+
+7. Why must `retrieval_text` keep its derived context explicitly separate from
+   exact citeable `text` and `source_map`?
+8. Why link only referenced declaration units instead of prepending the full
+   package header to every procedure, and what might selective linking miss?
+9. What do Steps 153-155 now prove, and which overload identity, dependency,
+   DDL, embedding, retrieval, citation, grounded-answer, and production
+   properties remain unproven?

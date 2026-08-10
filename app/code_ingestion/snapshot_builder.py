@@ -7,6 +7,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.core.ingestion_policy import IngestionSourcePolicy, load_ingestion_source_policy
 from app.code_ingestion.intake_validation import (
     DEFAULT_LARGE_FILE_WARNING_BYTES,
     DEFAULT_STREAM_CHUNK_BYTES,
@@ -38,7 +39,14 @@ def load_snapshot_manifest(snapshot_directory: Path, *, verify_sources: bool = T
     manifest = CodeSnapshotManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))
     if snapshot_directory.name != manifest.snapshot_id:
         raise RuntimeError("Snapshot directory name does not match manifest snapshot_id")
-    if _snapshot_content_hash(manifest.request, manifest.files) != manifest.snapshot_content_sha256:
+    if (
+        _snapshot_content_hash(
+            manifest.request,
+            manifest.files,
+            ingestion_policy_sha256=manifest.ingestion_policy_sha256,
+        )
+        != manifest.snapshot_content_sha256
+    ):
         raise RuntimeError(f"Snapshot manifest identity check failed: {manifest.snapshot_id}")
     if verify_sources:
         current = _source_hashes(snapshot_directory / manifest.source_directory_name)
@@ -52,15 +60,18 @@ def build_code_snapshot(
     intake_directory: Path,
     snapshot_root: Path,
     *,
+    source_policy: IngestionSourcePolicy | None = None,
     large_file_warning_bytes: int = DEFAULT_LARGE_FILE_WARNING_BYTES,
     stream_chunk_bytes: int = DEFAULT_STREAM_CHUNK_BYTES,
 ) -> CodeSnapshotManifest:
     """Validate and atomically publish one no-overwrite custom-code snapshot."""
 
     request = load_snapshot_request(intake_directory / SNAPSHOT_REQUEST_FILE)
+    policy = source_policy or load_ingestion_source_policy()
     source_directory = intake_directory / "source"
     validation = validate_code_intake(
         source_directory,
+        source_policy=policy,
         large_file_warning_bytes=large_file_warning_bytes,
         stream_chunk_bytes=stream_chunk_bytes,
     )
@@ -69,8 +80,13 @@ def build_code_snapshot(
         current_files=validation.files,
         base_manifest=base_manifest,
         expected_changed_packages=request.expected_changed_packages,
+        current_ingestion_policy_sha256=validation.ingestion_policy_sha256,
     )
-    content_hash = _snapshot_content_hash(request, validation.files)
+    content_hash = _snapshot_content_hash(
+        request,
+        validation.files,
+        ingestion_policy_sha256=validation.ingestion_policy_sha256,
+    )
     snapshot_id = f"{request.module_set}-r{request.svn_revision}-{content_hash[:12]}"
     target_directory = snapshot_root / snapshot_id
     if target_directory.exists():
@@ -82,6 +98,8 @@ def build_code_snapshot(
         snapshot_id=snapshot_id,
         snapshot_content_sha256=content_hash,
         created_at_utc=datetime.now(UTC),
+        ingestion_policy_schema_version=validation.ingestion_policy_schema_version,
+        ingestion_policy_sha256=validation.ingestion_policy_sha256,
         request=request,
         files=validation.files,
         diff=diff,
@@ -106,6 +124,7 @@ def build_snapshot_diff(
     current_files: tuple[CodeFileManifestEntry, ...],
     base_manifest: CodeSnapshotManifest | None,
     expected_changed_packages: tuple[str, ...] = (),
+    current_ingestion_policy_sha256: str | None = None,
 ) -> SnapshotDiff:
     current = {entry.path: entry for entry in current_files}
     previous = {entry.path: entry for entry in base_manifest.files} if base_manifest else {}
@@ -158,6 +177,11 @@ def build_snapshot_diff(
 
     return SnapshotDiff(
         base_snapshot_id=base_manifest.snapshot_id if base_manifest else None,
+        ingestion_policy_changed_from_base=(
+            base_manifest is not None
+            and current_ingestion_policy_sha256 is not None
+            and base_manifest.ingestion_policy_sha256 != current_ingestion_policy_sha256
+        ),
         added=tuple(sorted(added, key=str.casefold)),
         modified=tuple(sorted(modified, key=str.casefold)),
         deleted=tuple(sorted(deleted, key=str.casefold)),
@@ -187,10 +211,13 @@ def _load_requested_base(request: SnapshotRequest, snapshot_root: Path) -> CodeS
 def _snapshot_content_hash(
     request: SnapshotRequest,
     files: tuple[CodeFileManifestEntry, ...],
+    *,
+    ingestion_policy_sha256: str,
 ) -> str:
     payload = {
         "schema_version": "code_snapshot_identity_v1",
         "request": request.model_dump(mode="json"),
+        "ingestion_policy_sha256": ingestion_policy_sha256,
         "files": [
             {
                 "path": entry.path,

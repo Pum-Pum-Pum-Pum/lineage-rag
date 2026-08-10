@@ -5,6 +5,7 @@ description = "Production-minded RAG system for functional-specification release
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "antlr4-python3-runtime==4.13.2",
     "fastapi>=0.140,<1",
     "httpx>=0.28,<1",
     "openai>=2.48,<3",

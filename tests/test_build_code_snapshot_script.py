@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from scripts import build_code_snapshot
+from app.core.ingestion_policy import DEFAULT_INGESTION_POLICY_PATH
 
 
 def test_validate_only_performs_no_snapshot_write(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -27,7 +28,10 @@ def test_validate_only_performs_no_snapshot_write(monkeypatch, tmp_path: Path, c
     monkeypatch.setattr(
         build_code_snapshot,
         "get_settings",
-        lambda: SimpleNamespace(code_snapshots_dir=snapshot_root),
+        lambda: SimpleNamespace(
+            code_snapshots_dir=snapshot_root,
+            ingestion_source_policy_path=DEFAULT_INGESTION_POLICY_PATH,
+        ),
     )
 
     build_code_snapshot.main([str(intake), "--snapshot-root", str(snapshot_root), "--validate-only"])
@@ -37,4 +41,3 @@ def test_validate_only_performs_no_snapshot_write(monkeypatch, tmp_path: Path, c
     assert result["writes_performed"] is False
     assert result["external_calls_performed"] is False
     assert not snapshot_root.exists()
-

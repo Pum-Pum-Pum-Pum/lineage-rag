@@ -1139,6 +1139,12 @@ optional expected changed packages. Local snapshot publication is
 content-addressed, atomic, no-overwrite, and separate from active retrieval.
 
 The first allowlist is case-insensitive `.sql`, `.prc`, `.fnc`, and `.ddl`.
+FDD and code extension mappings are centralized in the versioned
+`config/ingestion_sources.toml` capability policy. New extensions may map to an
+existing implemented handler without changing Python; new formats require a
+new handler and cannot be enabled by configuration alone. Code snapshot
+manifests bind the normalized policy SHA-256 and report policy changes from the
+base snapshot.
 Files above 5 MiB are warned about and later parsed with resource isolation;
 size alone is not a rejection condition. Streaming validation rejects binary,
 unsupported, symlinked, and potential secret-bearing inputs without exposing
@@ -1165,3 +1171,12 @@ mappings may target modules, files, or overload-specific symbols. Explicit
 `fdd`, `code`, and later `combined` modes are required; automatic routing and
 code generation remain out of scope until the deterministic combined gate is
 passed.
+
+Implementation status after Step 155: the ANTLR 4.13.2 runtime and a
+commit/hash-pinned grammars-v4 PL/SQL grammar are integrated. Conditional
+directives are recorded without changing citation source, parsing runs in
+resource-bounded isolated workers with explicit degradation states, and local
+no-overwrite parse generations contain exact-source retrieval units with
+selective linked package context. Overload-safe symbol identity, dependency
+extraction, DDL structure, code indexing, answering, and FDD/code mappings
+remain in Step 156 and later.

@@ -67,6 +67,7 @@ class ValidationIssue(FrozenModel):
 class CodeFileManifestEntry(FrozenModel):
     path: str
     extension: str
+    source_handler: str
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     normalized_text_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     size_bytes: int = Field(ge=0)
@@ -84,6 +85,8 @@ class CodeFileManifestEntry(FrozenModel):
 class IntakeValidationReport(FrozenModel):
     schema_version: Literal["code_intake_validation_v1"] = "code_intake_validation_v1"
     source_directory: str
+    ingestion_policy_schema_version: str
+    ingestion_policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     files: tuple[CodeFileManifestEntry, ...]
     warnings: tuple[ValidationIssue, ...] = ()
 
@@ -97,6 +100,7 @@ class ExactRename(FrozenModel):
 class SnapshotDiff(FrozenModel):
     schema_version: Literal["code_snapshot_diff_v1"] = "code_snapshot_diff_v1"
     base_snapshot_id: str | None = None
+    ingestion_policy_changed_from_base: bool = False
     added: tuple[str, ...] = ()
     modified: tuple[str, ...] = ()
     deleted: tuple[str, ...] = ()
@@ -115,8 +119,9 @@ class CodeSnapshotManifest(FrozenModel):
     snapshot_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     created_at_utc: datetime
     immutable: Literal[True] = True
+    ingestion_policy_schema_version: str
+    ingestion_policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     request: SnapshotRequest
     source_directory_name: Literal["source"] = "source"
     files: tuple[CodeFileManifestEntry, ...]
     diff: SnapshotDiff
-

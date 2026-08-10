@@ -25,6 +25,13 @@ Copy-Item -LiteralPath 'C:\approved-fdds\FS_ASNB_R25_Teller_Change.docx' `
   -Destination 'data\raw_specs\FS_ASNB_R25_Teller_Change.docx'
 ```
 
+Enabled FDD extensions are centralized in
+`config/ingestion_sources.toml`. The current `.docx = "docx"` mapping enables
+the implemented DOCX handler. Adding another extension for that same handler
+is configuration-only when the underlying OPC document is compatible. Adding
+a genuinely new format such as PDF still requires a new extractor and handler;
+the policy rejects unimplemented handler names.
+
 Requirements:
 
 - The filename must include a numeric release label such as `R25`.

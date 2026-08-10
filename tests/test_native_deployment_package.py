@@ -10,9 +10,11 @@ def _project(tmp_path: Path) -> Path:
     (root / "app").mkdir(parents=True)
     (root / "scripts").mkdir()
     (root / "deployment").mkdir()
+    (root / "config").mkdir()
     for path, content in {
         ".env.example": "OPENAI_API_KEY=\n",
         "README.md": "runtime",
+        "config/ingestion_sources.toml": "schema_version = 'ingestion_source_policy_v1'\n",
         "pyproject.toml": "[project]\n",
         "uv.lock": "version = 1\n",
         "app/main.py": "print('app')\n",
@@ -48,6 +50,7 @@ def test_native_package_is_deterministic_and_excludes_state_and_secrets(
         )
 
     assert ".env.example" in names
+    assert "config/ingestion_sources.toml" in names
     assert ".env" not in names
     assert "data/private.docx" not in names
     assert "app/main.py" in names

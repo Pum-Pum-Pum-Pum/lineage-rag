@@ -11,6 +11,7 @@ FIXED_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 ROOT_FILES = (
     ".env.example",
     "README.md",
+    "config/ingestion_sources.toml",
     "pyproject.toml",
     "uv.lock",
 )
