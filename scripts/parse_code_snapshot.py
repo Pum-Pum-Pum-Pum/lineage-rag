@@ -16,6 +16,7 @@ from app.code_ingestion.code_parsing_pipeline import (
     parse_code_snapshot,
 )
 from app.core.config import get_settings
+from app.code_ingestion.analysis_policy import load_code_analysis_policy
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -39,6 +40,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=settings.code_parse_memory_limit_mib,
     )
+    parser.add_argument(
+        "--max-segment-characters",
+        type=int,
+        default=settings.code_parse_max_segment_characters,
+    )
     return parser.parse_args(argv)
 
 
@@ -49,6 +55,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         args.staging_root,
         timeout_seconds=args.timeout_seconds,
         memory_limit_bytes=args.memory_limit_mib * 1024 * 1024,
+        max_segment_characters=args.max_segment_characters,
+        analysis_policy=load_code_analysis_policy(get_settings().code_analysis_policy_path),
     )
     output_directory = (
         args.staging_root / manifest.snapshot_id / PARSER_GENERATION_DIRECTORY
@@ -61,6 +69,7 @@ def main(argv: Sequence[str] | None = None) -> None:
                 "output_directory": str(output_directory),
                 "file_count": manifest.file_count,
                 "state_counts": manifest.state_counts,
+                "analysis_policy_sha256": manifest.analysis_policy_sha256,
                 "external_calls_performed": False,
             },
             indent=2,

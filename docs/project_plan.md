@@ -1138,7 +1138,9 @@ to an SVN revision, application build, reviewer, optional prior snapshot, and
 optional expected changed packages. Local snapshot publication is
 content-addressed, atomic, no-overwrite, and separate from active retrieval.
 
-The first allowlist is case-insensitive `.sql`, `.prc`, `.fnc`, and `.ddl`.
+The current allowlist is case-insensitive `.sql`, `.spc`, `.prc`, `.fnc`, and
+`.ddl`; `.spc` was added through the versioned capability policy when the first
+real package specification was supplied.
 FDD and code extension mappings are centralized in the versioned
 `config/ingestion_sources.toml` capability policy. New extensions may map to an
 existing implemented handler without changing Python; new formats require a
@@ -1180,3 +1182,12 @@ no-overwrite parse generations contain exact-source retrieval units with
 selective linked package context. Overload-safe symbol identity, dependency
 extraction, DDL structure, code indexing, answering, and FDD/code mappings
 remain in Step 156 and later.
+
+Implementation status after Step 158: Oracle-aware quoted/unquoted identifier
+handling, overload-safe symbol and occurrence identities, signature collision
+diagnostics, snapshot-scoped dependency resolution, explicit dynamic-SQL and
+kernel boundaries, DDL structures, and conservative synonym resolution are
+implemented. The versioned analysis policy is hash-bound to a new isolated
+parser generation. Code embeddings, lexical/Qdrant generations, retrieval,
+answering, and FDD/code lineage mappings remain unimplemented and gated by
+Steps 159 and later.

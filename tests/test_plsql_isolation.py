@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.code_ingestion.plsql_isolation import parse_file_isolated
+from app.code_ingestion.plsql_parser_core import parse_plsql_segments_only
 from app.code_ingestion.snapshot_models import CompilerContext
 
 
@@ -57,7 +58,9 @@ def test_timeout_fails_over_to_bounded_original_source_chunks(tmp_path: Path) ->
 
     assert artifact.parser_state == "fallback_parse"
     assert artifact.segments[0].segment_kind == "fallback_chunk"
-    assert [diagnostic.code for diagnostic in artifact.diagnostics] == ["parser_timeout"]
+    assert [diagnostic.code for diagnostic in artifact.diagnostics] == [
+        "segmented_parser_timeout_after_full_parser_timeout"
+    ]
 
 
 def test_memory_limit_fails_over_without_dropping_source(tmp_path: Path) -> None:
@@ -76,7 +79,7 @@ def test_memory_limit_fails_over_without_dropping_source(tmp_path: Path) -> None
         exact_text = handle.read()
     assert artifact.segments[0].source_map.end_offset == len(exact_text)
     assert [diagnostic.code for diagnostic in artifact.diagnostics] == [
-        "parser_memory_limit_exceeded"
+        "segmented_parser_memory_limit_exceeded_after_full_parser_memory_limit_exceeded"
     ]
 
 
@@ -106,7 +109,38 @@ def test_file_above_five_mib_is_bounded_and_preserved_on_timeout(tmp_path: Path)
         exact_text = handle.read()
     assert artifact.parser_state == "fallback_parse"
     assert artifact.segments[-1].source_map.end_offset == len(exact_text)
-    assert artifact.diagnostics[0].code == "parser_timeout"
+    assert artifact.diagnostics[0].code == "segmented_parser_timeout_after_full_parser_timeout"
+
+
+def test_full_resource_boundary_runs_separate_segmented_worker(monkeypatch, tmp_path: Path) -> None:
+    from app.code_ingestion import plsql_isolation
+
+    source_text = "PROCEDURE p IS BEGIN NULL; END;\n"
+    source = tmp_path / "customer.prc"
+    source_hash = _write_source(source, source_text)
+    segmented = parse_plsql_segments_only(
+        source_text,
+        snapshot_id="snapshot-1",
+        source_path=source.name,
+        source_sha256=source_hash,
+    )
+    modes = []
+
+    def fake_run(request, **kwargs):
+        modes.append(request.parse_mode)
+        if request.parse_mode == "full":
+            return plsql_isolation._WorkerResult(None, "parser_timeout", 1000, 100)
+        return plsql_isolation._WorkerResult(segmented, None, 200, 200)
+
+    monkeypatch.setattr(plsql_isolation, "_run_worker", fake_run)
+
+    artifact = _parse(source, source_hash, tmp_path / "workers")
+
+    assert modes == ["full", "segmented"]
+    assert artifact.parser_state == "segmented_parse"
+    assert artifact.duration_ms == 1200
+    assert artifact.peak_memory_bytes == 200
+    assert artifact.diagnostics[0].code == "full_parse_resource_boundary_segmented_retry"
 
 
 @pytest.mark.parametrize(

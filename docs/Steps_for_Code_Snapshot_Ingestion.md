@@ -22,7 +22,7 @@ data/raw_code/fci-custom-r12345/
 
 The `source/` directory must contain the complete selected custom module set
 for that revision—not only files believed to have changed. Initial extensions
-are matched case-insensitively: `.sql`, `.prc`, `.fnc`, and `.ddl`.
+are matched case-insensitively: `.sql`, `.spc`, `.prc`, `.fnc`, and `.ddl`.
 
 The versioned policy is `config/ingestion_sources.toml`. To enable another
 extension already handled as PL/SQL, add a reviewed mapping such as:
@@ -183,14 +183,17 @@ CODE_SNAPSHOTS_DIR=data/code_snapshots
 CODE_STAGING_DIR=data/staging/code
 CODE_PARSE_TIMEOUT_SECONDS=120
 CODE_PARSE_MEMORY_LIMIT_MIB=1024
+CODE_PARSE_MAX_SEGMENT_CHARACTERS=1000
+CODE_ANALYSIS_POLICY_PATH=config/code_analysis.toml
 ```
 
 The command verifies the immutable snapshot before starting and atomically
 publishes a new no-overwrite generation under:
 
 ```text
-data/staging/code/<snapshot-id>/plsql_antlr_4_13_2_v1/
+data/staging/code/<snapshot-id>/plsql_antlr_4_13_2_analysis_v3/
 |-- parse_stage_manifest.json
+|-- analysis/
 |-- parse/
 `-- retrieval/
 ```
@@ -240,10 +243,8 @@ DERIVED RETRIEVAL CONTEXT - NOT A CITATION SOURCE
 
 That header may improve later retrieval but must never be cited as source code.
 Code citations must use each unit's exact `text` and `source_map`. Fallback
-chunks contain only original source and remain visibly degraded. Successfully
-parsed constructs whose structural extractor is intentionally deferred (for
-example DDL until Step 158) are retained as exact `source_chunk` units rather
-than disappearing from the artifact.
+chunks contain only original source and remain visibly degraded. DDL source is
+retained both as exact source units and as separate structured schema evidence.
 
 ## 9. Parse-stage failure and recovery
 
@@ -269,3 +270,120 @@ uv run --locked pytest `
   tests/test_code_parsing_pipeline.py `
   tests/test_parse_code_snapshot_script.py -q
 ```
+
+## 10. Interpret overload-safe symbols
+
+Every procedure and function occurrence records exact source identity plus:
+
+```text
+language + module_id + canonical_qualified_name
++ symbol_kind + overload_discriminator_hash
+```
+
+Unquoted Oracle identifiers canonicalize to uppercase. Quoted identifiers keep
+their quotes and exact case, so unquoted `FOO` never merges with quoted
+`"FOO"`. Nested local routines include their parent routine scope.
+
+The overload discriminator includes ordered parameter names, quoted-name state,
+canonical declared types, and type families. It intentionally excludes modes,
+defaults, and function return type because those cannot safely create a new
+Oracle overload. The separate declaration signature hash retains modes,
+`NOCOPY`, defaults, return type, and conditional state for change detection.
+
+All source occurrences remain stored. A mode-only or return-type-only collision
+produces `overload_symbol_collision`; it never becomes a last-file-wins entry.
+A package declaration and implementation can share a key. Default expressions
+may legitimately differ between their source forms, while incompatible modes,
+types, or return types fail the analysis gate.
+
+Production interpretation: symbol keys are stable lookup identities, while
+occurrence IDs preserve exact declaration/implementation citations. They do
+not yet prove that a call resolves to one overload when argument types are not
+statically known.
+
+## 11. Interpret dependencies and unavailable boundaries
+
+Static-analysis artifacts contain calls, table reads/writes, package type,
+constant, global, cursor references, dynamic SQL, external packages, and
+configured kernel boundaries. Resolution states distinguish:
+
+```text
+resolved_in_snapshot
+ambiguous
+unresolved
+dynamic_unknown
+kernel_unavailable
+external_schema
+```
+
+The versioned policy is `config/code_analysis.toml`. Its normalized SHA-256 is
+stored in every analysis artifact and stage manifest. Kernel prefixes are empty
+by default because the system must not guess which customer packages are hidden
+kernel code. Add only SME-reviewed prefixes before processing the real corpus.
+Oracle external-package prefixes and ignored built-in calls are also configured
+there rather than hidden in middleware or retrieval code.
+
+Call resolution retains every plausible overload candidate. Dynamic SQL is
+detected but its runtime objects are never invented. Token-aware extraction
+handles direct table references, joins, comma joins, and cursor queries; complex
+runtime name construction and behavior behind external packages remain explicit
+unknowns.
+
+Production interpretation: these edges support later impact analysis, not a
+claim that a suspected dependency is a proven runtime path or root cause.
+
+## 12. Interpret DDL and synonyms
+
+Full parses create structural units for tables, columns, defaults, constraints,
+views, sequences, indexes, object types, collection types, and synonyms. A
+degraded parse emits no schema claim; original source remains available for
+review.
+
+Synonyms are resolved across the complete approved snapshot, not independently
+per file. States are:
+
+```text
+resolved_in_snapshot
+external_schema
+database_link
+ambiguous
+cyclic
+```
+
+Only a unique target definition present in the snapshot becomes
+`resolved_in_snapshot`. Missing qualified targets remain `external_schema`,
+database links are never followed, and cycles or duplicate identities fail
+closed. Phase 3 Oracle metadata is still required to confirm live schemas,
+synonyms, editions, and database-link targets.
+
+The expanded contract uses the no-overwrite generation
+`plsql_antlr_4_13_2_analysis_v3`. The recovery path gives a
+full-file parser that reaches its resource boundary one separate, bounded,
+token-aware segmented attempt before using original-source fallback chunks.
+The full and segmented attempts each use the configured timeout and memory
+boundary, so the maximum per-file parse time may approach twice the configured
+timeout. Within segmented parsing, routines above
+`CODE_PARSE_MAX_SEGMENT_CHARACTERS` retain lexer-proven names, exact source
+ranges, and `token_structural` confidence without making an unbounded ANTLR
+call. They remain explicitly degraded and require review before indexing.
+Smaller routines continue through ANTLR. Older parser generations remain
+immutable and isolated.
+Static-analysis errors are published for diagnosis but set stage status to
+`failed`, preventing later indexing.
+
+Run the Steps 156-158 focused tests with:
+
+```powershell
+uv run --locked pytest `
+  tests/test_code_analysis_policy.py `
+  tests/test_plsql_symbol_analysis.py `
+  tests/test_plsql_dependency_analysis.py `
+  tests/test_ddl_analysis.py `
+  tests/test_code_static_analysis.py `
+  tests/test_code_parsing_pipeline.py `
+  tests/test_parse_code_snapshot_script.py -q
+```
+
+These tests use synthetic fixtures. Real packages do not need to be placed in
+`data/raw_code/` until this interview gate is accepted and the curated snapshot
+is ready for parser-coverage review. No OpenAI or Qdrant operation occurs here.

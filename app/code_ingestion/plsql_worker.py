@@ -13,7 +13,10 @@ from app.code_ingestion.plsql_models import (
     ParserWorkerRequest,
     PlSqlFileParseArtifact,
 )
-from app.code_ingestion.plsql_parser_core import parse_plsql_source
+from app.code_ingestion.plsql_parser_core import (
+    parse_plsql_segments_only,
+    parse_plsql_source,
+)
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -33,12 +36,18 @@ def main(argv: Sequence[str] | None = None) -> None:
         if hashlib.sha256(raw_bytes).hexdigest() != request.source_sha256:
             raise RuntimeError("source_hash_mismatch")
         source_text = raw_bytes.decode(request.encoding)
-        artifact = parse_plsql_source(
+        parser_function = (
+            parse_plsql_segments_only
+            if request.parse_mode == "segmented"
+            else parse_plsql_source
+        )
+        artifact = parser_function(
             source_text,
             snapshot_id=request.snapshot_id,
             source_path=request.source_path,
             source_sha256=request.source_sha256,
             compiler_context=request.compiler_context,
+            max_segment_characters=request.max_segment_characters,
         )
     except Exception as exc:
         artifact = PlSqlFileParseArtifact(
@@ -74,4 +83,3 @@ def main(argv: Sequence[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-

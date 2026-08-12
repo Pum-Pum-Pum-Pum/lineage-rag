@@ -51,9 +51,18 @@ class Settings(BaseSettings):
         alias="CODE_PARSE_MEMORY_LIMIT_MIB",
         gt=0,
     )
+    code_parse_max_segment_characters: int = Field(
+        default=1_000,
+        alias="CODE_PARSE_MAX_SEGMENT_CHARACTERS",
+        gt=0,
+    )
     ingestion_source_policy_path: Path = Field(
         default=ROOT_DIR / "config" / "ingestion_sources.toml",
         alias="INGESTION_SOURCE_POLICY_PATH",
+    )
+    code_analysis_policy_path: Path = Field(
+        default=ROOT_DIR / "config" / "code_analysis.toml",
+        alias="CODE_ANALYSIS_POLICY_PATH",
     )
     embedded_docs_dir: Path = Field(
         default=ROOT_DIR / "data" / "docs_embedded",

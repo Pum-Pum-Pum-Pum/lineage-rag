@@ -22,6 +22,7 @@ def test_script_reports_local_stage_and_no_external_calls(monkeypatch, tmp_path,
             status="complete",
             snapshot_id="fci-custom-r153-abc",
             snapshot_content_sha256="a" * 64,
+            analysis_policy_sha256="b" * 64,
             file_count=2,
             state_counts={
                 "full_parse": 2,
@@ -31,8 +32,10 @@ def test_script_reports_local_stage_and_no_external_calls(monkeypatch, tmp_path,
             },
             parse_artifacts=("parse/a.json", "parse/b.json"),
             retrieval_artifacts=("retrieval/a.json", "retrieval/b.json"),
+            analysis_artifacts=("analysis/a.json", "analysis/b.json"),
             timeout_seconds=60,
             memory_limit_bytes=512 * 1024 * 1024,
+            max_segment_characters=1_000,
         )
 
     monkeypatch.setattr(parse_code_snapshot, "parse_code_snapshot", fake_parse)
@@ -44,7 +47,14 @@ def test_script_reports_local_stage_and_no_external_calls(monkeypatch, tmp_path,
             code_staging_dir=staging_root,
             code_parse_timeout_seconds=120,
             code_parse_memory_limit_mib=1024,
+            code_parse_max_segment_characters=1_000,
+            code_analysis_policy_path=tmp_path / "code_analysis.toml",
         ),
+    )
+    monkeypatch.setattr(
+        parse_code_snapshot,
+        "load_code_analysis_policy",
+        lambda path: object(),
     )
 
     parse_code_snapshot.main(
@@ -64,6 +74,8 @@ def test_script_reports_local_stage_and_no_external_calls(monkeypatch, tmp_path,
     output = json.loads(capsys.readouterr().out)
     assert output["status"] == "complete"
     assert output["external_calls_performed"] is False
+    assert output["analysis_policy_sha256"] == "b" * 64
     assert captured["snapshot_directory"] == snapshot_root / "fci-custom-r153-abc"
     assert captured["timeout_seconds"] == 60
     assert captured["memory_limit_bytes"] == 512 * 1024 * 1024
+    assert captured["max_segment_characters"] == 1_000

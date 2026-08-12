@@ -1,0 +1,10 @@
+schema_version = "code_analysis_policy_v1"
+
+[boundaries]
+kernel_package_prefixes = []
+external_package_prefixes = ["DBMS_", "UTL_"]
+ignored_builtin_calls = [
+  "ABS", "AVG", "CAST", "COALESCE", "COUNT", "DECODE", "GREATEST",
+  "LEAST", "LOWER", "MAX", "MIN", "NVL", "NVL2", "ROUND", "SUBSTR",
+  "SUM", "TO_CHAR", "TO_DATE", "TO_NUMBER", "TRIM", "UPPER"
+]

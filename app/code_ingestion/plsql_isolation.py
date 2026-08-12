@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from app.code_ingestion.plsql_models import (
@@ -24,6 +25,14 @@ DEFAULT_PARSE_TIMEOUT_SECONDS = 120.0
 DEFAULT_PARSE_MEMORY_LIMIT_BYTES = 1024 * 1024 * 1024
 
 
+@dataclass(frozen=True)
+class _WorkerResult:
+    artifact: PlSqlFileParseArtifact | None
+    failure_code: str | None
+    duration_ms: float
+    peak_memory_bytes: int
+
+
 def parse_file_isolated(
     input_file: Path,
     *,
@@ -35,13 +44,12 @@ def parse_file_isolated(
     work_root: Path,
     timeout_seconds: float = DEFAULT_PARSE_TIMEOUT_SECONDS,
     memory_limit_bytes: int = DEFAULT_PARSE_MEMORY_LIMIT_BYTES,
+    max_segment_characters: int = 1_000,
 ) -> PlSqlFileParseArtifact:
-    if timeout_seconds <= 0 or memory_limit_bytes <= 0:
+    if timeout_seconds <= 0 or memory_limit_bytes <= 0 or max_segment_characters <= 0:
         raise ValueError("Parser resource boundaries must be greater than zero")
     work_root.mkdir(parents=True, exist_ok=True)
     worker_directory = Path(tempfile.mkdtemp(prefix=".plsql-worker-", dir=work_root))
-    request_path = worker_directory / "request.json"
-    output_path = worker_directory / "result.json"
     request = ParserWorkerRequest(
         input_file=str(input_file.resolve()),
         snapshot_id=snapshot_id,
@@ -49,7 +57,91 @@ def parse_file_isolated(
         source_sha256=source_sha256,
         encoding=encoding,
         compiler_context=compiler_context,
+        max_segment_characters=max_segment_characters,
     )
+    try:
+        full_result = _run_worker(
+            request,
+            worker_directory=worker_directory,
+            suffix="full",
+            timeout_seconds=timeout_seconds,
+            memory_limit_bytes=memory_limit_bytes,
+        )
+        if full_result.artifact is not None:
+            return _with_observed_resources(full_result.artifact, full_result)
+
+        if full_result.failure_code in {
+            "parser_timeout",
+            "parser_memory_limit_exceeded",
+        }:
+            segmented_result = _run_worker(
+                request.model_copy(update={"parse_mode": "segmented"}),
+                worker_directory=worker_directory,
+                suffix="segmented",
+                timeout_seconds=timeout_seconds,
+                memory_limit_bytes=memory_limit_bytes,
+            )
+            total_duration = full_result.duration_ms + segmented_result.duration_ms
+            peak_memory = max(
+                full_result.peak_memory_bytes,
+                segmented_result.peak_memory_bytes,
+            )
+            if segmented_result.artifact is not None:
+                artifact = segmented_result.artifact
+                recovery_diagnostic = ParseDiagnostic(
+                    stage="worker",
+                    severity="warning",
+                    code="full_parse_resource_boundary_segmented_retry",
+                    message=(
+                        f"The full parser reached {full_result.failure_code}; a separate "
+                        "bounded token-aware segmented attempt was executed."
+                    ),
+                )
+                return artifact.model_copy(
+                    update={
+                        "duration_ms": total_duration,
+                        "peak_memory_bytes": max(peak_memory, artifact.peak_memory_bytes),
+                        "diagnostics": (recovery_diagnostic, *artifact.diagnostics),
+                    }
+                )
+            return _resource_fallback(
+                input_file,
+                snapshot_id=snapshot_id,
+                source_path=source_path,
+                source_sha256=source_sha256,
+                encoding=encoding,
+                duration_ms=total_duration,
+                peak_memory_bytes=peak_memory,
+                code=(
+                    f"segmented_{segmented_result.failure_code or 'parser_failure'}_after_"
+                    f"full_{full_result.failure_code}"
+                ),
+            )
+
+        return _resource_fallback(
+            input_file,
+            snapshot_id=snapshot_id,
+            source_path=source_path,
+            source_sha256=source_sha256,
+            encoding=encoding,
+            duration_ms=full_result.duration_ms,
+            peak_memory_bytes=full_result.peak_memory_bytes,
+            code=full_result.failure_code or "parser_worker_exit_failure",
+        )
+    finally:
+        shutil.rmtree(worker_directory, ignore_errors=True)
+
+
+def _run_worker(
+    request: ParserWorkerRequest,
+    *,
+    worker_directory: Path,
+    suffix: str,
+    timeout_seconds: float,
+    memory_limit_bytes: int,
+) -> _WorkerResult:
+    request_path = worker_directory / f"request-{suffix}.json"
+    output_path = worker_directory / f"result-{suffix}.json"
     request_path.write_text(
         json.dumps(request.model_dump(mode="json"), indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -72,59 +164,52 @@ def parse_file_isolated(
         stderr=subprocess.DEVNULL,
     )
     observed_peak = 0
-    termination_code: str | None = None
+    failure_code = None
     try:
         while process.poll() is None:
             elapsed = time.perf_counter() - started
             observed_memory = _process_rss_bytes(process.pid)
             observed_peak = max(observed_peak, observed_memory)
             if observed_memory > memory_limit_bytes:
-                termination_code = "parser_memory_limit_exceeded"
+                failure_code = "parser_memory_limit_exceeded"
                 process.kill()
                 break
             if elapsed > timeout_seconds:
-                termination_code = "parser_timeout"
+                failure_code = "parser_timeout"
                 process.kill()
                 break
             time.sleep(0.05)
         process.wait(timeout=10)
-        elapsed_ms = (time.perf_counter() - started) * 1000
-        if termination_code is not None:
-            return _resource_fallback(
-                input_file,
-                snapshot_id=snapshot_id,
-                source_path=source_path,
-                source_sha256=source_sha256,
-                encoding=encoding,
-                duration_ms=elapsed_ms,
-                peak_memory_bytes=observed_peak,
-                code=termination_code,
-            )
+        duration_ms = (time.perf_counter() - started) * 1000
+        if failure_code is not None:
+            return _WorkerResult(None, failure_code, duration_ms, observed_peak)
         if process.returncode != 0 or not output_path.is_file():
-            return _resource_fallback(
-                input_file,
-                snapshot_id=snapshot_id,
-                source_path=source_path,
-                source_sha256=source_sha256,
-                encoding=encoding,
-                duration_ms=elapsed_ms,
-                peak_memory_bytes=observed_peak,
-                code="parser_worker_exit_failure",
+            return _WorkerResult(
+                None,
+                "parser_worker_exit_failure",
+                duration_ms,
+                observed_peak,
             )
         artifact = PlSqlFileParseArtifact.model_validate_json(
             output_path.read_text(encoding="utf-8")
         )
-        return artifact.model_copy(
-            update={
-                "duration_ms": elapsed_ms,
-                "peak_memory_bytes": max(observed_peak, artifact.peak_memory_bytes),
-            }
-        )
+        return _WorkerResult(artifact, None, duration_ms, observed_peak)
     finally:
         if process.poll() is None:
             process.kill()
             process.wait(timeout=10)
-        shutil.rmtree(worker_directory, ignore_errors=True)
+
+
+def _with_observed_resources(
+    artifact: PlSqlFileParseArtifact,
+    result: _WorkerResult,
+) -> PlSqlFileParseArtifact:
+    return artifact.model_copy(
+        update={
+            "duration_ms": result.duration_ms,
+            "peak_memory_bytes": max(result.peak_memory_bytes, artifact.peak_memory_bytes),
+        }
+    )
 
 
 def _resource_fallback(
@@ -223,4 +308,3 @@ def _windows_process_rss_bytes(process_id: int) -> int:
         return int(counters.WorkingSetSize)
     finally:
         kernel32.CloseHandle(handle)
-

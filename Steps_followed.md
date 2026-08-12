@@ -238,3 +238,216 @@ git diff --check: passed (line-ending notices only)
 
 No OpenAI API call, embedding operation, Qdrant write, or paid operation was
 performed in Steps 153-155.
+
+## Step 156 - Add overload-safe Oracle symbol identity
+
+Implemented Oracle-aware identifiers, deterministic parameter contracts,
+overload discriminator hashes, full declaration signature hashes, symbol keys,
+and per-source occurrence IDs. Unquoted identifiers canonicalize to uppercase;
+quoted identifiers retain exact spelling and quotes. Nested routines carry
+their enclosing routine scope.
+
+Python example:
+
+```python
+symbols = extract_symbols(parse_artifact, module_id="fci-custom")
+diagnostics = diagnose_symbol_groups(symbols)
+```
+
+The overload discriminator uses ordered parameter names, quoted-name state,
+canonical declared types, and type families. Modes, defaults, `NOCOPY`, and
+function return type remain in the separate declaration hash because they
+cannot safely distinguish an Oracle overload. Declaration and implementation
+occurrences may share one symbol key without overwriting each other.
+
+Production interpretation: the stable symbol key identifies one logical
+overload, while occurrence IDs preserve exact source citations. Mode-only,
+return-only, duplicate-role, and incompatible declaration/implementation cases
+fail closed through diagnostics. Default-only spec/body differences remain
+visible without being falsely treated as incompatibility.
+
+Failure-mode tests cover numeric/character overloads, mode-only and return-only
+collisions, quoted/unquoted names, declaration/body pairing, default metadata,
+and nested local-routine qualification.
+
+## Step 157 - Extract dependencies and explicit unavailable boundaries
+
+Added snapshot-scoped call and table resolution, package declaration
+references, cursor-query dependencies, dynamic-SQL detection, external package
+classification, and configured hidden-kernel boundaries.
+
+Python example:
+
+```python
+dependencies = extract_dependencies(
+    source_text,
+    parse_artifact,
+    file_symbols=file_symbols,
+    all_symbols=all_snapshot_symbols,
+    schema_objects=all_snapshot_schema_objects,
+    policy=analysis_policy,
+)
+```
+
+Every edge records exact source range, extraction method, confidence, target,
+resolution state, and all plausible symbol candidates. Ambiguous overloads are
+never collapsed to one arbitrary target. `EXECUTE IMMEDIATE` and dynamic
+`OPEN ... FOR` become `dynamic_unknown`; configured kernel calls become
+`kernel_unavailable`.
+
+The versioned `config/code_analysis.toml` stores external package prefixes,
+ignored built-ins, and SME-reviewed kernel prefixes. Kernel prefixes are empty
+by default so the system does not guess this business boundary. Its normalized
+SHA-256 is stored in analysis artifacts and the stage manifest.
+
+Production interpretation: these edges are evidence for later impact analysis,
+not proof of runtime execution or root cause. Failure tests cover ambiguous
+overloads, unresolved calls, kernel/external boundaries, static reads/writes,
+dynamic SQL, package declarations, cursor SQL, comma joins, and preventing a
+nested routine body from being attributed to its parent.
+
+## Step 158 - Extract DDL and resolve synonyms across the snapshot
+
+Implemented structural artifacts for tables, columns, defaults, constraints,
+views, sequences, indexes, object/collection types, and synonyms. Synonyms are
+resolved only after all approved snapshot files have been analyzed.
+
+Python example:
+
+```python
+objects, synonyms, diagnostics = extract_ddl_structures(source_text, parse_artifact)
+resolved_synonyms = resolve_synonyms(all_snapshot_objects, all_snapshot_synonyms)
+```
+
+Resolution states are `resolved_in_snapshot`, `external_schema`,
+`database_link`, `ambiguous`, and `cyclic`. Database links are recorded but
+never followed. A degraded parse emits no schema claim. Duplicate symbol or
+schema identities remain in diagnostic artifacts and set the analysis stage to
+`failed` rather than permitting last-file-wins behavior.
+
+The expanded evidence contract publishes atomically beneath
+`data/staging/code/<snapshot-id>/plsql_antlr_4_13_2_analysis_v1/`, preserving
+the Step 155 generation independently. Each file receives parse, retrieval,
+and static-analysis artifacts; cross-file resolution occurs before publication.
+
+Production interpretation: static DDL supports code understanding but cannot
+prove live Oracle ownership, editions, synonym state, privileges, or database
+link targets. Those remain Phase 3 metadata responsibilities.
+
+Failure-mode tests cover constraints, quoted objects, same-snapshot synonym
+chains, external targets, database links, cycles, ambiguous names, duplicate
+schema identities, cross-file resolution, degraded parsing, analysis-stage
+failure, atomic publication, and policy validation.
+
+Verification completed after Step 158:
+
+```text
+Focused Steps 156-158 tests: 32 passed
+Full regression suite: 482 passed, 1 existing Starlette TestClient warning
+```
+
+No real custom packages were required. No OpenAI API call, embedding operation,
+Qdrant write, or paid operation was performed in Steps 156-158.
+
+## Pre-Step 159 real-corpus readiness gate
+
+### Practical substep 1 - Validate and publish the first curated snapshot
+
+Accepted the reviewer-supplied request for SVN revision `1`, application build
+`Code1`, reviewer `AIAgentSmith`, and no base snapshot. Renamed the intake
+directory from `sources/` to the required `source/` only after resolving the
+exact paths and confirming the target was absent. Added the real `.spc` package
+specification extension to the versioned source policy.
+
+Python command:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\build_code_snapshot.py `
+  data\raw_code\fci-custom-r1
+```
+
+Published immutable snapshot `fci-custom-r1-a47f5d4d54e1`: two UTF-8 files,
+36,823 total lines, no intake warnings, no binary/secret/size rejection, and no
+external call. This is a complete curated module snapshot, not a changed-file
+patch.
+
+Production interpretation: request metadata and hashes establish what bytes
+were approved for analysis. They do not prove parsing, retrieval, code
+behavior, or deployment. Failure checks covered wrong directory shape,
+duplicate targets, non-allowlisted extensions, encoding/binary/secret
+violations, and immutable no-overwrite publication.
+
+### Practical substep 2 - Recover structure within measured parser bounds
+
+The first real package-body parse exposed a resource-path defect: the full
+ANTLR worker timed out and immediately produced line fallback. Added a separate
+bounded segmented worker attempt. Real measurement then showed that some
+individual routines still produce pathological Python-ANTLR cost. Added the
+configurable boundary:
+
+```text
+CODE_PARSE_MAX_SEGMENT_CHARACTERS=1000
+```
+
+Routines above the boundary retain lexer-proven names, exact source ranges,
+original text, and `token_structural` extraction state. Smaller routines still
+receive ANTLR parsing. Unparsed segments are explicitly retained rather than
+disappearing when another segment succeeds.
+
+Python command:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\parse_code_snapshot.py `
+  fci-custom-r1-a47f5d4d54e1
+```
+
+Production interpretation: a resource-heavy routine cannot consume the entire
+segmented budget or be silently dropped. Token-structural identity is useful
+for bounded retrieval and dependency scanning but is not equivalent to a full
+grammar parse. Changing the threshold changes the evidence contract and needs
+a new immutable generation and benchmark.
+
+Failure tests covered full and segmented timeouts, memory boundaries,
+source-hash drift, oversized structural recovery, exact source mapping,
+retention of degraded units, invalid limits, and atomic no-overwrite output.
+Diagnostic generations `analysis_v1` and `analysis_v2` remain immutable; the
+improved result is `analysis_v3`.
+
+### Practical substep 3 - Review real parser and analysis coverage
+
+The `analysis_v3` stage completed with declared degradation:
+
+```text
+specification: full_parse
+package body: segmented_parse
+fallback files: 0
+failed files: 0
+body routine segments: 19
+ANTLR-parsed body routines: 11
+token-structural body routines: 8
+specification symbol keys matched in body: 7/7
+external calls: none
+```
+
+The review found two blockers before Steps 159-161:
+
+- the largest exact routine unit is about 93.9 KB and must become bounded child
+  units before embedding or prompt packing;
+- the conservative analyzer emitted 1,795 unresolved call candidates, with
+  substantial SQL/table-syntax false positives that must be reduced without
+  suppressing legitimate unknown dependencies.
+
+Production interpretation: `complete_with_degradation` proves complete source
+retention and explicit parser confidence, not index readiness. No OpenAI call,
+embedding, Qdrant write, or active retrieval change occurred. Steps 159-161
+remain blocked until bounded routine chunking and call classification pass
+deterministic tests and a renewed real-corpus review.
+
+Verification:
+
+```text
+Focused parser/recovery tests: 31 passed
+Full regression suite: 484 passed, 1 existing Starlette TestClient warning
+git diff --check: passed (line-ending notices only)
+uv lock --check: not run because uv is not installed in the project venv/PATH
+```

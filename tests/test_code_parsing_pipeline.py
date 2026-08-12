@@ -9,16 +9,24 @@ from app.code_ingestion.code_parsing_pipeline import (
     PARSER_GENERATION_DIRECTORY,
     parse_code_snapshot,
 )
+from app.code_ingestion.code_analysis_models import CodeStaticAnalysisArtifact
 from app.code_ingestion.plsql_models import CodeRetrievalArtifact, PlSqlFileParseArtifact
 from app.code_ingestion.plsql_models import CodeParseStageManifest
 from app.code_ingestion.snapshot_builder import build_code_snapshot
 
 
 def _build_snapshot(tmp_path: Path, source_text: str):
+    return _build_snapshot_files(tmp_path, {"pkg_customer.sql": source_text})
+
+
+def _build_snapshot_files(tmp_path: Path, files: dict[str, str]):
     intake = tmp_path / "intake"
     source = intake / "source"
     source.mkdir(parents=True)
-    (source / "pkg_customer.sql").write_text(source_text, encoding="utf-8", newline="")
+    for relative_path, source_text in files.items():
+        path = source / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(source_text, encoding="utf-8", newline="")
     (intake / "snapshot_request.json").write_text(
         json.dumps(
             {
@@ -59,8 +67,13 @@ END pkg_customer;
     retrieval = CodeRetrievalArtifact.model_validate_json(
         (target / manifest.retrieval_artifacts[0]).read_text(encoding="utf-8")
     )
+    analysis = CodeStaticAnalysisArtifact.model_validate_json(
+        (target / manifest.analysis_artifacts[0]).read_text(encoding="utf-8")
+    )
     assert parsed.source_sha256 == snapshot.files[0].sha256
     assert any(unit.source_kind == "procedure" for unit in retrieval.units)
+    assert analysis.source_path == snapshot.files[0].path
+    assert analysis.analysis_policy_sha256 == manifest.analysis_policy_sha256
     assert not list(target.glob(".workers*"))
 
     with pytest.raises(FileExistsError, match="will not be overwritten"):
@@ -106,12 +119,37 @@ def test_invalid_resource_boundaries_do_not_write(tmp_path: Path) -> None:
     assert not (staging_root / snapshot.snapshot_id).exists()
 
 
+def test_symbol_collision_publishes_diagnostics_but_fails_stage_gate(tmp_path: Path) -> None:
+    duplicate = "CREATE OR REPLACE PROCEDURE duplicate_proc(p_id NUMBER) IS BEGIN NULL; END; /\n"
+    snapshot_directory, snapshot = _build_snapshot_files(
+        tmp_path,
+        {"first.prc": duplicate, "second.prc": duplicate},
+    )
+    staging_root = tmp_path / "staging"
+
+    manifest = parse_code_snapshot(snapshot_directory, staging_root)
+
+    assert manifest.status == "failed"
+    target = staging_root / snapshot.snapshot_id / PARSER_GENERATION_DIRECTORY
+    analyses = [
+        CodeStaticAnalysisArtifact.model_validate_json(
+            (target / relative_path).read_text(encoding="utf-8")
+        )
+        for relative_path in manifest.analysis_artifacts
+    ]
+    assert all(
+        any(item.code == "overload_symbol_collision" for item in artifact.diagnostics)
+        for artifact in analyses
+    )
+
+
 def test_stage_manifest_rejects_missing_file_accounting() -> None:
     with pytest.raises(ValueError, match="state counts must equal file_count"):
         CodeParseStageManifest(
             status="complete",
             snapshot_id="snapshot-1",
             snapshot_content_sha256="a" * 64,
+            analysis_policy_sha256="b" * 64,
             file_count=2,
             state_counts={
                 "full_parse": 1,
@@ -121,6 +159,8 @@ def test_stage_manifest_rejects_missing_file_accounting() -> None:
             },
             parse_artifacts=("parse/a.json", "parse/b.json"),
             retrieval_artifacts=("retrieval/a.json", "retrieval/b.json"),
+            analysis_artifacts=("analysis/a.json", "analysis/b.json"),
             timeout_seconds=120,
             memory_limit_bytes=1024,
+            max_segment_characters=1_000,
         )

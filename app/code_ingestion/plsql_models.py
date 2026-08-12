@@ -81,6 +81,7 @@ class ParsedSegment(FrozenModel):
     source_map: SourceMap
     parse_succeeded: bool
     syntax_error_count: int = Field(ge=0)
+    degradation_reason: str | None = None
 
 
 class ExtractedCodeNode(FrozenModel):
@@ -99,6 +100,8 @@ class ExtractedCodeNode(FrozenModel):
     ]
     display_name: str
     package_name: str | None = None
+    enclosing_routines: tuple[str, ...] = ()
+    extraction_method: Literal["antlr", "token_structural"] = "antlr"
     source_map: SourceMap
     signature_text: str | None = None
     conditional_state: Literal[
@@ -181,20 +184,27 @@ class ParserWorkerRequest(FrozenModel):
     source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     encoding: str
     compiler_context: CompilerContext = Field(default_factory=CompilerContext)
+    parse_mode: Literal["full", "segmented"] = "full"
+    max_segment_characters: int = Field(default=1_000, gt=0)
 
 
 class CodeParseStageManifest(FrozenModel):
-    schema_version: Literal["code_parse_stage_v1"] = "code_parse_stage_v1"
+    schema_version: Literal["code_parse_stage_v2"] = "code_parse_stage_v2"
     status: Literal["complete", "complete_with_degradation", "failed"]
     snapshot_id: str
     snapshot_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    parser_generation: Literal["plsql_antlr_4_13_2_v1"] = "plsql_antlr_4_13_2_v1"
+    parser_generation: Literal["plsql_antlr_4_13_2_analysis_v3"] = (
+        "plsql_antlr_4_13_2_analysis_v3"
+    )
+    analysis_policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     file_count: int = Field(ge=0)
     state_counts: dict[str, int]
     parse_artifacts: tuple[str, ...]
     retrieval_artifacts: tuple[str, ...]
+    analysis_artifacts: tuple[str, ...]
     timeout_seconds: float = Field(gt=0)
     memory_limit_bytes: int = Field(gt=0)
+    max_segment_characters: int = Field(gt=0)
 
     @model_validator(mode="after")
     def validate_stage_counts(self) -> "CodeParseStageManifest":
@@ -209,4 +219,6 @@ class CodeParseStageManifest(FrozenModel):
             raise ValueError("Every source file must have one parse artifact")
         if len(self.retrieval_artifacts) != self.file_count:
             raise ValueError("Every source file must have one retrieval artifact")
+        if len(self.analysis_artifacts) != self.file_count:
+            raise ValueError("Every source file must have one static-analysis artifact")
         return self

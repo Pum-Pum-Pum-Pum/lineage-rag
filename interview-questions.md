@@ -72,7 +72,7 @@ Overall result: **9/9 accepted after the corrected Answer 9.**
 
 Gate status: **accepted. Steps 150-152 are complete.**
 
-## Steps 153-155 - Interview gate (pending)
+## Steps 153-155 - Interview gate
 
 ### Step 153 - Grammar and conditional compilation
 
@@ -102,3 +102,156 @@ Gate status: **accepted. Steps 150-152 are complete.**
 9. What do Steps 153-155 now prove, and which overload identity, dependency,
    DDL, embedding, retrieval, citation, grounded-answer, and production
    properties remain unproven?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** The parse view may normalize directive syntax only as a
+   parser aid; preserved offsets and newlines keep every parsed range aligned
+   with immutable original source, which remains the citation authority.
+2. **Accepted.** A branch proven active by recorded compiler context may be
+   described as selected for that context. `conditional_unknown` requires an
+   explicit qualification that the deployed branch cannot be confirmed.
+3. **Accepted.** Lexer tokens prove recognition only. Pinned tool/runtime and
+   grammar hashes reproduce the implementation, while real fixtures prove the
+   combined lexer, parser, parse-view, and state-handling behavior.
+4. **Accepted.** Token-aware splitting distinguishes structural syntax from
+   comments and literals and tracks nested constructs that ordinary regex
+   boundaries cannot interpret safely.
+5. **Accepted.** The test proves that a file above 5 MiB is not rejected or
+   silently lost when a resource boundary forces declared fallback. It does
+   not establish representative large-file latency, memory capacity, parser
+   coverage, or semantic equivalence with a full parse.
+6. **Accepted with precision.** `complete` permits progression to the next
+   controlled gate; it does not authorize automatic indexing or activation.
+   `complete_with_degradation` requires diagnostic review and an explicit
+   acceptance policy. `failed` must stop downstream publication.
+7. **Accepted.** Derived retrieval context can support candidate discovery but
+   cannot support a source-code claim. Exact source text and its source map
+   preserve auditable file-and-line citations.
+8. **Accepted.** Selective links reduce duplicated tokens, embedding cost, and
+   provenance noise. Static reference extraction can miss indirect, dynamic,
+   aliased, conditional, or parser-degraded dependencies; later dependency
+   extraction and explicit unknowns must handle that boundary.
+9. **Accepted.** The answer correctly limits the completed evidence to the
+   parsing and retrieval-unit foundation and identifies overload identity,
+   dependency/DDL extraction, indexing, retrieval, grounded answering,
+   evaluation, activation, and rollback as later gates.
+
+Gate status: **accepted. Steps 153-155 are complete.** The next approved batch
+is Steps 156-158: overload-safe Oracle symbol identity, dependency and boundary
+extraction, followed by DDL and synonym modeling.
+
+## Steps 156-158 - Interview gate
+
+### Step 156 - Oracle symbol identity
+
+1. Why must parameter modes and function return type affect the full
+   declaration hash but not create a distinct overload discriminator?
+2. Why may a package specification contain a default expression that its body
+   omits without proving an incompatible implementation, and which differences
+   should still fail the declaration/implementation gate?
+3. Why are both a logical `symbol_key` and a source-specific `occurrence_id`
+   required for overloaded retrieval, diffs, and exact citations?
+
+### Step 157 - Dependencies and unknown boundaries
+
+4. If a call has multiple overload candidates with the same argument count,
+   why must the artifact retain every candidate, and how should a later answer
+   qualify its impact analysis?
+5. Why are kernel-package prefixes empty by default, and what evidence and
+   review are required before configuring them for the real corpus?
+6. What do static table edges and `dynamic_unknown` prove, and which aliases,
+   runtime SQL construction, polymorphism, or execution behavior can they not
+   establish?
+
+### Step 158 - DDL and synonym modeling
+
+7. Why must synonyms be resolved across the complete approved snapshot rather
+   than independently inside each source file?
+8. How should `database_link`, `external_schema`, `ambiguous`, and `cyclic`
+   synonym states affect retrieval and generated answers?
+9. What does static DDL extraction prove about tables and constraints, and
+   which live Oracle metadata, privilege, edition, deployment, retrieval, and
+   grounded-answer properties remain unproven?
+
+### Evaluation
+
+Overall result: **9/9 accepted, with a required precision correction to
+Answer 5.**
+
+1. **Accepted.** Modes, defaults, `NOCOPY`, return type, and deterministic
+   declaration metadata belong in the semantic declaration hash. Oracle
+   overload identity remains limited to permitted parameter characteristics;
+   mode-only or return-only changes cannot manufacture a distinct overload.
+2. **Accepted.** A caller-facing default may be declared in the specification
+   without being repeated in the implementation. Compatibility must still
+   enforce ordered parameter identity/types, quoted-name state, modes,
+   `NOCOPY` where relevant, and function return type. Default metadata remains
+   separately diffable rather than becoming a false body incompatibility.
+3. **Accepted.** `symbol_key` supports logical overload identity across source
+   occurrences. `occurrence_id` preserves the exact declaration or
+   implementation location required for citations, diffs, and non-destructive
+   storage of duplicate content.
+4. **Accepted.** Argument count alone cannot resolve same-arity overloads when
+   static argument types are unavailable. All candidates must remain visible,
+   and later impact analysis must state that the target is candidate-based,
+   not proven.
+5. **Accepted after precision correction.** Empty defaults prevent the system
+   from inventing a customer-specific kernel boundary. The required evidence
+   is an SME-reviewed namespace or explicit package inventory identifying
+   which unavailable packages are kernel-owned, ideally tied to application
+   build/SVN scope and negative examples that must remain custom or external.
+   Manifest, allowlist, secret-scan, parser-review, and embedding-approval gates
+   remain important but do not prove that a package prefix means kernel code.
+6. **Accepted.** Static edges prove source-visible references only.
+   `dynamic_unknown` records detection of dynamic behavior while withholding an
+   unsupported target. Alias interpretation, constructed names, runtime branch
+   selection, polymorphic dispatch, and executed paths remain unproven.
+7. **Accepted.** Snapshot-wide resolution is required for cross-file targets,
+   chains, duplicate identities, and cycles. Per-file resolution would create
+   false external or missing-target conclusions.
+8. **Accepted.** External-schema and database-link states are qualified
+   external dependencies, never live-target proof. Ambiguous and cyclic states
+   must prevent definitive target claims and remain visible in retrieval and
+   answer qualifications.
+9. **Accepted.** Static DDL establishes only source-declared structure in the
+   approved snapshot. Live ownership, validity, privileges, editions,
+   deployment state, metadata drift, retrieval relevance, citation entailment,
+   grounded answers, and production behavior remain later gates.
+
+Gate status: **accepted. Steps 156-158 are complete.** Before paid indexing,
+the next operational gate is a curated real snapshot run and parser/static-
+analysis coverage review. Steps 159-161 remain blocked until that evidence is
+accepted.
+
+## Pre-Step 159 real-corpus readiness gate - Interview
+
+### Snapshot intake
+
+1. Why must this first snapshot contain the complete selected custom module set
+   rather than only the files a reviewer believes changed?
+2. What does adding `.spc` to the versioned allowlist prove, and what parsing or
+   security property does the extension mapping itself not prove?
+3. Why is `base_snapshot_id` absent for this request, and what comparison will
+   become possible when a later complete snapshot references this snapshot?
+
+### Parser resource recovery
+
+4. Why is a separate bounded segmented attempt safer than going directly from
+   a full-file timeout to anonymous line chunks?
+5. Why must the 1,000-character segment boundary remain configurable and be
+   recorded in the immutable generation contract?
+6. What does `token_structural` prove about an oversized routine, and which
+   declaration, dependency, control-flow, or runtime facts remain unproven?
+
+### Readiness decision
+
+7. Why do zero fallback files and 19/19 retained routine identities still not
+   make the current artifacts safe to embed immediately?
+8. Why is silently deleting all 1,795 unresolved dependencies unsafe, and what
+   distinction must the next classifier preserve while removing SQL/table
+   syntax false positives?
+9. What exact evidence should be required before unblocking Steps 159-161, and
+   why do 484 passing regressions not replace that real-corpus evidence?

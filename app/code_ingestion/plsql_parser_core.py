@@ -64,6 +64,7 @@ def parse_plsql_source(
     source_path: str,
     source_sha256: str,
     compiler_context: CompilerContext | None = None,
+    max_segment_characters: int = 1_000,
 ) -> PlSqlFileParseArtifact:
     started = time.perf_counter()
     conditional_view = build_conditional_parse_view(
@@ -127,16 +128,24 @@ def parse_plsql_source(
         original_source=source_text,
         source_path=source_path,
         conditional_regions=conditional_view.regions,
+        max_segment_characters=max_segment_characters,
     )
     successful_segments = tuple(segment for segment, _ in segmented if segment.parse_succeeded)
     segmented_nodes = tuple(node for _, nodes in segmented for node in nodes)
-    if successful_segments:
+    if segmented_nodes:
+        skipped_count = sum(
+            segment.degradation_reason == "segment_character_limit_exceeded"
+            for segment, _ in segmented
+        )
         diagnostics.append(
             ParseDiagnostic(
                 stage="segmented_parse",
                 severity="warning",
                 code="full_parse_degraded_to_segments",
-                message="Full-file parsing failed; independently verified routine segments were retained.",
+                message=(
+                    "Full-file parsing failed; routine segments were retained through "
+                    f"ANTLR or conservative token structure ({skipped_count} oversized)."
+                ),
             )
         )
         return PlSqlFileParseArtifact(
@@ -178,6 +187,98 @@ def parse_plsql_source(
     )
 
 
+def parse_plsql_segments_only(
+    source_text: str,
+    *,
+    snapshot_id: str,
+    source_path: str,
+    source_sha256: str,
+    compiler_context: CompilerContext | None = None,
+    max_segment_characters: int = 1_000,
+) -> PlSqlFileParseArtifact:
+    """Run the token-aware segmented path without attempting a full-file parse."""
+
+    started = time.perf_counter()
+    conditional_view = build_conditional_parse_view(
+        source_text,
+        source_path=source_path,
+        compiler_context=compiler_context,
+    )
+    segmented = _parse_segments(
+        conditional_view.text,
+        original_source=source_text,
+        source_path=source_path,
+        conditional_regions=conditional_view.regions,
+        max_segment_characters=max_segment_characters,
+    )
+    nodes = tuple(node for _, extracted in segmented for node in extracted)
+    syntax_errors = sum(segment.syntax_error_count for segment, _ in segmented)
+    diagnostics = list(conditional_view.diagnostics)
+    if nodes:
+        parsed_count = sum(segment.parse_succeeded for segment, _ in segmented)
+        skipped_count = sum(
+            segment.degradation_reason == "segment_character_limit_exceeded"
+            for segment, _ in segmented
+        )
+        failed_count = len(segmented) - parsed_count - skipped_count
+        diagnostics.append(
+            ParseDiagnostic(
+                stage="segmented_parse",
+                severity="warning",
+                code=(
+                    "segmented_parse_partial_recovery"
+                    if failed_count or skipped_count
+                    else "segmented_parse_resource_recovery"
+                ),
+                message=(
+                    f"Token-aware segmentation retained {parsed_count} ANTLR-parsed and "
+                    f"{skipped_count} structurally recovered oversized routines; "
+                    f"{failed_count} candidate routines did not parse."
+                ),
+            )
+        )
+        return PlSqlFileParseArtifact(
+            snapshot_id=snapshot_id,
+            source_path=source_path,
+            source_sha256=source_sha256,
+            parser_state="segmented_parse",
+            duration_ms=(time.perf_counter() - started) * 1000,
+            peak_memory_bytes=0,
+            syntax_error_count=syntax_errors,
+            conditional_regions=conditional_view.regions,
+            conditional_error_directives=conditional_view.error_directives,
+            segments=tuple(segment for segment, _ in segmented),
+            extracted_nodes=nodes,
+            diagnostics=tuple(diagnostics),
+        )
+
+    fallback = build_fallback_segments(source_text, source_path=source_path)
+    diagnostics.append(
+        ParseDiagnostic(
+            stage="fallback",
+            severity="warning",
+            code="segmented_parser_fallback",
+            message=(
+                "The bounded segmented attempt retained no trustworthy routine; "
+                "bounded original-source chunks were preserved."
+            ),
+        )
+    )
+    return PlSqlFileParseArtifact(
+        snapshot_id=snapshot_id,
+        source_path=source_path,
+        source_sha256=source_sha256,
+        parser_state="fallback_parse",
+        duration_ms=(time.perf_counter() - started) * 1000,
+        peak_memory_bytes=0,
+        syntax_error_count=syntax_errors,
+        conditional_regions=conditional_view.regions,
+        conditional_error_directives=conditional_view.error_directives,
+        segments=fallback,
+        diagnostics=tuple(diagnostics),
+    )
+
+
 def _parse_sql_script(source_text: str, *, stage: str) -> _ParseAttempt:
     lexer = PlSqlLexer(InputStream(source_text))
     lexer_listener = _CollectingErrorListener(stage)
@@ -204,6 +305,7 @@ def _parse_segments(
     original_source: str,
     source_path: str,
     conditional_regions,
+    max_segment_characters: int,
 ) -> tuple[tuple[ParsedSegment, tuple[ExtractedCodeNode, ...]], ...]:
     candidates = find_routine_segments(parse_text, source_path=source_path)
     package_name = detect_package_name(parse_text)
@@ -212,6 +314,18 @@ def _parse_segments(
         fragment = parse_text[
             candidate.source_map.start_offset : candidate.source_map.end_offset
         ]
+        if len(fragment) > max_segment_characters:
+            updated = candidate.model_copy(
+                update={"degradation_reason": "segment_character_limit_exceeded"}
+            )
+            structural_node = _structural_node_from_segment(
+                candidate,
+                source_path=source_path,
+                package_name=package_name,
+                conditional_regions=conditional_regions,
+            )
+            results.append((updated, (structural_node,)))
+            continue
         lexer = PlSqlLexer(InputStream(fragment))
         listener = _CollectingErrorListener("segmented_parse")
         lexer.removeErrorListeners()
@@ -250,6 +364,38 @@ def _parse_segments(
     return tuple(results)
 
 
+def _structural_node_from_segment(
+    segment: ParsedSegment,
+    *,
+    source_path: str,
+    package_name: str | None,
+    conditional_regions,
+) -> ExtractedCodeNode:
+    """Retain conservative lexer-proven routine identity when ANTLR is bounded out."""
+
+    node_kind = segment.segment_kind
+    if node_kind not in {"procedure", "procedure_spec", "function", "function_spec"}:
+        raise ValueError(f"Unsupported structural routine kind: {node_kind}")
+    return ExtractedCodeNode(
+        node_id=_segment_id(
+            source_path,
+            segment.source_map.start_offset,
+            segment.source_map.end_offset,
+            f"token_structural_{node_kind}",
+        ),
+        node_kind=node_kind,
+        display_name=segment.display_name or "<unresolved>",
+        package_name=package_name,
+        extraction_method="token_structural",
+        source_map=segment.source_map,
+        conditional_state=conditional_state_for_range(
+            conditional_regions,
+            start_offset=segment.source_map.start_offset,
+            end_offset=segment.source_map.end_offset,
+        ),
+    )
+
+
 def _extract_nodes(
     tree: ParserRuleContext,
     *,
@@ -262,7 +408,12 @@ def _extract_nodes(
 ) -> tuple[ExtractedCodeNode, ...]:
     nodes: list[ExtractedCodeNode] = []
 
-    def visit(context: ParserRuleContext, package_name: str | None, routine_depth: int) -> None:
+    def visit(
+        context: ParserRuleContext,
+        package_name: str | None,
+        routine_depth: int,
+        routine_stack: tuple[str, ...],
+    ) -> None:
         current_package = package_name
         node_kind: str | None = None
         display_name: str | None = None
@@ -327,6 +478,7 @@ def _extract_nodes(
                     node_kind=node_kind,  # type: ignore[arg-type]
                     display_name=display_name,
                     package_name=current_package or package_name_override,
+                    enclosing_routines=routine_stack,
                     source_map=source_map,
                     signature_text=signature,
                     conditional_state=conditional_state_for_range(
@@ -338,11 +490,17 @@ def _extract_nodes(
             )
 
         next_depth = routine_depth + (1 if is_routine else 0)
+        next_stack = routine_stack + ((display_name,) if is_routine and display_name else ())
         for child in getattr(context, "children", None) or []:
             if isinstance(child, ParserRuleContext):
-                visit(child, current_package or package_name_override, next_depth)
+                visit(
+                    child,
+                    current_package or package_name_override,
+                    next_depth,
+                    next_stack,
+                )
 
-    visit(tree, package_name_override, 0)
+    visit(tree, package_name_override, 0, ())
     unique = {(node.node_kind, node.source_map.start_offset, node.source_map.end_offset): node for node in nodes}
     return tuple(sorted(unique.values(), key=lambda node: (node.source_map.start_offset, node.node_kind)))
 

@@ -12,6 +12,7 @@ ROOT_FILES = (
     ".env.example",
     "README.md",
     "config/ingestion_sources.toml",
+    "config/code_analysis.toml",
     "pyproject.toml",
     "uv.lock",
 )

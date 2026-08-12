@@ -72,6 +72,34 @@ def build_code_retrieval_artifact(
         )
         units_by_node_id[node.node_id] = unit
 
+    covered_ranges = {
+        (unit.source_map.start_offset, unit.source_map.end_offset)
+        for unit in units_by_node_id.values()
+    }
+    for segment in parse_artifact.segments:
+        source_range = (segment.source_map.start_offset, segment.source_map.end_offset)
+        if segment.parse_succeeded or source_range in covered_ranges:
+            continue
+        if segment.segment_kind == "fallback_chunk":
+            continue
+        exact_text = source_text[segment.source_map.start_offset : segment.source_map.end_offset]
+        units_by_node_id[segment.segment_id] = CodeRetrievalUnit(
+            unit_id=_unit_id(
+                parse_artifact.snapshot_id,
+                parse_artifact.source_path,
+                segment.segment_id,
+            ),
+            source_kind="degraded_routine",
+            snapshot_id=parse_artifact.snapshot_id,
+            source_path=parse_artifact.source_path,
+            source_map=segment.source_map,
+            display_name=segment.display_name or "degraded_routine",
+            text=exact_text,
+            retrieval_text=exact_text,
+            parser_state=parse_artifact.parser_state,
+            conditional_state="unresolved",
+        )
+
     if not units_by_node_id:
         source_segments = tuple(
             segment

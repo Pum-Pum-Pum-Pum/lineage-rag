@@ -15,10 +15,17 @@ def test_intake_accepts_allowlisted_extensions_case_insensitively(tmp_path: Path
     (tmp_path / "function.FnC").write_text("function f return number is begin return 1; end;\n", encoding="utf-8")
     (tmp_path / "schema.DDL").write_text("create table t (id number);\n", encoding="utf-8")
     (tmp_path / "mixed.Sql").write_text("select 1 from dual;\n", encoding="utf-8")
+    (tmp_path / "package.SpC").write_text("package pkg is end;\n", encoding="utf-8")
 
     report = validate_code_intake(tmp_path)
 
-    assert [entry.extension for entry in report.files] == [".fnc", ".sql", ".prc", ".ddl"]
+    assert [entry.extension for entry in report.files] == [
+        ".fnc",
+        ".sql",
+        ".prc",
+        ".spc",
+        ".ddl",
+    ]
     assert all(entry.encoding == "utf-8" for entry in report.files)
     assert {entry.source_handler for entry in report.files} == {"plsql", "ddl"}
 

@@ -109,6 +109,27 @@ PROCEDURE second_ok IS BEGIN NULL; END second_ok;
     assert {node.display_name for node in artifact.extracted_nodes} == {"first_ok", "second_ok"}
 
 
+def test_oversized_routine_is_retained_as_explicit_token_structure() -> None:
+    source = "BROKEN TOKENS;\nPROCEDURE large_one IS BEGIN\n" + ("NULL;\n" * 100) + "END large_one;\n"
+    artifact = parse_plsql_source(
+        source,
+        snapshot_id="snapshot-1",
+        source_path="large.prc",
+        source_sha256=hashlib.sha256(source.encode("utf-8")).hexdigest(),
+        max_segment_characters=100,
+    )
+
+    assert artifact.parser_state == "segmented_parse"
+    assert artifact.segments[0].parse_succeeded is False
+    assert artifact.segments[0].degradation_reason == "segment_character_limit_exceeded"
+    node = artifact.extracted_nodes[0]
+    assert node.display_name == "large_one"
+    assert node.extraction_method == "token_structural"
+    assert source[node.source_map.start_offset : node.source_map.end_offset].startswith(
+        "PROCEDURE large_one"
+    )
+
+
 def test_unrecoverable_file_uses_bounded_original_line_fallback() -> None:
     source = "\n".join(f"invalid line {index}" for index in range(450))
     artifact = _parse(source)
@@ -141,4 +162,3 @@ def test_fallback_bounds_are_validated() -> None:
         assert "bounds are invalid" in str(exc)
     else:
         raise AssertionError("Expected invalid fallback bounds to fail")
-

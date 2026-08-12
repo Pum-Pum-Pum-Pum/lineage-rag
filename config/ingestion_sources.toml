@@ -5,7 +5,7 @@ schema_version = "ingestion_source_policy_v1"
 
 [code.extensions]
 ".sql" = "plsql"
+".spc" = "plsql"
 ".prc" = "plsql"
 ".fnc" = "plsql"
 ".ddl" = "ddl"
-
