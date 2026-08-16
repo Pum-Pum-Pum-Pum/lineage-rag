@@ -183,7 +183,9 @@ CODE_SNAPSHOTS_DIR=data/code_snapshots
 CODE_STAGING_DIR=data/staging/code
 CODE_PARSE_TIMEOUT_SECONDS=120
 CODE_PARSE_MEMORY_LIMIT_MIB=1024
-CODE_PARSE_MAX_SEGMENT_CHARACTERS=1000
+CODE_PARSE_MAX_SEGMENT_CHARACTERS=500
+CODE_RETRIEVAL_MAX_UNIT_CHARACTERS=6000
+CODE_RETRIEVAL_OVERLAP_CHARACTERS=400
 CODE_ANALYSIS_POLICY_PATH=config/code_analysis.toml
 ```
 
@@ -191,7 +193,7 @@ The command verifies the immutable snapshot before starting and atomically
 publishes a new no-overwrite generation under:
 
 ```text
-data/staging/code/<snapshot-id>/plsql_antlr_4_13_2_analysis_v3/
+data/staging/code/<snapshot-id>/plsql_antlr_4_13_2_analysis_v6/
 |-- parse_stage_manifest.json
 |-- analysis/
 |-- parse/
@@ -357,7 +359,7 @@ closed. Phase 3 Oracle metadata is still required to confirm live schemas,
 synonyms, editions, and database-link targets.
 
 The expanded contract uses the no-overwrite generation
-`plsql_antlr_4_13_2_analysis_v3`. The recovery path gives a
+`plsql_antlr_4_13_2_analysis_v6`. The recovery path gives a
 full-file parser that reaches its resource boundary one separate, bounded,
 token-aware segmented attempt before using original-source fallback chunks.
 The full and segmented attempts each use the configured timeout and memory
@@ -368,6 +370,14 @@ ranges, and `token_structural` confidence without making an unbounded ANTLR
 call. They remain explicitly degraded and require review before indexing.
 Smaller routines continue through ANTLR. Older parser generations remain
 immutable and isolated.
+
+Oversized exact-source retrieval units are divided independently of parser
+segmentation. Each child is bounded by
+`CODE_RETRIEVAL_MAX_UNIT_CHARACTERS`, includes at most the configured overlap,
+and records its parent unit ID, parent source range, chunk index/count, and
+exact child line/offset range. The maximum applies to embedding
+`retrieval_text`, including its derived header, not only to citeable source
+text. Child IDs are deterministic over parent identity, index, and offsets.
 Static-analysis errors are published for diagnosis but set stage status to
 `failed`, preventing later indexing.
 
@@ -387,3 +397,111 @@ uv run --locked pytest `
 These tests use synthetic fixtures. Real packages do not need to be placed in
 `data/raw_code/` until this interview gate is accepted and the curated snapshot
 is ready for parser-coverage review. No OpenAI or Qdrant operation occurs here.
+
+## 13. Prepare the isolated code index contract
+
+### Custom program-unit boundary convention
+
+The configured application convention is stored in `config/code_analysis.toml`:
+
+```toml
+custom_package_suffixes = ["_CUSTOM"]
+custom_standalone_function_suffixes = ["_CUSTOM"]
+infer_noncustom_qualified_packages_as_kernel = true
+```
+
+For qualified calls, the component immediately before the called routine is
+treated as the owner package. An owner ending `_CUSTOM` is a custom-code
+dependency. A non-custom owner is an unavailable kernel boundary unless it
+matches an explicitly configured Oracle/external prefix such as `DBMS_` or
+`UTL_`. Unqualified unresolved calls remain unresolved because syntax alone
+cannot prove whether they are functions, procedures, built-ins, or missing
+local declarations.
+
+A qualified called unit ending `_CUSTOM` also remains a custom unresolved
+candidate. Static call tokens cannot safely distinguish
+`SCHEMA.FUNCTION_CUSTOM()` from `PACKAGE.ROUTINE_CUSTOM()` in every case, so
+the analyzer avoids a false kernel assertion.
+
+This convention never filters tables or views. All statically visible table
+reads/writes remain indexed whether or not their names end `_CUSTOM`.
+
+Changing this policy changes `analysis_policy_sha256`. Never promote an older
+analysis artifact under the new policy. Build a new immutable analysis and
+code-index generation, then repeat the deterministic gates.
+
+After the real-corpus parser gate passes, prepare deterministic code indexing
+records without calling OpenAI:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\prepare_code_index_artifacts.py `
+  fci-custom-r1-a47f5d4d54e1 `
+  --parse-generation plsql_antlr_4_13_2_analysis_v6
+```
+
+The output is isolated beneath:
+
+```text
+data/staging/code_indexes/<snapshot-id>/code_index_contract_v2/
+```
+
+Each record preserves snapshot, module, file, routine/chunk, line/offset,
+parent, parser, conditional, citation-text, and embedding-text identity. Cache
+keys use content, embedding model, and `code_embedding_input_v1`. Qdrant point
+IDs use snapshot plus source-occurrence unit identity, so duplicate semantic
+text can reuse a vector without collapsing citations.
+
+Run local lexical search with:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\query_code_lexical.py `
+  data\staging\code_indexes\fci-custom-r1-a47f5d4d54e1\code_index_contract_v2\code_index_artifact.json `
+  "spPNBRPT006 branch report"
+```
+
+## 14. Paid code-embedding boundary
+
+Dry-run first:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\embed_code_index_artifacts.py `
+  <prepared-code-index-artifact> `
+  --output-root data\staging\code_embeddings `
+  --dry-run
+```
+
+The dry run reports exact records and unique embedding inputs but sends
+nothing. A real run is fail-closed unless both conditions hold:
+
+1. the index contract records `dependency_review_status="reviewed"` following
+   SME review of representative dependency labels;
+2. the operator supplies the exact disclosure/cost authorization token printed
+   by `--help` and documented in the controlled run procedure.
+
+Internal code excerpts are sent to OpenAI during a real embedding run. General
+permission to implement Phase 2 does not authorize that disclosure. Never put
+the authorization token into `.env` or source control.
+
+## 15. Index and verify an isolated code collection
+
+Only a complete embedded artifact may be indexed. Choose a new collection name
+with the required `code_custom_` prefix:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\index_code_qdrant.py `
+  <embedded-code-index-artifact> `
+  --qdrant-path data\qdrant_code_local `
+  --collection-name code_custom_r1_v1
+
+& .\.venv\Scripts\python.exe scripts\verify_code_qdrant.py `
+  <embedded-code-index-artifact> `
+  --qdrant-path data\qdrant_code_local `
+  --collection-name code_custom_r1_v1
+```
+
+Indexing refuses an existing collection and never modifies the FDD collection.
+Verification requires exact collection count, every deterministic point ID,
+every provenance payload field, and vector dimension. A failed new generation
+may remain for investigation but cannot become active. The previous collection
+and lexical artifact remain unchanged for rollback. Activation is deliberately
+deferred until Steps 162-170 retrieval, citation, answer, and SME gates pass.

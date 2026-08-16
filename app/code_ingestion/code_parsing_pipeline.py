@@ -14,7 +14,7 @@ from app.code_ingestion.plsql_models import CodeParseStageManifest
 from app.code_ingestion.snapshot_builder import load_snapshot_manifest
 
 
-PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v3"
+PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v6"
 
 
 def parse_code_snapshot(
@@ -23,13 +23,21 @@ def parse_code_snapshot(
     *,
     timeout_seconds: float = 120.0,
     memory_limit_bytes: int = 1024 * 1024 * 1024,
-    max_segment_characters: int = 1_000,
+    max_segment_characters: int = 500,
+    max_retrieval_unit_characters: int = 6_000,
+    retrieval_overlap_characters: int = 400,
     analysis_policy: CodeAnalysisPolicy | None = None,
 ) -> CodeParseStageManifest:
     """Parse one verified immutable snapshot and atomically publish local artifacts."""
 
     if timeout_seconds <= 0 or memory_limit_bytes <= 0 or max_segment_characters <= 0:
         raise ValueError("Parser resource boundaries must be greater than zero")
+    if (
+        max_retrieval_unit_characters <= 0
+        or retrieval_overlap_characters < 0
+        or retrieval_overlap_characters >= max_retrieval_unit_characters
+    ):
+        raise ValueError("Retrieval chunk boundaries are invalid")
     snapshot = load_snapshot_manifest(snapshot_directory, verify_sources=True)
     selected_analysis_policy = analysis_policy or load_code_analysis_policy()
     target = staging_root / snapshot.snapshot_id / PARSER_GENERATION_DIRECTORY
@@ -69,6 +77,8 @@ def parse_code_snapshot(
                 parsed,
                 source_text,
                 verified_source_sha256=observed_hash,
+                max_unit_characters=max_retrieval_unit_characters,
+                overlap_characters=retrieval_overlap_characters,
             )
             stem = _artifact_stem(entry.path)
             parse_relative = f"parse/{stem}.json"
@@ -107,6 +117,8 @@ def parse_code_snapshot(
             timeout_seconds=timeout_seconds,
             memory_limit_bytes=memory_limit_bytes,
             max_segment_characters=max_segment_characters,
+            max_retrieval_unit_characters=max_retrieval_unit_characters,
+            retrieval_overlap_characters=retrieval_overlap_characters,
         )
         _write_json(temporary / "parse_stage_manifest.json", manifest.model_dump(mode="json"))
         shutil.rmtree(worker_root, ignore_errors=True)

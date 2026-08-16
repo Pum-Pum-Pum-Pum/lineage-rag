@@ -52,9 +52,19 @@ class Settings(BaseSettings):
         gt=0,
     )
     code_parse_max_segment_characters: int = Field(
-        default=1_000,
+        default=500,
         alias="CODE_PARSE_MAX_SEGMENT_CHARACTERS",
         gt=0,
+    )
+    code_retrieval_max_unit_characters: int = Field(
+        default=6_000,
+        alias="CODE_RETRIEVAL_MAX_UNIT_CHARACTERS",
+        gt=0,
+    )
+    code_retrieval_overlap_characters: int = Field(
+        default=400,
+        alias="CODE_RETRIEVAL_OVERLAP_CHARACTERS",
+        ge=0,
     )
     ingestion_source_policy_path: Path = Field(
         default=ROOT_DIR / "config" / "ingestion_sources.toml",

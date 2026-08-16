@@ -150,6 +150,10 @@ class CodeRetrievalUnit(FrozenModel):
     snapshot_id: str
     source_path: str
     source_map: SourceMap
+    parent_unit_id: str | None = None
+    parent_source_map: SourceMap | None = None
+    chunk_index: int | None = Field(default=None, ge=0)
+    chunk_count: int | None = Field(default=None, ge=1)
     display_name: str
     package_name: str | None = None
     text: str
@@ -159,12 +163,37 @@ class CodeRetrievalUnit(FrozenModel):
     parser_state: str
     conditional_state: str
 
+    @model_validator(mode="after")
+    def validate_child_identity(self) -> "CodeRetrievalUnit":
+        child_fields = (
+            self.parent_unit_id,
+            self.parent_source_map,
+            self.chunk_index,
+            self.chunk_count,
+        )
+        if any(value is not None for value in child_fields) and not all(
+            value is not None for value in child_fields
+        ):
+            raise ValueError("Child retrieval provenance fields must be set together")
+        if self.chunk_index is not None and self.chunk_count is not None:
+            if self.chunk_index >= self.chunk_count:
+                raise ValueError("chunk_index must be smaller than chunk_count")
+            assert self.parent_source_map is not None
+            if not (
+                self.parent_source_map.start_offset <= self.source_map.start_offset
+                and self.source_map.end_offset <= self.parent_source_map.end_offset
+            ):
+                raise ValueError("Child source range must remain inside its parent range")
+        return self
+
 
 class CodeRetrievalArtifact(FrozenModel):
-    schema_version: Literal["code_retrieval_artifact_v1"] = "code_retrieval_artifact_v1"
+    schema_version: Literal["code_retrieval_artifact_v2"] = "code_retrieval_artifact_v2"
     snapshot_id: str
     source_path: str
     total_units: int = Field(ge=0)
+    max_unit_characters: int = Field(default=6_000, gt=0)
+    overlap_characters: int = Field(default=400, ge=0)
     units: tuple[CodeRetrievalUnit, ...]
 
     @model_validator(mode="after")
@@ -173,6 +202,35 @@ class CodeRetrievalArtifact(FrozenModel):
             raise ValueError("total_units must equal the number of units")
         if len({unit.unit_id for unit in self.units}) != len(self.units):
             raise ValueError("Retrieval unit IDs must be unique")
+        if self.overlap_characters >= self.max_unit_characters:
+            raise ValueError("overlap_characters must be smaller than max_unit_characters")
+        if any(
+            max(len(unit.text), len(unit.retrieval_text)) > self.max_unit_characters
+            for unit in self.units
+        ):
+            raise ValueError("Retrieval unit exceeds max_unit_characters")
+        grouped: dict[str, list[CodeRetrievalUnit]] = {}
+        for unit in self.units:
+            if unit.parent_unit_id is not None:
+                grouped.setdefault(unit.parent_unit_id, []).append(unit)
+        for children in grouped.values():
+            ordered = sorted(children, key=lambda unit: unit.chunk_index or 0)
+            count = ordered[0].chunk_count
+            parent_map = ordered[0].parent_source_map
+            if count != len(ordered) or [unit.chunk_index for unit in ordered] != list(range(len(ordered))):
+                raise ValueError("Child chunks must provide complete contiguous indexes")
+            if any(unit.chunk_count != count or unit.parent_source_map != parent_map for unit in ordered):
+                raise ValueError("Child chunks must agree on parent provenance")
+            assert parent_map is not None
+            if ordered[0].source_map.start_offset != parent_map.start_offset:
+                raise ValueError("First child must start at the parent start")
+            if ordered[-1].source_map.end_offset != parent_map.end_offset:
+                raise ValueError("Last child must end at the parent end")
+            if any(
+                current.source_map.start_offset > previous.source_map.end_offset
+                for previous, current in zip(ordered, ordered[1:])
+            ):
+                raise ValueError("Child chunks must not leave source gaps")
         return self
 
 
@@ -185,7 +243,7 @@ class ParserWorkerRequest(FrozenModel):
     encoding: str
     compiler_context: CompilerContext = Field(default_factory=CompilerContext)
     parse_mode: Literal["full", "segmented"] = "full"
-    max_segment_characters: int = Field(default=1_000, gt=0)
+    max_segment_characters: int = Field(default=500, gt=0)
 
 
 class CodeParseStageManifest(FrozenModel):
@@ -193,8 +251,8 @@ class CodeParseStageManifest(FrozenModel):
     status: Literal["complete", "complete_with_degradation", "failed"]
     snapshot_id: str
     snapshot_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    parser_generation: Literal["plsql_antlr_4_13_2_analysis_v3"] = (
-        "plsql_antlr_4_13_2_analysis_v3"
+    parser_generation: Literal["plsql_antlr_4_13_2_analysis_v6"] = (
+        "plsql_antlr_4_13_2_analysis_v6"
     )
     analysis_policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     file_count: int = Field(ge=0)
@@ -205,6 +263,14 @@ class CodeParseStageManifest(FrozenModel):
     timeout_seconds: float = Field(gt=0)
     memory_limit_bytes: int = Field(gt=0)
     max_segment_characters: int = Field(gt=0)
+    max_retrieval_unit_characters: int = Field(gt=0)
+    retrieval_overlap_characters: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_retrieval_bounds(self) -> "CodeParseStageManifest":
+        if self.retrieval_overlap_characters >= self.max_retrieval_unit_characters:
+            raise ValueError("Retrieval overlap must be smaller than the unit bound")
+        return self
 
     @model_validator(mode="after")
     def validate_stage_counts(self) -> "CodeParseStageManifest":

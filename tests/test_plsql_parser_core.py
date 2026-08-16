@@ -125,6 +125,7 @@ def test_oversized_routine_is_retained_as_explicit_token_structure() -> None:
     node = artifact.extracted_nodes[0]
     assert node.display_name == "large_one"
     assert node.extraction_method == "token_structural"
+    assert node.signature_text == "PROCEDURE large_one"
     assert source[node.source_map.start_offset : node.source_map.end_offset].startswith(
         "PROCEDURE large_one"
     )

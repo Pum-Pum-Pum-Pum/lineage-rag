@@ -162,5 +162,7 @@ def test_stage_manifest_rejects_missing_file_accounting() -> None:
             analysis_artifacts=("analysis/a.json", "analysis/b.json"),
             timeout_seconds=120,
             memory_limit_bytes=1024,
-            max_segment_characters=1_000,
+            max_segment_characters=500,
+            max_retrieval_unit_characters=6_000,
+            retrieval_overlap_characters=400,
         )

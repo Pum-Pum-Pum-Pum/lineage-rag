@@ -64,7 +64,7 @@ def parse_plsql_source(
     source_path: str,
     source_sha256: str,
     compiler_context: CompilerContext | None = None,
-    max_segment_characters: int = 1_000,
+    max_segment_characters: int = 500,
 ) -> PlSqlFileParseArtifact:
     started = time.perf_counter()
     conditional_view = build_conditional_parse_view(
@@ -194,7 +194,7 @@ def parse_plsql_segments_only(
     source_path: str,
     source_sha256: str,
     compiler_context: CompilerContext | None = None,
-    max_segment_characters: int = 1_000,
+    max_segment_characters: int = 500,
 ) -> PlSqlFileParseArtifact:
     """Run the token-aware segmented path without attempting a full-file parse."""
 
@@ -320,6 +320,7 @@ def _parse_segments(
             )
             structural_node = _structural_node_from_segment(
                 candidate,
+                original_source=original_source,
                 source_path=source_path,
                 package_name=package_name,
                 conditional_regions=conditional_regions,
@@ -367,6 +368,7 @@ def _parse_segments(
 def _structural_node_from_segment(
     segment: ParsedSegment,
     *,
+    original_source: str,
     source_path: str,
     package_name: str | None,
     conditional_regions,
@@ -388,6 +390,12 @@ def _structural_node_from_segment(
         package_name=package_name,
         extraction_method="token_structural",
         source_map=segment.source_map,
+        signature_text=_signature_text(
+            original_source[
+                segment.source_map.start_offset : segment.source_map.end_offset
+            ],
+            is_spec=node_kind.endswith("_spec"),
+        ),
         conditional_state=conditional_state_for_range(
             conditional_regions,
             start_offset=segment.source_map.start_offset,

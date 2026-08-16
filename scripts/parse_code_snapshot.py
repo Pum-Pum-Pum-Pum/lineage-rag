@@ -45,6 +45,16 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=int,
         default=settings.code_parse_max_segment_characters,
     )
+    parser.add_argument(
+        "--max-retrieval-unit-characters",
+        type=int,
+        default=settings.code_retrieval_max_unit_characters,
+    )
+    parser.add_argument(
+        "--retrieval-overlap-characters",
+        type=int,
+        default=settings.code_retrieval_overlap_characters,
+    )
     return parser.parse_args(argv)
 
 
@@ -56,6 +66,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         timeout_seconds=args.timeout_seconds,
         memory_limit_bytes=args.memory_limit_mib * 1024 * 1024,
         max_segment_characters=args.max_segment_characters,
+        max_retrieval_unit_characters=args.max_retrieval_unit_characters,
+        retrieval_overlap_characters=args.retrieval_overlap_characters,
         analysis_policy=load_code_analysis_policy(get_settings().code_analysis_policy_path),
     )
     output_directory = (

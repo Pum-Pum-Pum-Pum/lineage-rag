@@ -35,7 +35,9 @@ def test_script_reports_local_stage_and_no_external_calls(monkeypatch, tmp_path,
             analysis_artifacts=("analysis/a.json", "analysis/b.json"),
             timeout_seconds=60,
             memory_limit_bytes=512 * 1024 * 1024,
-            max_segment_characters=1_000,
+            max_segment_characters=500,
+            max_retrieval_unit_characters=6_000,
+            retrieval_overlap_characters=400,
         )
 
     monkeypatch.setattr(parse_code_snapshot, "parse_code_snapshot", fake_parse)
@@ -47,7 +49,9 @@ def test_script_reports_local_stage_and_no_external_calls(monkeypatch, tmp_path,
             code_staging_dir=staging_root,
             code_parse_timeout_seconds=120,
             code_parse_memory_limit_mib=1024,
-            code_parse_max_segment_characters=1_000,
+            code_parse_max_segment_characters=500,
+            code_retrieval_max_unit_characters=6_000,
+            code_retrieval_overlap_characters=400,
             code_analysis_policy_path=tmp_path / "code_analysis.toml",
         ),
     )
@@ -78,4 +82,6 @@ def test_script_reports_local_stage_and_no_external_calls(monkeypatch, tmp_path,
     assert captured["snapshot_directory"] == snapshot_root / "fci-custom-r153-abc"
     assert captured["timeout_seconds"] == 60
     assert captured["memory_limit_bytes"] == 512 * 1024 * 1024
-    assert captured["max_segment_characters"] == 1_000
+    assert captured["max_segment_characters"] == 500
+    assert captured["max_retrieval_unit_characters"] == 6_000
+    assert captured["retrieval_overlap_characters"] == 400

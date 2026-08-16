@@ -161,3 +161,61 @@ END pkg_limits;
     assert len(set(procedure.derived_context.referenced_constants)) == 20
     header = procedure.retrieval_text.split("\n\nORIGINAL CITATION SOURCE:", 1)[0]
     assert len(header) <= 2_000
+
+
+def test_oversized_routine_becomes_bounded_deterministic_children() -> None:
+    source = (
+        "BROKEN TOKENS;\nPROCEDURE large_report IS BEGIN\n"
+        + "".join(f"  value_{index} := {index};\n" for index in range(250))
+        + "END large_report;\n"
+    )
+    parsed = parse_plsql_source(
+        source,
+        snapshot_id="snapshot-1",
+        source_path="packages/large_report.sql",
+        source_sha256=hashlib.sha256(source.encode("utf-8")).hexdigest(),
+        max_segment_characters=100,
+    )
+
+    first = build_code_retrieval_artifact(
+        parsed,
+        source,
+        max_unit_characters=500,
+        overlap_characters=50,
+    )
+    second = build_code_retrieval_artifact(
+        parsed,
+        source,
+        max_unit_characters=500,
+        overlap_characters=50,
+    )
+
+    assert first == second
+    children = [unit for unit in first.units if unit.parent_unit_id is not None]
+    assert len(children) > 1
+    assert len({unit.parent_unit_id for unit in children}) == 1
+    assert [unit.chunk_index for unit in children] == list(range(len(children)))
+    assert all(unit.chunk_count == len(children) for unit in children)
+    assert all(max(len(unit.text), len(unit.retrieval_text)) <= 500 for unit in children)
+    assert all(
+        unit.text == source[unit.source_map.start_offset : unit.source_map.end_offset]
+        for unit in children
+    )
+    parent = children[0].parent_source_map
+    assert parent is not None
+    assert children[0].source_map.start_offset == parent.start_offset
+    assert children[-1].source_map.end_offset == parent.end_offset
+    assert all(
+        current.source_map.start_offset <= previous.source_map.end_offset
+        for previous, current in zip(children, children[1:])
+    )
+
+
+def test_invalid_retrieval_chunk_bounds_fail_closed() -> None:
+    with pytest.raises(ValueError, match="smaller than"):
+        build_code_retrieval_artifact(
+            _parse(),
+            PACKAGE_SOURCE,
+            max_unit_characters=100,
+            overlap_characters=100,
+        )

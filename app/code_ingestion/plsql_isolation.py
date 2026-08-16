@@ -44,7 +44,7 @@ def parse_file_isolated(
     work_root: Path,
     timeout_seconds: float = DEFAULT_PARSE_TIMEOUT_SECONDS,
     memory_limit_bytes: int = DEFAULT_PARSE_MEMORY_LIMIT_BYTES,
-    max_segment_characters: int = 1_000,
+    max_segment_characters: int = 500,
 ) -> PlSqlFileParseArtifact:
     if timeout_seconds <= 0 or memory_limit_bytes <= 0 or max_segment_characters <= 0:
         raise ValueError("Parser resource boundaries must be greater than zero")

@@ -1,0 +1,26 @@
+{
+  "schema_version": "code_dependency_classifier_eval_v1",
+  "review_status": "draft",
+  "cases": [
+    {
+      "case_id": "sql-noise-and-real-calls",
+      "source": "CREATE OR REPLACE PACKAGE BODY pkg_noise AS\n  PROCEDURE real_helper(p_id NUMBER) IS BEGIN NULL; END;\n  PROCEDURE process_rows(p_id NUMBER) IS\n    TYPE row_list IS TABLE OF NUMBER INDEX BY PLS_INTEGER;\n    rows row_list;\n    l_value NUMBER;\n  BEGIN\n    IF p_id IN (1, 2) AND EXISTS (SELECT 1 FROM claim_table) THEN\n      l_value := TRUNC(SYSDATE);\n    END IF;\n    rows(1) := p_id;\n    INSERT INTO claim_table (claim_id) VALUES (p_id);\n    real_helper(p_id);\n    mystery_package.run_it(p_id);\n  END process_rows;\nEND pkg_noise;\n/\n",
+      "expected_routine_calls": ["REAL_HELPER"],
+      "expected_boundaries": {
+        "MYSTERY_PACKAGE.RUN_IT": "kernel_unavailable"
+      },
+      "forbidden_routine_calls": ["AND", "CLAIM_TABLE", "EXISTS", "IN", "ROWS", "TRUNC"]
+    },
+    {
+      "case_id": "unknown-boundaries-retained",
+      "source": "CREATE OR REPLACE PROCEDURE run_claim(p_sql VARCHAR2) IS\nBEGIN\n  kernel_claim.validate_claim(1);\n  DBMS_OUTPUT.PUT_LINE('x');\n  mystery_package_custom.run_it();\n  EXECUTE IMMEDIATE p_sql;\nEND;\n/\n",
+      "expected_routine_calls": ["MYSTERY_PACKAGE_CUSTOM.RUN_IT"],
+      "expected_boundaries": {
+        "DBMS_OUTPUT.PUT_LINE": "external_schema",
+        "KERNEL_CLAIM.VALIDATE_CLAIM": "kernel_unavailable",
+        "P_SQL": "dynamic_unknown"
+      },
+      "forbidden_routine_calls": []
+    }
+  ]
+}

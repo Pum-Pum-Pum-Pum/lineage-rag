@@ -451,3 +451,291 @@ Full regression suite: 484 passed, 1 existing Starlette TestClient warning
 git diff --check: passed (line-ending notices only)
 uv lock --check: not run because uv is not installed in the project venv/PATH
 ```
+
+## Step 159A - Create deterministic bounded retrieval children
+
+Separated retrieval chunk limits from the ANTLR segment limit. Retrieval units
+now have a 6,000-character hard bound and up to 400 characters of deterministic
+line-aware overlap. Oversized routine units become child units that record:
+
+```python
+CodeRetrievalUnit(
+    parent_unit_id=parent_id,
+    parent_source_map=parent_map,
+    chunk_index=index,
+    chunk_count=len(ranges),
+    source_map=exact_child_map,
+    text=original_source[start:end],
+)
+```
+
+The bound applies to `retrieval_text`, including derived context, while `text`
+remains an exact slice of immutable source. Child IDs hash parent ID, ordered
+index, and exact offsets. Artifact validation rejects missing indexes, gaps,
+inconsistent parent provenance, oversized units, and invalid overlap.
+
+Production interpretation: large routines can be embedded and packed without
+losing their parent routine or citation lines. An overlapping hit must still be
+deduplicated during later evidence packing; bounded chunks do not prove
+retrieval relevance or semantic completeness.
+
+Failure tests cover invalid bounds, deterministic rebuilds, exact source text,
+complete ordered child indexes, no gaps, controlled overlap, and full parent
+range coverage.
+
+## Step 159B - Reduce false routine calls without deleting unknowns
+
+Restricted callable names to Oracle identifier tokens and added context checks
+for `INSERT` column lists and collection/record indexed access. The classifier
+no longer treats SQL operators, table column lists, or uses such as
+`tblBundleRpt(index).field` and `VALUES tblBundleRpt(index)` as routine calls.
+
+Python evaluation:
+
+```powershell
+& .\.venv\Scripts\python.exe `
+  scripts\evaluate_code_dependency_classifier.py
+```
+
+Real calls, unresolved package calls, dynamic SQL, configured kernel calls,
+external package calls, and table edges remain distinct. The draft labeled
+fixture produced precision `1.0`, recall `1.0`, 3/3 correct calls, and 3/3
+correct unknown-boundary states. Because the fixture is small and not yet
+SME-reviewed, these numbers validate the targeted mechanism only.
+
+Production interpretation: fewer false edges improves impact-analysis signal
+and storage cost, but broad suppression would create dangerous false
+negatives. Failure tests therefore include both forbidden SQL-noise targets and
+required unresolved/kernel/external/dynamic targets.
+
+## Step 159C - Rerun the real-corpus pre-index gate
+
+Added `scripts/check_code_preindex_gate.py` to reconstruct retrieval artifacts
+from the immutable source and verify deterministic identity, exact source maps,
+bounds, parent coverage, routine retention, known false-call absence, parser
+states, and specification/body symbol matching.
+
+The old snapshot archive developed an OS ACL read failure. The readable raw
+intake was revalidated into a separate local verification root and reproduced
+the exact snapshot ID `fci-custom-r1-a47f5d4d54e1`, content hash, two file
+hashes, and policy hash. The inaccessible original was not modified.
+
+Runtime variance caused `analysis_v4` to fall back at a 1,000-character ANTLR
+fragment limit. A measured 500-character limit completed reliably. `v5`
+exposed verifier newline handling and remaining collection-access noise; both
+were fixed under immutable `analysis_v6` rather than overwriting results.
+
+Final `analysis_v6` evidence:
+
+```text
+full_parse files: 1
+segmented_parse files: 1
+fallback/failed files: 0
+body routines retained: 19/19
+specification/body matching symbol keys: 7/7
+body retrieval units: 86
+bounded child units: 73 across 6 parents
+maximum retrieval_text: 6,000 characters
+routine-call candidates: 1,439 -> 229
+unresolved routine calls: 90
+known false-call targets: 0
+table edges retained: 488
+deterministic rebuild and exact source mapping: pass
+```
+
+Local reports:
+
+```text
+data/exports/code_analysis/fci-custom-r1-a47f5d4d54e1-analysis-v6-preindex-gate.json
+data/exports/code_analysis/dependency-classifier-v1-eval.json
+```
+
+Production interpretation: the operational pre-index mechanism gate passes,
+but the draft precision/recall labels still require SME review before they can
+become an activation-quality threshold. No OpenAI, embedding, Qdrant, or active
+retrieval operation occurred.
+
+Verification:
+
+```text
+Focused remediation tests: 42 passed
+Full regression suite: 489 passed, 1 existing Starlette TestClient warning
+git diff --check: passed (line-ending notices only)
+```
+
+## Step 159 - Build deterministic code index and cache contracts
+
+Added a code-specific index schema rather than forcing PL/SQL evidence into the
+FDD release/document contract. Each record contains snapshot, module, path,
+routine/chunk, exact source map, parent identity, parser confidence, conditional
+state, original citation text, derived embedding text, embedding model, content
+hash, cache key, and deterministic Qdrant point ID.
+
+Python preparation command:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\prepare_code_index_artifacts.py `
+  fci-custom-r1-a47f5d4d54e1 `
+  --parse-generation plsql_antlr_4_13_2_analysis_v6
+```
+
+The real local `code_index_artifact_v2` contains 96 records and 96 unique
+embedding inputs. Its identity is:
+
+```text
+922a253dd07e6b7818b4180c1d3573fa92fa780099c0bc9b04f4f9d164e3e75c
+```
+
+Cache identity combines normalized embedding text, model, and
+`code_embedding_input_v1`; point identity combines snapshot and source-unit
+identity. Identical text may reuse a vector but never collapses distinct
+source occurrences or citations.
+
+Production interpretation: deterministic contracts make cost estimation,
+cache reuse, and exact downstream verification possible. They do not prove
+that an embedding is relevant or safe to disclose externally. Failure tests
+cover record/point collisions, inconsistent vectors, reordered provider
+responses, missing provider indexes, no-overwrite publication, and cache
+conflicts.
+
+## Step 160 - Add isolated code lexical and Qdrant generation tooling
+
+Added local code lexical search over the prepared contract and verified the
+real query `spPNBRPT006 branch report` returns the expected procedure children.
+The code lane uses its own artifact root and requires Qdrant collection names
+to start with `code_custom_`; it never writes `functional_specs_v4`.
+
+Python commands:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\query_code_lexical.py `
+  <prepared-code-index-artifact> "spPNBRPT006 branch report"
+
+& .\.venv\Scripts\python.exe scripts\index_code_qdrant.py `
+  <embedded-code-index-artifact> `
+  --qdrant-path data\qdrant_code_local `
+  --collection-name code_custom_r1_v1
+```
+
+Indexing accepts only a complete embedded artifact, refuses existing
+collections, writes a new isolated namespace, and leaves prior code/FDD
+collections unchanged. The real Qdrant command was not run because vectors do
+not exist yet.
+
+Production interpretation: separate lanes prevent mixed FDD/code scores,
+payloads, and citations. A newly created collection is only staged state; it is
+not active or correct until exact verification and later retrieval evaluation
+pass. Failure tests cover invalid collection names, existing-target refusal,
+partial/extra points, and rollback-collection preservation.
+
+## Step 161 - Add exact verification and rollback isolation
+
+Added exact collection verification for total point count, every deterministic
+point ID, all provenance payload fields, and vector dimension. Local in-memory
+tests prove that an extra point fails verification and that building a new code
+generation does not modify the prior rollback collection.
+
+Python command:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\verify_code_qdrant.py `
+  <embedded-code-index-artifact> `
+  --qdrant-path data\qdrant_code_local `
+  --collection-name code_custom_r1_v1
+```
+
+The paid embedding launcher requires two independent gates: a persisted
+`dependency_review_status="reviewed"` contract and the exact one-time operator
+authorization acknowledging OpenAI disclosure and cost. The current real
+contract is persistently `draft`. Its dry run reports 96 records/inputs and
+`external_calls_performed=false`.
+
+Production interpretation: Steps 159-161 engineering is implemented and
+deterministically tested, but real vector construction and Qdrant verification
+remain unexecuted. SME label review and explicit code-disclosure/cost approval
+are required first. Retrieval, citation, grounded-answer, SME, activation, and
+rollback-rehearsal gates remain Steps 162-170.
+
+Verification:
+
+```text
+Focused code-index/vector/lexical tests: 35 passed
+Final full regression suite: 496 passed, 1 existing Starlette warning
+Real prepared records: 96
+Real unique embedding inputs: 96
+Real OpenAI calls: 0
+Real Qdrant writes: 0
+git diff --check: passed (line-ending notices only)
+```
+
+Re-verification on 2026-08-13:
+
+```text
+Initial focused-test attempt: not executed because the default pytest user
+temp directory was denied by Windows ACLs.
+Workspace-local isolated pytest temp root: 7 passed.
+Real lexical probe: spPNBRPT006 retrieved the expected package artifact first.
+Embedding disclosure dry run: 96 records, 96 unique inputs, 0 external calls.
+Real OpenAI calls: 0
+Real Qdrant writes: 0
+```
+
+Production interpretation: restricted service identities may not be able to
+use the interactive user's default temp directory. Test and batch runners must
+use an explicitly provisioned writable temporary path. This environmental
+failure must not be reported as a code-test failure, but it also must not be
+silently ignored.
+
+## Step 161A - Configure the custom program-unit convention
+
+Recorded `_CUSTOM` package and standalone-function suffixes in
+`config/code_analysis.toml` under versioned `code_analysis_policy_v2`. The
+policy also explicitly enables inference of qualified non-custom package calls
+as unavailable kernel boundaries. Configuration values are normalized and
+included in the deterministic policy SHA-256.
+
+Production interpretation: future naming-policy changes do not require hunting
+through analyzer code. A policy change intentionally invalidates derived
+analysis identity and requires a new immutable generation.
+
+Failure testing covers blank/duplicate normalized configuration and preserves
+unqualified calls as unresolved when tokens cannot prove the owner kind.
+
+## Step 161B - Apply owner-package classification without filtering tables
+
+Qualified calls use the component immediately before the routine as the owner
+package. `*_CUSTOM` owners remain custom unresolved calls when their source is
+absent; non-custom owners become medium-confidence `kernel_unavailable`
+boundaries unless an explicit external prefix applies. Resolved in-snapshot
+symbols retain their stronger identity.
+
+A called unit ending `_CUSTOM` also prevents inferred-kernel classification.
+This preserves schema-qualified standalone custom functions conservatively
+because two-part call tokens can also represent `PACKAGE.ROUTINE`.
+
+All table reads/writes remain extracted independently of suffix. Tests include
+schema-qualified custom/kernel calls and both ordinary and `_CUSTOM` table
+names.
+
+Production interpretation: answers may distinguish visible custom dependencies
+from hidden kernel boundaries without pretending that table access is limited
+to custom tables. Medium confidence preserves the fact that static naming is a
+convention rather than runtime proof.
+
+## Step 161C - Re-evaluate the dependency policy and detect stale generations
+
+Updated the dependency fixture to represent custom and kernel owners under the
+approved rule. The focused dependency/static-analysis suite passed `14/14`.
+The draft classifier report passed with precision `1.0`, recall `1.0`, two
+expected routine calls, and four correct boundary labels.
+
+The current policy hash is
+`b0283dcedf6c6d511a9cb55b3f898f8a17a497dea4db81cf2ebc150930173370`.
+Existing `analysis_v6` artifacts record the older policy hash
+`141620341f88f0b447c42628324f2c1a052d682f3b730a4e10030d61f9f1aabd`.
+They remain historical artifacts and are not eligible for reviewed promotion.
+
+Failure-mode result: the first fixture run failed because one old case still
+labeled a non-custom package as a custom unresolved call. Correcting it to a
+`*_CUSTOM` owner made the new contract explicit rather than weakening the
+classifier. No OpenAI call or Qdrant write occurred.

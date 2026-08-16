@@ -15,11 +15,16 @@ DEFAULT_CODE_ANALYSIS_POLICY_PATH = Path(__file__).resolve().parents[2] / "confi
 class AnalysisBoundaries(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    custom_package_suffixes: tuple[str, ...] = ("_CUSTOM",)
+    custom_standalone_function_suffixes: tuple[str, ...] = ("_CUSTOM",)
+    infer_noncustom_qualified_packages_as_kernel: bool = True
     kernel_package_prefixes: tuple[str, ...] = ()
     external_package_prefixes: tuple[str, ...] = ("DBMS_", "UTL_")
     ignored_builtin_calls: tuple[str, ...] = ()
 
     @field_validator(
+        "custom_package_suffixes",
+        "custom_standalone_function_suffixes",
         "kernel_package_prefixes",
         "external_package_prefixes",
         "ignored_builtin_calls",
@@ -37,7 +42,7 @@ class AnalysisBoundaries(BaseModel):
 class CodeAnalysisPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["code_analysis_policy_v1"] = "code_analysis_policy_v1"
+    schema_version: Literal["code_analysis_policy_v2"] = "code_analysis_policy_v2"
     boundaries: AnalysisBoundaries
 
     @property

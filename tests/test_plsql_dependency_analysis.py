@@ -13,6 +13,7 @@ from app.code_ingestion.plsql_symbol_analysis import extract_symbols
 
 POLICY = CodeAnalysisPolicy(
     boundaries=AnalysisBoundaries(
+        custom_package_suffixes=("_CUSTOM",),
         kernel_package_prefixes=("KERNEL_",),
         external_package_prefixes=("DBMS_", "UTL_"),
         ignored_builtin_calls=("COUNT", "NVL"),
@@ -80,12 +81,14 @@ END pkg_dependency;
     assert len(call.candidate_symbol_occurrence_ids) == 2
 
 
-def test_kernel_external_and_unresolved_calls_have_distinct_boundaries() -> None:
+def test_custom_kernel_external_and_unresolved_calls_have_distinct_boundaries() -> None:
     source = """CREATE OR REPLACE PROCEDURE run_claim IS
 BEGIN
   kernel_claim.validate_claim(1);
   DBMS_OUTPUT.PUT_LINE('x');
+  mystery_package_custom.run_it();
   mystery_package.run_it();
+  unknown_local();
 END;
 /
 """
@@ -106,7 +109,43 @@ END;
     assert by_target["KERNEL_CLAIM.VALIDATE_CLAIM"].resolution_state == "kernel_unavailable"
     assert by_target["DBMS_OUTPUT.PUT_LINE"].dependency_kind == "external_package"
     assert by_target["DBMS_OUTPUT.PUT_LINE"].resolution_state == "external_schema"
-    assert by_target["MYSTERY_PACKAGE.RUN_IT"].resolution_state == "unresolved"
+    assert by_target["MYSTERY_PACKAGE_CUSTOM.RUN_IT"].resolution_state == "unresolved"
+    assert by_target["MYSTERY_PACKAGE.RUN_IT"].resolution_state == "kernel_unavailable"
+    assert by_target["UNKNOWN_LOCAL"].resolution_state == "unresolved"
+
+
+def test_schema_qualified_custom_package_and_all_tables_are_retained() -> None:
+    source = """CREATE OR REPLACE PROCEDURE run_report IS
+BEGIN
+  app.pkg_report_custom.build_report();
+  app.pkg_kernel.build_report();
+  app.calculate_custom();
+  SELECT id FROM app.business_table;
+  SELECT id FROM app.audit_custom;
+END;
+/
+"""
+    parsed = _parse(source)
+    symbols = extract_symbols(parsed, module_id="fci-custom")
+
+    edges = extract_dependencies(
+        source,
+        parsed,
+        file_symbols=symbols,
+        all_symbols=symbols,
+        schema_objects=(),
+        policy=POLICY,
+    )
+    by_target = {edge.target_canonical_name: edge for edge in edges}
+
+    assert by_target["APP.PKG_REPORT_CUSTOM.BUILD_REPORT"].resolution_state == "unresolved"
+    assert by_target["APP.PKG_REPORT_CUSTOM.BUILD_REPORT"].dependency_kind == "routine_call"
+    assert by_target["APP.PKG_KERNEL.BUILD_REPORT"].resolution_state == "kernel_unavailable"
+    assert by_target["APP.PKG_KERNEL.BUILD_REPORT"].dependency_kind == "kernel_boundary"
+    assert by_target["APP.CALCULATE_CUSTOM"].resolution_state == "unresolved"
+    assert by_target["APP.CALCULATE_CUSTOM"].dependency_kind == "routine_call"
+    assert by_target["APP.BUSINESS_TABLE"].dependency_kind == "table_read"
+    assert by_target["APP.AUDIT_CUSTOM"].dependency_kind == "table_read"
 
 
 def test_dynamic_sql_is_explicit_unknown_and_static_tables_still_resolve() -> None:
@@ -242,3 +281,60 @@ END pkg_tables;
         "APP.TABLE_A",
         "APP.TABLE_B",
     }
+
+
+def test_sql_syntax_and_collection_assignments_are_not_routine_calls() -> None:
+    source = """CREATE OR REPLACE PACKAGE BODY pkg_noise AS
+  PROCEDURE real_helper(p_id NUMBER) IS BEGIN NULL; END;
+  PROCEDURE process_rows(p_id NUMBER) IS
+    TYPE row_list IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
+    rows row_list;
+    l_value NUMBER;
+  BEGIN
+    IF p_id IN (1, 2) AND EXISTS (SELECT 1 FROM claim_table) THEN
+      l_value := TRUNC(SYSDATE);
+    END IF;
+    rows(1) := p_id;
+    INSERT INTO claim_table (claim_id) VALUES (p_id);
+    INSERT INTO claim_table (claim_id) VALUES rows(1);
+    real_helper(p_id);
+    mystery_package.run_it(p_id);
+  END process_rows;
+END pkg_noise;
+/
+"""
+    parsed = _parse(source)
+    symbols = extract_symbols(parsed, module_id="fci-custom")
+
+    edges = extract_dependencies(
+        source,
+        parsed,
+        file_symbols=symbols,
+        all_symbols=symbols,
+        schema_objects=(),
+        policy=POLICY,
+    )
+
+    calls = {
+        edge.target_canonical_name: edge
+        for edge in edges
+        if edge.dependency_kind == "routine_call"
+    }
+    assert set(calls) == {"REAL_HELPER"}
+    assert calls["REAL_HELPER"].resolution_state == "resolved_in_snapshot"
+    kernel = next(
+        edge for edge in edges if edge.target_canonical_name == "MYSTERY_PACKAGE.RUN_IT"
+    )
+    assert kernel.dependency_kind == "kernel_boundary"
+    assert kernel.resolution_state == "kernel_unavailable"
+    assert all(
+        target not in calls
+        for target in {"IN", "AND", "EXISTS", "TRUNC", "ROWS", "CLAIM_TABLE"}
+    )
+    table = next(
+        edge
+        for edge in edges
+        if edge.dependency_kind == "table_write"
+        and edge.target_canonical_name == "CLAIM_TABLE"
+    )
+    assert table.resolution_state == "unresolved"

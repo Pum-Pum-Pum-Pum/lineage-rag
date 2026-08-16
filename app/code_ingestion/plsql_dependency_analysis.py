@@ -176,26 +176,33 @@ def _routine_call_edges(
         for node in declarations
         if node.node_kind == "type"
     }
+    indexed_access_names = _indexed_access_names(tokens)
     for left_index, token in enumerate(tokens):
         if token.type != PlSqlLexer.LEFT_PAREN or left_index == 0:
             continue
         name_tokens = _qualified_name_before(tokens, left_index)
         if not name_tokens:
             continue
-        start_index = tokens.index(name_tokens[0])
+        start_index = left_index - len(name_tokens)
         previous_type = tokens[start_index - 1].type if start_index else None
         if previous_type in _NON_CALL_PREFIX_TYPES:
             continue
+        right_index = matching_right_parenthesis(tokens, left_index)
+        if right_index is None:
+            continue
+        if _is_insert_column_list(tokens, start_index) or _is_collection_assignment(
+            tokens, right_index
+        ):
+            continue
         canonical_target = _canonical_name_tokens(name_tokens)
+        if canonical_target in indexed_access_names:
+            continue
         final_name = canonical_target.rsplit(".", 1)[-1]
         if (
             final_name in policy.boundaries.ignored_builtin_calls
             or final_name in _BUILTIN_TYPE_NAMES
             or final_name in declared_types
         ):
-            continue
-        right_index = matching_right_parenthesis(tokens, left_index)
-        if right_index is None:
             continue
         argument_tokens = tokens[left_index + 1 : right_index]
         argument_count = 0 if not argument_tokens else len(split_top_level(argument_tokens))
@@ -205,7 +212,8 @@ def _routine_call_edges(
             source_symbol=symbol,
             all_symbols=all_symbols,
         )
-        first_component = canonical_target.split(".", 1)[0]
+        target_components = canonical_target.split(".")
+        first_component = target_components[0]
         if candidates:
             distinct_keys = {candidate.symbol_key for candidate in candidates}
             state = "resolved_in_snapshot" if len(distinct_keys) == 1 else "ambiguous"
@@ -221,6 +229,11 @@ def _routine_call_edges(
             for prefix in policy.boundaries.external_package_prefixes
         ):
             state, kind, confidence = "external_schema", "external_package", "high"
+        elif _is_inferred_kernel_package_call(
+            target_components,
+            policy=policy,
+        ):
+            state, kind, confidence = "kernel_unavailable", "kernel_boundary", "medium"
         else:
             state, kind, confidence = "unresolved", "routine_call", "medium"
         source_map = source_map_for_tokens(
@@ -242,6 +255,37 @@ def _routine_call_edges(
             )
         )
     return edges
+
+
+def _is_inferred_kernel_package_call(
+    target_components: list[str],
+    *,
+    policy: CodeAnalysisPolicy,
+) -> bool:
+    """Apply the approved owner-package suffix convention conservatively.
+
+    For ``SCHEMA.PACKAGE.ROUTINE`` and ``PACKAGE.ROUTINE``, the owner package
+    is the component immediately before the routine. Unqualified calls remain
+    unresolved because tokens alone cannot prove whether they are functions,
+    procedures, built-ins, or local declarations absent from the snapshot.
+    """
+    if not policy.boundaries.infer_noncustom_qualified_packages_as_kernel:
+        return False
+    if len(target_components) < 2:
+        return False
+    called_unit = target_components[-1]
+    if any(
+        called_unit.endswith(suffix)
+        for suffix in policy.boundaries.custom_standalone_function_suffixes
+    ):
+        # A two-part target may be SCHEMA.FUNCTION or PACKAGE.ROUTINE. Keep a
+        # suffix-matching call unresolved instead of falsely asserting kernel.
+        return False
+    owner_package = target_components[-2]
+    return not any(
+        owner_package.endswith(suffix)
+        for suffix in policy.boundaries.custom_package_suffixes
+    )
 
 
 def _table_edges(
@@ -555,30 +599,61 @@ def _canonical_name_tokens(tokens: Sequence[Token]) -> str:
 
 
 def _is_name_token(token: Token) -> bool:
+    return token.type in {PlSqlLexer.REGULAR_ID, PlSqlLexer.DELIMITED_ID}
+
+
+def _is_insert_column_list(tokens: tuple[Token, ...], name_start_index: int) -> bool:
+    """Reject `INSERT INTO table (...)` without hiding ordinary calls."""
+
+    return (
+        name_start_index > 0
+        and tokens[name_start_index - 1].type == PlSqlLexer.INTO
+        and any(
+            token.type == PlSqlLexer.INSERT
+            for token in tokens[max(0, name_start_index - 4) : name_start_index - 1]
+        )
+    )
+
+
+def _is_collection_assignment(tokens: tuple[Token, ...], right_index: int) -> bool:
+    """Reject lexer-visible collection/record assignment targets as calls."""
+
+    cursor = right_index + 1
+    if cursor < len(tokens) and tokens[cursor].type == PlSqlLexer.ASSIGN_OP:
+        return True
+    while (
+        cursor + 1 < len(tokens)
+        and tokens[cursor].type == PlSqlLexer.PERIOD
+        and _is_selector_token(tokens[cursor + 1])
+    ):
+        cursor += 2
+    return cursor < len(tokens) and tokens[cursor].type == PlSqlLexer.ASSIGN_OP
+
+
+def _indexed_access_names(tokens: tuple[Token, ...]) -> set[str]:
+    """Find collection/record index targets proven by a following selector."""
+
+    names: set[str] = set()
+    for index, token in enumerate(tokens):
+        if token.type != PlSqlLexer.LEFT_PAREN or index == 0:
+            continue
+        name_tokens = _qualified_name_before(tokens, index)
+        if not name_tokens:
+            continue
+        right = matching_right_parenthesis(tokens, index)
+        if (
+            right is not None
+            and right + 2 < len(tokens)
+            and tokens[right + 1].type == PlSqlLexer.PERIOD
+            and _is_selector_token(tokens[right + 2])
+        ):
+            names.add(_canonical_name_tokens(name_tokens))
+    return names
+
+
+def _is_selector_token(token: Token) -> bool:
     text = token.text or ""
-    return bool(text) and (
-        text[0].isalpha() or text[0] in {'"', "_", "$", "#"}
-    ) and token.type not in {
-        PlSqlLexer.SELECT,
-        PlSqlLexer.FROM,
-        PlSqlLexer.JOIN,
-        PlSqlLexer.INTO,
-        PlSqlLexer.UPDATE,
-        PlSqlLexer.INSERT,
-        PlSqlLexer.DELETE,
-        PlSqlLexer.MERGE,
-        PlSqlLexer.BEGIN,
-        PlSqlLexer.END,
-        PlSqlLexer.IF,
-        PlSqlLexer.ELSIF,
-        PlSqlLexer.WHILE,
-        PlSqlLexer.FOR,
-        PlSqlLexer.CASE,
-        PlSqlLexer.RETURN,
-        PlSqlLexer.PROCEDURE,
-        PlSqlLexer.FUNCTION,
-        PlSqlLexer.OPEN,
-    }
+    return bool(text) and (text[0].isalpha() or text[0] in {'"', "_", "$", "#"})
 
 
 def _edge(
