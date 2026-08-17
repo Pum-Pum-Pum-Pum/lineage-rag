@@ -11,10 +11,16 @@ from app.code_ingestion.analysis_policy import CodeAnalysisPolicy, load_code_ana
 from app.code_ingestion.code_static_analysis import StaticAnalysisInput, analyze_snapshot_sources
 from app.code_ingestion.plsql_isolation import parse_file_isolated
 from app.code_ingestion.plsql_models import CodeParseStageManifest
+from app.code_ingestion.plsql_models import (
+    CodeRetrievalArtifact,
+    ParseReuseRecord,
+    PlSqlFileParseArtifact,
+)
 from app.code_ingestion.snapshot_builder import load_snapshot_manifest
+from app.code_ingestion.program_unit_validation import validate_custom_program_unit
 
 
-PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v6"
+PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v9"
 
 
 def parse_code_snapshot(
@@ -27,6 +33,8 @@ def parse_code_snapshot(
     max_retrieval_unit_characters: int = 6_000,
     retrieval_overlap_characters: int = 400,
     analysis_policy: CodeAnalysisPolicy | None = None,
+    generation_directory: str = PARSER_GENERATION_DIRECTORY,
+    reuse_generation_directory: Path | None = None,
 ) -> CodeParseStageManifest:
     """Parse one verified immutable snapshot and atomically publish local artifacts."""
 
@@ -40,16 +48,32 @@ def parse_code_snapshot(
         raise ValueError("Retrieval chunk boundaries are invalid")
     snapshot = load_snapshot_manifest(snapshot_directory, verify_sources=True)
     selected_analysis_policy = analysis_policy or load_code_analysis_policy()
-    target = staging_root / snapshot.snapshot_id / PARSER_GENERATION_DIRECTORY
+    target = staging_root / snapshot.snapshot_id / generation_directory
     if target.exists():
         raise FileExistsError(f"Parse generation already exists and will not be overwritten: {target}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    temporary = Path(tempfile.mkdtemp(prefix=".code-parse-", dir=target.parent))
-    worker_root = temporary / ".workers"
     parse_paths: list[str] = []
     retrieval_paths: list[str] = []
     analysis_paths: list[str] = []
     analysis_inputs: list[StaticAnalysisInput] = []
+    reuse_records: list[ParseReuseRecord] = []
+    reuse_catalog, reused_from_generation = _load_reuse_catalog(
+        reuse_generation_directory,
+        file_contracts={
+            entry.path: (entry.source_handler, entry.encoding)
+            for entry in snapshot.files
+        },
+        compiler_context=snapshot.request.compiler_context.model_dump(mode="json"),
+        snapshot_id=snapshot.snapshot_id,
+        snapshot_content_sha256=snapshot.snapshot_content_sha256,
+        timeout_seconds=timeout_seconds,
+        memory_limit_bytes=memory_limit_bytes,
+        max_segment_characters=max_segment_characters,
+        max_retrieval_unit_characters=max_retrieval_unit_characters,
+        retrieval_overlap_characters=retrieval_overlap_characters,
+    )
+    temporary = Path(tempfile.mkdtemp(prefix=".code-parse-", dir=target.parent))
+    worker_root = temporary / ".workers"
     state_counts = {state: 0 for state in ("full_parse", "segmented_parse", "fallback_parse", "failed")}
     try:
         for entry in snapshot.files:
@@ -61,24 +85,46 @@ def parse_code_snapshot(
             if observed_hash != entry.sha256:
                 raise RuntimeError(f"Immutable source changed before parsing: {entry.path}")
             source_text = raw_bytes.decode(entry.encoding)
-            parsed = parse_file_isolated(
-                source_file,
-                snapshot_id=snapshot.snapshot_id,
-                source_path=entry.path,
+            reuse_key = _parse_reuse_key(
                 source_sha256=entry.sha256,
+                source_handler=entry.source_handler,
                 encoding=entry.encoding,
-                compiler_context=snapshot.request.compiler_context,
-                work_root=worker_root,
+                compiler_context=snapshot.request.compiler_context.model_dump(mode="json"),
                 timeout_seconds=timeout_seconds,
                 memory_limit_bytes=memory_limit_bytes,
                 max_segment_characters=max_segment_characters,
+                max_retrieval_unit_characters=max_retrieval_unit_characters,
+                retrieval_overlap_characters=retrieval_overlap_characters,
             )
-            retrieval = build_code_retrieval_artifact(
+            reusable = reuse_catalog.get(entry.path)
+            if reusable is not None and reusable[2] == reuse_key:
+                parsed, retrieval, _ = reusable
+                reused = True
+            else:
+                parsed = parse_file_isolated(
+                    source_file,
+                    snapshot_id=snapshot.snapshot_id,
+                    source_path=entry.path,
+                    source_sha256=entry.sha256,
+                    encoding=entry.encoding,
+                    compiler_context=snapshot.request.compiler_context,
+                    work_root=worker_root,
+                    timeout_seconds=timeout_seconds,
+                    memory_limit_bytes=memory_limit_bytes,
+                    max_segment_characters=max_segment_characters,
+                )
+                retrieval = build_code_retrieval_artifact(
+                    parsed,
+                    source_text,
+                    verified_source_sha256=observed_hash,
+                    max_unit_characters=max_retrieval_unit_characters,
+                    overlap_characters=retrieval_overlap_characters,
+                )
+                reused = False
+            validate_custom_program_unit(
                 parsed,
-                source_text,
-                verified_source_sha256=observed_hash,
-                max_unit_characters=max_retrieval_unit_characters,
-                overlap_characters=retrieval_overlap_characters,
+                source_handler=entry.source_handler,
+                allowed_suffixes=selected_analysis_policy.boundaries.custom_program_unit_suffixes,
             )
             stem = _artifact_stem(entry.path)
             parse_relative = f"parse/{stem}.json"
@@ -89,6 +135,15 @@ def parse_code_snapshot(
             retrieval_paths.append(retrieval_relative)
             analysis_inputs.append(
                 StaticAnalysisInput(parse_artifact=parsed, source_text=source_text)
+            )
+            reuse_records.append(
+                ParseReuseRecord(
+                    source_path=entry.path,
+                    source_sha256=entry.sha256,
+                    reuse_key_sha256=reuse_key,
+                    reused=reused,
+                    reused_from_generation=reused_from_generation if reused else None,
+                )
             )
             state_counts[parsed.parser_state] += 1
 
@@ -108,6 +163,7 @@ def parse_code_snapshot(
             status=status,
             snapshot_id=snapshot.snapshot_id,
             snapshot_content_sha256=snapshot.snapshot_content_sha256,
+            parser_generation=generation_directory,
             analysis_policy_sha256=selected_analysis_policy.sha256,
             file_count=len(snapshot.files),
             state_counts=state_counts,
@@ -119,6 +175,9 @@ def parse_code_snapshot(
             max_segment_characters=max_segment_characters,
             max_retrieval_unit_characters=max_retrieval_unit_characters,
             retrieval_overlap_characters=retrieval_overlap_characters,
+            reused_from_generation=reused_from_generation,
+            reused_parse_file_count=sum(record.reused for record in reuse_records),
+            parse_reuse_records=tuple(reuse_records),
         )
         _write_json(temporary / "parse_stage_manifest.json", manifest.model_dump(mode="json"))
         shutil.rmtree(worker_root, ignore_errors=True)
@@ -155,3 +214,61 @@ def _write_json(path: Path, payload: object) -> None:
         json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True),
         encoding="utf-8",
     )
+
+
+def _load_reuse_catalog(
+    directory: Path | None,
+    *,
+    file_contracts: dict[str, tuple[str, str]],
+    compiler_context: dict[str, object],
+    **expected: object,
+) -> tuple[dict[str, tuple[PlSqlFileParseArtifact, CodeRetrievalArtifact, str]], str | None]:
+    if directory is None:
+        return {}, None
+    manifest = CodeParseStageManifest.model_validate_json(
+        (directory / "parse_stage_manifest.json").read_text(encoding="utf-8")
+    )
+    for field, value in expected.items():
+        if getattr(manifest, field) != value:
+            raise ValueError(f"Reuse generation {field} does not match the requested parse contract")
+    catalog = {}
+    for parse_relative, retrieval_relative in zip(
+        manifest.parse_artifacts,
+        manifest.retrieval_artifacts,
+        strict=True,
+    ):
+        parsed = PlSqlFileParseArtifact.model_validate_json(
+            (directory / parse_relative).read_text(encoding="utf-8")
+        )
+        retrieval = CodeRetrievalArtifact.model_validate_json(
+            (directory / retrieval_relative).read_text(encoding="utf-8")
+        )
+        if parsed.source_path not in file_contracts:
+            continue
+        source_handler, encoding = file_contracts[parsed.source_path]
+        reuse_key = _parse_reuse_key(
+            source_sha256=parsed.source_sha256,
+            source_handler=source_handler,
+            encoding=encoding,
+            compiler_context=compiler_context,
+            timeout_seconds=manifest.timeout_seconds,
+            memory_limit_bytes=manifest.memory_limit_bytes,
+            max_segment_characters=manifest.max_segment_characters,
+            max_retrieval_unit_characters=manifest.max_retrieval_unit_characters,
+            retrieval_overlap_characters=manifest.retrieval_overlap_characters,
+        )
+        catalog[parsed.source_path] = (parsed, retrieval, reuse_key)
+    return catalog, manifest.parser_generation
+
+
+def _parse_reuse_key(**values: object) -> str:
+    payload = {
+        "schema_version": "plsql_parse_reuse_key_v1",
+        "antlr_tool_version": "4.13.2",
+        "antlr_runtime_version": "4.13.2",
+        "grammar_commit": "a7704d4c029c33a89818ac103f758f7c72d8d16c",
+        **values,
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()

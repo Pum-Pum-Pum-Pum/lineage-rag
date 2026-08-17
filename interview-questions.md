@@ -510,3 +510,106 @@ write is authorized by this interview acceptance.
    rather than replacing its stored policy hash or analysis records?
 9. What must be rebuilt and rechecked before any code excerpts may be sent for
    paid embeddings under the new policy?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** The answer correctly treats `_CUSTOM` as an explicit,
+   auditable classification policy rather than an intrinsic identifier rule.
+   Configuration supports controlled reuse across module sets without hiding
+   business conventions inside analyzer code.
+2. **Accepted.** The answer correctly connects policy-dependent derivation to
+   the policy hash. Reusing an old identity after changing classification rules
+   would make provenance false and could promote stale results.
+3. **Accepted.** File identity and dependency identity are separate. A custom
+   source file can call kernel/external routines and access any table, so its
+   suffix cannot be inherited by every extracted edge.
+4. **Accepted.** `APP` is the schema namespace and `PKG_REPORT_CUSTOM` is the
+   package owner. The answer correctly avoids schema-wide custom
+   classification and identifies the relevant qualified-name component.
+5. **Accepted.** Syntax and parse context establish that `APP.AUDIT_CUSTOM` is
+   a table reference. A suffix must not override the independently extracted
+   dependency kind.
+6. **Accepted.** The answer preserves the important distinction between an
+   unresolved target and a proven unavailable kernel boundary. Converting
+   uncertainty into a kernel assertion would weaken grounded analysis.
+7. **Accepted.** Perfect metrics describe only the current small draft fixture.
+   The answer correctly withholds corpus-level and production claims pending a
+   representative, reviewed label set.
+8. **Accepted.** Immutability preserves the exact source-policy-result
+   relationship and enables clean comparison and rollback. The new policy
+   requires a new generation rather than mutation of `analysis_v6`.
+9. **Accepted.** The answer names the necessary rebuild and verification
+   controls and retains explicit paid/disclosure authorization as a separate
+   boundary. A stronger operational phrasing is that the rebuilt generation
+   must also produce a new prepared index contract whose stored policy and
+   source identities match the reviewed analysis exactly.
+
+Gate status: **Steps 161A-161C learner gate accepted.** The `_CUSTOM` policy
+contract is understood. Existing `analysis_v6` and its prepared index remain
+historical, non-promotable artifacts under the old policy. No OpenAI code
+embedding or Qdrant write is authorized by this interview acceptance.
+
+## Steps 161D-161F - Policy-v2 regeneration interview gate
+
+### Step 161D - Immutable analysis generation
+
+1. Why must policy v2 publish `analysis_v7` instead of rewriting
+   `analysis_v6`, even though the source snapshot bytes are unchanged?
+2. What does `complete_with_degradation` with one segmented file prove, and
+   what semantic or performance property does it not prove?
+3. Why did the short outer command timeout leave an unpublished temporary
+   directory, and which validations made its removal safe?
+
+### Step 161E - Focused dependency review packet
+
+4. Why group 90 occurrences into 39 target/classification cases instead of
+   asking an SME to review every occurrence independently?
+5. Why are unresolved table identities excluded from this classifier packet
+   while all 488 table edges remain in the analysis graph?
+6. What do 19/19 routine retention, exact source mapping, and zero known false
+   calls prove, and why do they not replace SME review of the 39 cases?
+
+### Step 161F - Prepared-contract verification
+
+7. Why must the verifier rebuild the complete artifact rather than check only
+   its stored artifact identity string?
+8. Why are 96 unique point IDs required even if a future corpus contains fewer
+   than 96 unique embedding inputs?
+9. What gates remain between the verified draft contract and a usable code RAG
+   answer, and which next action remains unpaid?
+
+The Steps 161D-161F questions above are retained as history but their proposed
+blanket non-suffix kernel classification was superseded by the corrected
+package-ownership policy before learner evaluation. Do not use that gate for
+promotion.
+
+## Steps 161G-161I - Corrected ownership and scale interview gate
+
+### Step 161G - Declared program-unit validation
+
+1. Why is the declared PL/SQL program-unit name authoritative while the
+   filename remains a required assertion?
+2. Why do routines inside `PKGTRANSACTIONBLL_P_CUSTOM` inherit custom-source
+   availability even when their individual names lack `_CUSTOM`?
+3. Why are `.ddl` tables exempt from program-unit suffix validation, and what
+   risk would suffix-filtering tables create?
+
+### Step 161H - Grounded dependency boundaries
+
+4. Why is `custom_source_missing` materially different from
+   `kernel_unavailable` for retrieval, remediation, and user answers?
+5. Why did targets such as `ALC.TRANSACTIONNUMBER` prove blanket non-suffix
+   kernel inference unsafe?
+6. Why is a larger unresolved count preferable to a smaller count produced by
+   unsupported kernel classifications?
+
+### Step 161I - Scale and immutable regeneration
+
+7. Which inputs must match before parse/retrieval artifacts may be reused, and
+   why must dependency analysis still be rebuilt after a policy change?
+8. How does canonical-name symbol indexing improve behavior for a 4,000-file
+   corpus without changing grounded resolution semantics?
+9. What does the verified v4 prepared contract prove, and what unpaid review,
+   paid embedding, retrieval, citation, and answer gates remain?

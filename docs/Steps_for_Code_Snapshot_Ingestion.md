@@ -193,7 +193,7 @@ The command verifies the immutable snapshot before starting and atomically
 publishes a new no-overwrite generation under:
 
 ```text
-data/staging/code/<snapshot-id>/plsql_antlr_4_13_2_analysis_v6/
+data/staging/code/<snapshot-id>/plsql_antlr_4_13_2_analysis_v9/
 |-- parse_stage_manifest.json
 |-- analysis/
 |-- parse/
@@ -359,7 +359,7 @@ closed. Phase 3 Oracle metadata is still required to confirm live schemas,
 synonyms, editions, and database-link targets.
 
 The expanded contract uses the no-overwrite generation
-`plsql_antlr_4_13_2_analysis_v6`. The recovery path gives a
+`plsql_antlr_4_13_2_analysis_v9`. The recovery path gives a
 full-file parser that reaches its resource boundary one separate, bounded,
 token-aware segmented attempt before using original-source fallback chunks.
 The full and segmented attempts each use the configured timeout and memory
@@ -405,23 +405,24 @@ is ready for parser-coverage review. No OpenAI or Qdrant operation occurs here.
 The configured application convention is stored in `config/code_analysis.toml`:
 
 ```toml
-custom_package_suffixes = ["_CUSTOM"]
-custom_standalone_function_suffixes = ["_CUSTOM"]
-infer_noncustom_qualified_packages_as_kernel = true
+custom_program_unit_suffixes = ["_CUSTOM", "_MAIN"]
+infer_noncustom_qualified_packages_as_kernel = false
+kernel_package_names = []
+kernel_package_prefixes = []
 ```
 
-For qualified calls, the component immediately before the called routine is
-treated as the owner package. An owner ending `_CUSTOM` is a custom-code
-dependency. A non-custom owner is an unavailable kernel boundary unless it
-matches an explicitly configured Oracle/external prefix such as `DBMS_` or
-`UTL_`. Unqualified unresolved calls remain unresolved because syntax alone
-cannot prove whether they are functions, procedures, built-ins, or missing
-local declarations.
+For PL/SQL intake, the declared top-level package, standalone function, or
+standalone procedure is authoritative. Its name must match the filename stem
+and end `_CUSTOM` or `_MAIN`, case-insensitively. Every member routine inside
+an accepted package is available custom source regardless of the member name.
+`.ddl` schema sources are exempt from program-unit suffix validation.
 
-A qualified called unit ending `_CUSTOM` also remains a custom unresolved
-candidate. Static call tokens cannot safely distinguish
-`SCHEMA.FUNCTION_CUSTOM()` from `PACKAGE.ROUTINE_CUSTOM()` in every case, so
-the analyzer avoids a false kernel assertion.
+Resolved uploaded symbols take precedence. An absent target whose package or
+standalone unit ends `_CUSTOM`/`_MAIN` is `custom_source_missing`. A target is
+`kernel_unavailable` only when its owning package matches an approved exact
+kernel package name or prefix. Blanket non-suffix inference is disabled because
+record fields, table aliases, and `SCHEMA.FUNCTION` syntax can resemble package
+calls. Unqualified uncertainty remains unresolved.
 
 This convention never filters tables or views. All statically visible table
 reads/writes remain indexed whether or not their names end `_CUSTOM`.
@@ -430,19 +431,41 @@ Changing this policy changes `analysis_policy_sha256`. Never promote an older
 analysis artifact under the new policy. Build a new immutable analysis and
 code-index generation, then repeat the deterministic gates.
 
+Run the local real-corpus gate and export the focused SME packet:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\check_code_preindex_gate.py `
+  <snapshot-id> `
+  --snapshot-root <verified-snapshot-root> `
+  --generation plsql_antlr_4_13_2_analysis_v9 `
+  --output data\exports\code_analysis\<snapshot-id>-analysis-v9-preindex-gate.json
+
+& .\.venv\Scripts\python.exe scripts\export_code_dependency_review.py `
+  <snapshot-id> `
+  --snapshot-root <verified-snapshot-root> `
+  --generation plsql_antlr_4_13_2_analysis_v9
+```
+
+The packet groups repeated occurrences by target, proposed kind, resolution
+state, and confidence. It includes a small source excerpt with immutable path,
+line, and source-hash provenance. Tables are not included merely because their
+definitions are absent; the review is focused on unresolved/ambiguous routine
+calls, inferred kernel boundaries, and dynamic SQL. Packet publication is
+no-overwrite and performs no external call.
+
 After the real-corpus parser gate passes, prepare deterministic code indexing
 records without calling OpenAI:
 
 ```powershell
 & .\.venv\Scripts\python.exe scripts\prepare_code_index_artifacts.py `
   fci-custom-r1-a47f5d4d54e1 `
-  --parse-generation plsql_antlr_4_13_2_analysis_v6
+  --parse-generation plsql_antlr_4_13_2_analysis_v9
 ```
 
 The output is isolated beneath:
 
 ```text
-data/staging/code_indexes/<snapshot-id>/code_index_contract_v2/
+data/staging/code_indexes/<snapshot-id>/code_index_contract_v4/
 ```
 
 Each record preserves snapshot, module, file, routine/chunk, line/offset,
@@ -455,9 +478,20 @@ Run local lexical search with:
 
 ```powershell
 & .\.venv\Scripts\python.exe scripts\query_code_lexical.py `
-  data\staging\code_indexes\fci-custom-r1-a47f5d4d54e1\code_index_contract_v2\code_index_artifact.json `
+  data\staging\code_indexes\fci-custom-r1-a47f5d4d54e1\code_index_contract_v4\code_index_artifact.json `
   "spPNBRPT006 branch report"
 ```
+
+Verify the prepared contract by rebuilding it from the immutable stage:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\verify_prepared_code_index.py `
+  data\staging\code_indexes\<snapshot-id>\code_index_contract_v4\code_index_artifact.json
+```
+
+Verification checks the current approved policy hash and exact equality of the
+entire deterministic prepared artifact. It does not mark dependency review as
+complete and does not authorize embedding.
 
 ## 14. Paid code-embedding boundary
 

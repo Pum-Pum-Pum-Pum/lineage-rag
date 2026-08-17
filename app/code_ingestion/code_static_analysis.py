@@ -8,7 +8,10 @@ from app.code_ingestion.code_analysis_models import (
     CodeStaticAnalysisArtifact,
 )
 from app.code_ingestion.ddl_analysis import extract_ddl_structures, resolve_synonyms
-from app.code_ingestion.plsql_dependency_analysis import extract_dependencies
+from app.code_ingestion.plsql_dependency_analysis import (
+    build_symbol_lookup,
+    extract_dependencies,
+)
 from app.code_ingestion.plsql_models import PlSqlFileParseArtifact
 from app.code_ingestion.plsql_symbol_analysis import diagnose_symbol_groups, extract_symbols
 
@@ -37,6 +40,7 @@ def analyze_snapshot_sources(
         for path in sorted(symbols_by_path, key=str.casefold)
         for symbol in symbols_by_path[path]
     )
+    symbol_lookup = build_symbol_lookup(all_symbols)
     symbol_diagnostics = diagnose_symbol_groups(all_symbols)
 
     ddl_by_path = {}
@@ -72,6 +76,7 @@ def analyze_snapshot_sources(
             all_symbols=all_symbols,
             schema_objects=tuple(all_objects),
             policy=policy,
+            symbol_lookup=symbol_lookup,
         )
         occurrence_ids = {symbol.occurrence_id for symbol in file_symbols}
         local_symbol_diagnostics = tuple(
@@ -119,6 +124,7 @@ def _dependency_diagnostics(dependencies):
             "ambiguous",
             "unresolved",
             "dynamic_unknown",
+            "custom_source_missing",
             "kernel_unavailable",
         }:
             continue

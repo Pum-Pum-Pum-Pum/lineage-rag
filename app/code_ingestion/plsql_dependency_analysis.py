@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from antlr4 import Token
 
@@ -62,6 +63,23 @@ _NON_CALL_PREFIX_TYPES = {
 }
 
 
+@dataclass(frozen=True)
+class SymbolLookup:
+    by_canonical_name: dict[str, tuple[CodeSymbol, ...]]
+
+
+def build_symbol_lookup(symbols: tuple[CodeSymbol, ...]) -> SymbolLookup:
+    grouped: dict[str, list[CodeSymbol]] = defaultdict(list)
+    for symbol in symbols:
+        grouped[symbol.canonical_qualified_name].append(symbol)
+    return SymbolLookup(
+        by_canonical_name={
+            name: tuple(sorted(items, key=lambda item: item.occurrence_id))
+            for name, items in grouped.items()
+        }
+    )
+
+
 def extract_dependencies(
     source_text: str,
     parse_artifact: PlSqlFileParseArtifact,
@@ -70,6 +88,7 @@ def extract_dependencies(
     all_symbols: tuple[CodeSymbol, ...],
     schema_objects: tuple[SchemaObject, ...],
     policy: CodeAnalysisPolicy,
+    symbol_lookup: SymbolLookup | None = None,
 ) -> tuple[DependencyEdge, ...]:
     declarations = tuple(
         node
@@ -92,6 +111,7 @@ def extract_dependencies(
                 all_symbols=all_symbols,
                 declarations=declarations,
                 policy=policy,
+                symbol_lookup=symbol_lookup,
             )
         )
         edges.extend(
@@ -169,6 +189,7 @@ def _routine_call_edges(
     all_symbols: tuple[CodeSymbol, ...],
     declarations: tuple[ExtractedCodeNode, ...],
     policy: CodeAnalysisPolicy,
+    symbol_lookup: SymbolLookup | None,
 ) -> list[DependencyEdge]:
     edges: list[DependencyEdge] = []
     declared_types = {
@@ -211,21 +232,30 @@ def _routine_call_edges(
             argument_count=argument_count,
             source_symbol=symbol,
             all_symbols=all_symbols,
+            symbol_lookup=symbol_lookup,
         )
         target_components = canonical_target.split(".")
-        first_component = target_components[0]
+        owner_component = target_components[-2] if len(target_components) >= 2 else None
         if candidates:
             distinct_keys = {candidate.symbol_key for candidate in candidates}
             state = "resolved_in_snapshot" if len(distinct_keys) == 1 else "ambiguous"
             kind = "routine_call"
             confidence = "high"
-        elif any(
-            first_component.startswith(prefix)
-            for prefix in policy.boundaries.kernel_package_prefixes
+        elif _is_missing_custom_program_unit(
+            target_components,
+            policy=policy,
+        ):
+            state, kind, confidence = "custom_source_missing", "routine_call", "high"
+        elif owner_component is not None and (
+            owner_component in policy.boundaries.kernel_package_names
+            or any(
+                owner_component.startswith(prefix)
+                for prefix in policy.boundaries.kernel_package_prefixes
+            )
         ):
             state, kind, confidence = "kernel_unavailable", "kernel_boundary", "high"
-        elif any(
-            first_component.startswith(prefix)
+        elif owner_component is not None and any(
+            owner_component.startswith(prefix)
             for prefix in policy.boundaries.external_package_prefixes
         ):
             state, kind, confidence = "external_schema", "external_package", "high"
@@ -273,19 +303,26 @@ def _is_inferred_kernel_package_call(
         return False
     if len(target_components) < 2:
         return False
-    called_unit = target_components[-1]
-    if any(
-        called_unit.endswith(suffix)
-        for suffix in policy.boundaries.custom_standalone_function_suffixes
-    ):
-        # A two-part target may be SCHEMA.FUNCTION or PACKAGE.ROUTINE. Keep a
-        # suffix-matching call unresolved instead of falsely asserting kernel.
-        return False
     owner_package = target_components[-2]
     return not any(
         owner_package.endswith(suffix)
-        for suffix in policy.boundaries.custom_package_suffixes
+        for suffix in policy.boundaries.custom_program_unit_suffixes
     )
+
+
+def _is_missing_custom_program_unit(
+    target_components: list[str],
+    *,
+    policy: CodeAnalysisPolicy,
+) -> bool:
+    suffixes = policy.boundaries.custom_program_unit_suffixes
+    called_unit = target_components[-1]
+    if called_unit.endswith(suffixes):
+        return True
+    if len(target_components) < 2:
+        return False
+    owner_package = target_components[-2]
+    return owner_package.endswith(suffixes)
 
 
 def _table_edges(
@@ -541,15 +578,24 @@ def _call_candidates(
     argument_count: int,
     source_symbol: CodeSymbol,
     all_symbols: tuple[CodeSymbol, ...],
+    symbol_lookup: SymbolLookup | None,
 ) -> tuple[CodeSymbol, ...]:
     possible_names = [canonical_target]
     if "." not in canonical_target:
         source_parts = source_symbol.canonical_qualified_name.split(".")[:-1]
         for length in range(len(source_parts), 0, -1):
             possible_names.append(".".join((*source_parts[:length], canonical_target)))
+    if symbol_lookup is None:
+        pool = all_symbols
+    else:
+        pool = tuple(
+            symbol
+            for name in possible_names
+            for symbol in symbol_lookup.by_canonical_name.get(name, ())
+        )
     candidates = [
         symbol
-        for symbol in all_symbols
+        for symbol in pool
         if symbol.canonical_qualified_name in possible_names
         and len(symbol.parameters) == argument_count
     ]

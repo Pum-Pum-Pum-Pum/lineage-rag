@@ -5,7 +5,10 @@ import hashlib
 from app.code_ingestion.analysis_policy import AnalysisBoundaries, CodeAnalysisPolicy
 from app.code_ingestion.code_analysis_models import SchemaObject
 from app.code_ingestion.oracle_identifiers import oracle_identifier
-from app.code_ingestion.plsql_dependency_analysis import extract_dependencies
+from app.code_ingestion.plsql_dependency_analysis import (
+    build_symbol_lookup,
+    extract_dependencies,
+)
 from app.code_ingestion.plsql_models import SourceMap
 from app.code_ingestion.plsql_parser_core import parse_plsql_source
 from app.code_ingestion.plsql_symbol_analysis import extract_symbols
@@ -13,7 +16,9 @@ from app.code_ingestion.plsql_symbol_analysis import extract_symbols
 
 POLICY = CodeAnalysisPolicy(
     boundaries=AnalysisBoundaries(
-        custom_package_suffixes=("_CUSTOM",),
+        custom_program_unit_suffixes=("_CUSTOM", "_MAIN"),
+        infer_noncustom_qualified_packages_as_kernel=False,
+        kernel_package_names=("MYSTERY_PACKAGE", "PKG_KERNEL"),
         kernel_package_prefixes=("KERNEL_",),
         external_package_prefixes=("DBMS_", "UTL_"),
         ignored_builtin_calls=("COUNT", "NVL"),
@@ -109,7 +114,7 @@ END;
     assert by_target["KERNEL_CLAIM.VALIDATE_CLAIM"].resolution_state == "kernel_unavailable"
     assert by_target["DBMS_OUTPUT.PUT_LINE"].dependency_kind == "external_package"
     assert by_target["DBMS_OUTPUT.PUT_LINE"].resolution_state == "external_schema"
-    assert by_target["MYSTERY_PACKAGE_CUSTOM.RUN_IT"].resolution_state == "unresolved"
+    assert by_target["MYSTERY_PACKAGE_CUSTOM.RUN_IT"].resolution_state == "custom_source_missing"
     assert by_target["MYSTERY_PACKAGE.RUN_IT"].resolution_state == "kernel_unavailable"
     assert by_target["UNKNOWN_LOCAL"].resolution_state == "unresolved"
 
@@ -138,11 +143,11 @@ END;
     )
     by_target = {edge.target_canonical_name: edge for edge in edges}
 
-    assert by_target["APP.PKG_REPORT_CUSTOM.BUILD_REPORT"].resolution_state == "unresolved"
+    assert by_target["APP.PKG_REPORT_CUSTOM.BUILD_REPORT"].resolution_state == "custom_source_missing"
     assert by_target["APP.PKG_REPORT_CUSTOM.BUILD_REPORT"].dependency_kind == "routine_call"
     assert by_target["APP.PKG_KERNEL.BUILD_REPORT"].resolution_state == "kernel_unavailable"
     assert by_target["APP.PKG_KERNEL.BUILD_REPORT"].dependency_kind == "kernel_boundary"
-    assert by_target["APP.CALCULATE_CUSTOM"].resolution_state == "unresolved"
+    assert by_target["APP.CALCULATE_CUSTOM"].resolution_state == "custom_source_missing"
     assert by_target["APP.CALCULATE_CUSTOM"].dependency_kind == "routine_call"
     assert by_target["APP.BUSINESS_TABLE"].dependency_kind == "table_read"
     assert by_target["APP.AUDIT_CUSTOM"].dependency_kind == "table_read"
@@ -338,3 +343,44 @@ END pkg_noise;
         and edge.target_canonical_name == "CLAIM_TABLE"
     )
     assert table.resolution_state == "unresolved"
+
+
+def test_symbol_lookup_indexes_thousands_of_program_units_without_changing_resolution() -> None:
+    source = """CREATE OR REPLACE PROCEDURE caller_custom IS
+BEGIN
+  pkg_3999_custom.do_work();
+END;
+/
+"""
+    parsed = _parse(source)
+    caller = extract_symbols(parsed, module_id="fci-custom")[0]
+    generated = []
+    for index in range(4_000):
+        digest = hashlib.sha256(f"symbol-{index}".encode()).hexdigest()
+        generated.append(
+            caller.model_copy(
+                update={
+                    "occurrence_id": digest,
+                    "symbol_key": hashlib.sha256(f"key-{index}".encode()).hexdigest(),
+                    "canonical_qualified_name": f"PKG_{index}_CUSTOM.DO_WORK",
+                    "qualified_display_name": f"PKG_{index}_CUSTOM.DO_WORK",
+                }
+            )
+        )
+    all_symbols = (caller, *generated)
+    lookup = build_symbol_lookup(all_symbols)
+
+    edges = extract_dependencies(
+        source,
+        parsed,
+        file_symbols=(caller,),
+        all_symbols=all_symbols,
+        schema_objects=(),
+        policy=POLICY,
+        symbol_lookup=lookup,
+    )
+
+    call = next(edge for edge in edges if edge.target_canonical_name == "PKG_3999_CUSTOM.DO_WORK")
+    assert call.resolution_state == "resolved_in_snapshot"
+    assert call.candidate_symbol_occurrence_ids == (generated[-1].occurrence_id,)
+    assert len(lookup.by_canonical_name) == 4_001

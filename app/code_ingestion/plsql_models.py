@@ -246,13 +246,22 @@ class ParserWorkerRequest(FrozenModel):
     max_segment_characters: int = Field(default=500, gt=0)
 
 
+class ParseReuseRecord(FrozenModel):
+    source_path: str
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reuse_key_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reused: bool
+    reused_from_generation: str | None = None
+
+
 class CodeParseStageManifest(FrozenModel):
     schema_version: Literal["code_parse_stage_v2"] = "code_parse_stage_v2"
     status: Literal["complete", "complete_with_degradation", "failed"]
     snapshot_id: str
     snapshot_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    parser_generation: Literal["plsql_antlr_4_13_2_analysis_v6"] = (
-        "plsql_antlr_4_13_2_analysis_v6"
+    parser_generation: str = Field(
+        default="plsql_antlr_4_13_2_analysis_v9",
+        pattern=r"^plsql_antlr_4_13_2_analysis_v[6-9][0-9]*$",
     )
     analysis_policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     file_count: int = Field(ge=0)
@@ -265,6 +274,9 @@ class CodeParseStageManifest(FrozenModel):
     max_segment_characters: int = Field(gt=0)
     max_retrieval_unit_characters: int = Field(gt=0)
     retrieval_overlap_characters: int = Field(ge=0)
+    reused_from_generation: str | None = None
+    reused_parse_file_count: int = Field(default=0, ge=0)
+    parse_reuse_records: tuple[ParseReuseRecord, ...] = ()
 
     @model_validator(mode="after")
     def validate_retrieval_bounds(self) -> "CodeParseStageManifest":
@@ -287,4 +299,13 @@ class CodeParseStageManifest(FrozenModel):
             raise ValueError("Every source file must have one retrieval artifact")
         if len(self.analysis_artifacts) != self.file_count:
             raise ValueError("Every source file must have one static-analysis artifact")
+        if self.reused_parse_file_count > self.file_count:
+            raise ValueError("reused_parse_file_count cannot exceed file_count")
+        if self.parse_reuse_records:
+            if len(self.parse_reuse_records) != self.file_count:
+                raise ValueError("Parse reuse records must account for every file")
+            if len({record.source_path for record in self.parse_reuse_records}) != self.file_count:
+                raise ValueError("Parse reuse source paths must be unique")
+            if sum(record.reused for record in self.parse_reuse_records) != self.reused_parse_file_count:
+                raise ValueError("Parse reuse count does not match reuse records")
         return self

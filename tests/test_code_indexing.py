@@ -10,6 +10,7 @@ from qdrant_client.models import PointStruct
 from app.code_indexing.contract import (
     build_code_index_artifact,
     build_code_point_id,
+    verify_prepared_code_index_artifact,
     write_code_index_artifact_no_overwrite,
 )
 from app.code_indexing.embedding import embed_code_index_artifact
@@ -120,6 +121,33 @@ def test_code_contract_is_deterministic_and_lexically_searchable(tmp_path: Path)
     assert first.records[0].point_id == build_code_point_id(first.snapshot_id, first.records[0].unit_id)
     result = search_code_lexical_artifact(first, "process_claim", limit=1)
     assert result[0].payload["unit_id"] == "unit-a"
+    summary = verify_prepared_code_index_artifact(
+        first,
+        tmp_path / "parse",
+        expected_policy_sha256="b" * 64,
+    )
+    assert summary["status"] == "pass"
+
+
+def test_prepared_contract_verifier_rejects_wrong_policy_or_tampering(tmp_path: Path) -> None:
+    prepared = _prepared(tmp_path)
+    with pytest.raises(RuntimeError, match="policy hash"):
+        verify_prepared_code_index_artifact(
+            prepared,
+            tmp_path / "parse",
+            expected_policy_sha256="c" * 64,
+        )
+
+    tampered_record = prepared.records[0].model_copy(update={"citation_text": "tampered"})
+    tampered = prepared.model_copy(
+        update={"records": (tampered_record, *prepared.records[1:])}
+    )
+    with pytest.raises(RuntimeError, match="deterministic rebuild"):
+        verify_prepared_code_index_artifact(
+            tampered,
+            tmp_path / "parse",
+            expected_policy_sha256="b" * 64,
+        )
 
 
 def test_code_embedding_maps_reordered_response_and_reuses_cache(tmp_path: Path) -> None:

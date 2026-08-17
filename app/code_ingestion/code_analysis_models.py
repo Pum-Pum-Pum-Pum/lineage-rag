@@ -85,6 +85,7 @@ class DependencyEdge(FrozenModel):
         "unresolved",
         "ambiguous",
         "dynamic_unknown",
+        "custom_source_missing",
         "kernel_unavailable",
         "external_schema",
     ]

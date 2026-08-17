@@ -1,11 +1,11 @@
-schema_version = "code_analysis_policy_v2"
+schema_version = "code_analysis_policy_v3"
 
 [boundaries]
 # Application convention: package owners ending in this suffix are custom.
 # This rule applies to PL/SQL program units, never to tables or views.
-custom_package_suffixes = ["_CUSTOM"]
-custom_standalone_function_suffixes = ["_CUSTOM"]
-infer_noncustom_qualified_packages_as_kernel = true
+custom_program_unit_suffixes = ["_CUSTOM", "_MAIN"]
+infer_noncustom_qualified_packages_as_kernel = false
+kernel_package_names = []
 kernel_package_prefixes = []
 external_package_prefixes = ["DBMS_", "UTL_"]
 ignored_builtin_calls = [

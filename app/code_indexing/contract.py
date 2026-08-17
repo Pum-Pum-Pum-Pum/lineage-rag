@@ -10,7 +10,7 @@ from app.code_indexing.models import CodeIndexArtifact, CodeIndexRecord
 from app.code_ingestion.plsql_models import CodeParseStageManifest, CodeRetrievalArtifact
 
 
-CODE_INDEX_CONTRACT_DIRECTORY = "code_index_contract_v2"
+CODE_INDEX_CONTRACT_DIRECTORY = "code_index_contract_v4"
 CODE_EMBEDDING_INPUT_VERSION = "code_embedding_input_v1"
 
 
@@ -119,6 +119,36 @@ def write_code_index_artifact_no_overwrite(
 
 def load_code_index_artifact(path: Path) -> CodeIndexArtifact:
     return CodeIndexArtifact.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def verify_prepared_code_index_artifact(
+    artifact: CodeIndexArtifact,
+    parse_stage_directory: Path,
+    *,
+    expected_policy_sha256: str,
+) -> dict[str, object]:
+    if artifact.status != "prepared":
+        raise ValueError("Local prepared-contract verification requires status=prepared")
+    if artifact.analysis_policy_sha256 != expected_policy_sha256:
+        raise RuntimeError("Prepared artifact policy hash does not match the approved policy")
+    rebuilt = build_code_index_artifact(
+        parse_stage_directory,
+        embedding_model=artifact.embedding_model,
+    )
+    if rebuilt != artifact:
+        raise RuntimeError("Prepared artifact does not exactly match a deterministic rebuild")
+    return {
+        "status": "pass",
+        "snapshot_id": artifact.snapshot_id,
+        "parse_generation": artifact.parse_generation,
+        "analysis_policy_sha256": artifact.analysis_policy_sha256,
+        "dependency_review_status": artifact.dependency_review_status,
+        "records": artifact.total_records,
+        "unique_point_ids": len({record.point_id for record in artifact.records}),
+        "unique_cache_keys": len({record.cache_key for record in artifact.records}),
+        "artifact_identity_sha256": artifact.artifact_identity_sha256,
+        "external_calls_performed": False,
+    }
 
 
 def code_index_generation_name(embedding_model: str) -> str:

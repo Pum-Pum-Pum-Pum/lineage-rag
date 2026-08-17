@@ -739,3 +739,162 @@ Failure-mode result: the first fixture run failed because one old case still
 labeled a non-custom package as a custom unresolved call. Correcting it to a
 `*_CUSTOM` owner made the new contract explicit rather than weakening the
 classifier. No OpenAI call or Qdrant write occurred.
+
+## Step 161D - Publish immutable policy-v2 analysis generation
+
+Introduced `plsql_antlr_4_13_2_analysis_v7` while keeping `analysis_v6`
+manifests readable. The real snapshot was rebuilt from the previously verified
+recovery copy because the original archive remains ACL-constrained. Snapshot
+ID, source hashes, and content hash were verified before parsing.
+
+Real result:
+
+```text
+status: complete_with_degradation
+files: 2
+full_parse: 1
+segmented_parse: 1
+fallback_parse: 0
+failed: 0
+analysis_policy_sha256: b0283dcedf6c6d511a9cb55b3f898f8a17a497dea4db81cf2ebc150930173370
+external calls: 0
+```
+
+Production interpretation: the large body used the declared bounded segmented
+path; degradation remains explicit rather than being hidden. `analysis_v6`
+was not modified. Two deliberately short wrapper timeouts killed unpublished
+attempts; one exact `.code-parse-*` directory was validated and removed before
+the successful atomic run.
+
+## Step 161E - Gate the real corpus and export focused SME review
+
+Added `dependency_review.py` and `export_code_dependency_review.py`. Review
+cases are deterministically grouped by target, proposed dependency kind,
+resolution state, and confidence, with up to three exact local source excerpts.
+Tables are excluded from this ambiguity review while remaining present in the
+analysis graph.
+
+Real pre-index result:
+
+```text
+status: pass
+routine segments retained: 19/19
+spec/body matching symbol keys: 7
+retrieval units: 96 total
+body child units: 73 across 6 parents
+routine calls: 189
+unresolved routine calls: 50
+table edges: 488
+known false calls: 0
+```
+
+The draft SME packet groups 90 occurrences into 39 cases: 24 unresolved custom
+routine targets covering 50 occurrences and 15 medium-confidence inferred
+kernel targets covering 40 occurrences. Packet identity is
+`f7b3143766c83791172f36f1a95a7c8b17f86984085101efc81b716785c025ed`.
+
+Production interpretation: the reviewer assesses repeated dependency identity
+once rather than reviewing every occurrence. A draft packet is diagnostic
+evidence only; it does not set `dependency_review_status="reviewed"`.
+
+## Step 161F - Prepare and independently verify policy-bound index contract
+
+Bumped the no-overwrite prepared output directory to
+`code_index_contract_v3` and added `verify_prepared_code_index.py`. The verifier
+loads the artifact, checks the approved policy hash, rebuilds it from
+`analysis_v7`, and requires exact model equality.
+
+Real result:
+
+```text
+status: prepared and verified
+records: 96
+unique embedding inputs: 96
+unique point IDs: 96
+dependency_review_status: draft
+artifact identity: 7be1370717d3400d130ca24c25b157c265e608946f9cdae0b68f1fa45dc52a61
+old v2 identity retained: 922a253dd07e6b7818b4180c1d3573fa92fa780099c0bc9b04f4f9d164e3e75c
+OpenAI calls: 0
+Qdrant writes: 0
+```
+
+Failure tests reject policy mismatch, artifact tampering, duplicate generation
+publication, invalid review inputs, and paid embedding while review remains
+draft. Prepared means reproducible local input—not semantically reviewed,
+embedded, indexed, retrieved, or activated.
+
+Final verification: `499 passed` with the one existing Starlette/HTTPX
+deprecation warning. The v3 embedding dry run reported 96 records and 96 unique
+inputs with `external_calls_performed=false`. `git diff --check` passed with
+line-ending notices only.
+
+## Step 161G - Enforce declared custom program-unit ownership
+
+Upgraded `code_analysis_policy_v3` to accept top-level packages, standalone
+functions, and standalone procedures ending `_CUSTOM` or `_MAIN`. Added
+`program_unit_validation.py`: the declared canonical program-unit name must
+match the filename stem, while all routines contained inside an accepted
+package inherit the package's available-source status. `.ddl` remains exempt.
+
+Production interpretation: filename conventions are intake assertions, not
+the source of truth. A renamed or kernel package cannot enter the custom lane
+silently, and ordinary package members do not need custom suffixes.
+
+Failure tests reject non-custom top-level units, declaration/filename mismatch,
+multiple top-level owners, and missing extracted owners while accepting package
+members with ordinary names and unrestricted table DDL.
+
+## Step 161H - Correct custom-missing and package-only kernel states
+
+Added `custom_source_missing` and made resolution availability-first. Uploaded
+symbols resolve first; absent `_CUSTOM`/`_MAIN` owners become missing custom
+source; exact configured kernel package names/prefixes become
+`kernel_unavailable`; everything not proven remains unresolved. Blanket
+non-suffix kernel inference is disabled.
+
+The first v8 analysis exposed why: 15 supposed kernel cases included aliases
+such as `ALC.TRANSACTIONNUMBER` and `F.FUNDID`. v8 was retained as historical
+failed-quality evidence and was not promoted. The corrected v9 packet contains
+no unconfigured kernel assertions: one `custom_source_missing` case covers
+seven occurrences and the remaining 38 cases require unresolved-target review.
+
+Production interpretation: an increased unresolved count is safer than a
+lower count achieved by false kernel claims. Reviewed kernel package names can
+be added explicitly later, producing a new policy hash and generation.
+
+## Step 161I - Add incremental reuse and indexed symbol lookup; publish v9/v4
+
+Added source/parser-contract reuse keys and manifest-level reuse records.
+Unchanged parse/retrieval artifacts may be copied into a new generation only
+when snapshot identity, source hash, encoding, compiler context, grammar, and
+resource/chunk boundaries match. Static dependency analysis is always rebuilt
+under the current policy. Added a canonical-name symbol lookup so call
+resolution reads small indexed candidate buckets instead of scanning every
+symbol; a 4,000-symbol fixture preserves exact resolution.
+
+Real v9 result:
+
+```text
+generation: plsql_antlr_4_13_2_analysis_v9
+policy SHA-256: fcf67d689732da8a0ad6041848c64af6eff70a26a0c17d656454380e260415eb
+reused parse/retrieval files: 2/2 from v8
+publication time: about 4.6 seconds
+full/segmented/fallback/failed: 1/1/0/0
+routine segments retained: 19/19
+retrieval units: 96
+routine calls: 229
+unresolved routine calls: 83
+table edges: 488
+known false SQL calls: 0
+```
+
+Prepared `code_index_contract_v4` contains 96 unique point/cache identities,
+remains `dependency_review_status="draft"`, and passed exact deterministic
+rebuild verification. Artifact identity:
+`29320a23993c9ea8bafd8b39fbacc48a2061a3876511fa43075044abfe8097c7`.
+No OpenAI call or Qdrant write occurred.
+
+Final verification: `510 passed` with the one existing Starlette/HTTPX
+deprecation warning. The v4 embedding dry run reported 96 records and 96 unique
+inputs with `external_calls_performed=false`; `git diff --check` passed with
+line-ending notices only.

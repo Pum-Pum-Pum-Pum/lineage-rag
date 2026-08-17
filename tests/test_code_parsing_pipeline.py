@@ -16,7 +16,7 @@ from app.code_ingestion.snapshot_builder import build_code_snapshot
 
 
 def _build_snapshot(tmp_path: Path, source_text: str):
-    return _build_snapshot_files(tmp_path, {"pkg_customer.sql": source_text})
+    return _build_snapshot_files(tmp_path, {"pkg_customer_custom.sql": source_text})
 
 
 def _build_snapshot_files(tmp_path: Path, files: dict[str, str]):
@@ -46,10 +46,10 @@ def _build_snapshot_files(tmp_path: Path, files: dict[str, str]):
 def test_snapshot_parse_publishes_verified_parse_and_retrieval_artifacts(tmp_path: Path) -> None:
     snapshot_directory, snapshot = _build_snapshot(
         tmp_path,
-        """CREATE OR REPLACE PACKAGE BODY pkg_customer AS
+        """CREATE OR REPLACE PACKAGE BODY pkg_customer_custom AS
   c_country CONSTANT VARCHAR2(2) := 'MY';
   PROCEDURE update_customer IS BEGIN DBMS_OUTPUT.PUT_LINE(c_country); END;
-END pkg_customer;
+END pkg_customer_custom;
 /
 """,
     )
@@ -81,7 +81,10 @@ END pkg_customer;
 
 
 def test_invalid_source_degrades_explicitly_instead_of_disappearing(tmp_path: Path) -> None:
-    snapshot_directory, snapshot = _build_snapshot(tmp_path, "not valid PL/SQL\n" * 250)
+    snapshot_directory, snapshot = _build_snapshot_files(
+        tmp_path,
+        {"invalid.ddl": "not valid PL/SQL\n" * 250},
+    )
 
     manifest = parse_code_snapshot(snapshot_directory, tmp_path / "staging")
 
@@ -97,7 +100,7 @@ def test_invalid_source_degrades_explicitly_instead_of_disappearing(tmp_path: Pa
 
 def test_tampered_snapshot_fails_before_any_parse_generation(tmp_path: Path) -> None:
     snapshot_directory, snapshot = _build_snapshot(tmp_path, "SELECT 1 FROM dual;\n")
-    (snapshot_directory / "source/pkg_customer.sql").write_text(
+    (snapshot_directory / "source/pkg_customer_custom.sql").write_text(
         "SELECT 2 FROM dual;\n",
         encoding="utf-8",
     )
@@ -120,10 +123,13 @@ def test_invalid_resource_boundaries_do_not_write(tmp_path: Path) -> None:
 
 
 def test_symbol_collision_publishes_diagnostics_but_fails_stage_gate(tmp_path: Path) -> None:
-    duplicate = "CREATE OR REPLACE PROCEDURE duplicate_proc(p_id NUMBER) IS BEGIN NULL; END; /\n"
+    duplicate = "CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER) IS BEGIN NULL; END; /\n"
     snapshot_directory, snapshot = _build_snapshot_files(
         tmp_path,
-        {"first.prc": duplicate, "second.prc": duplicate},
+        {
+            "a/duplicate_proc_custom.prc": duplicate,
+            "b/duplicate_proc_custom.prc": duplicate,
+        },
     )
     staging_root = tmp_path / "staging"
 
@@ -166,3 +172,69 @@ def test_stage_manifest_rejects_missing_file_accounting() -> None:
             max_retrieval_unit_characters=6_000,
             retrieval_overlap_characters=400,
         )
+
+
+def test_unchanged_parse_and_retrieval_are_reused_into_new_generation(tmp_path: Path) -> None:
+    snapshot_directory, snapshot = _build_snapshot(
+        tmp_path,
+        """CREATE OR REPLACE PACKAGE BODY pkg_reuse_custom AS
+  PROCEDURE run IS BEGIN NULL; END;
+END;
+/
+""".replace("pkg_reuse_custom", "pkg_customer_custom"),
+    )
+    staging_root = tmp_path / "staging"
+    first = parse_code_snapshot(
+        snapshot_directory,
+        staging_root,
+        generation_directory="plsql_antlr_4_13_2_analysis_v7",
+    )
+    first_stage = staging_root / snapshot.snapshot_id / first.parser_generation
+
+    second = parse_code_snapshot(
+        snapshot_directory,
+        staging_root,
+        generation_directory="plsql_antlr_4_13_2_analysis_v8",
+        reuse_generation_directory=first_stage,
+    )
+
+    assert second.reused_from_generation == "plsql_antlr_4_13_2_analysis_v7"
+    assert second.reused_parse_file_count == 1
+    assert second.parse_reuse_records[0].reused is True
+    second_stage = staging_root / snapshot.snapshot_id / second.parser_generation
+    assert PlSqlFileParseArtifact.model_validate_json(
+        (first_stage / first.parse_artifacts[0]).read_text(encoding="utf-8")
+    ) == PlSqlFileParseArtifact.model_validate_json(
+        (second_stage / second.parse_artifacts[0]).read_text(encoding="utf-8")
+    )
+
+
+def test_reuse_contract_mismatch_fails_without_temporary_publication(tmp_path: Path) -> None:
+    snapshot_directory, snapshot = _build_snapshot(
+        tmp_path,
+        """CREATE OR REPLACE PACKAGE BODY pkg_customer_custom AS
+  PROCEDURE run IS BEGIN NULL; END;
+END;
+/
+""",
+    )
+    staging_root = tmp_path / "staging"
+    first = parse_code_snapshot(
+        snapshot_directory,
+        staging_root,
+        generation_directory="plsql_antlr_4_13_2_analysis_v7",
+    )
+    first_stage = staging_root / snapshot.snapshot_id / first.parser_generation
+
+    with pytest.raises(ValueError, match="max_segment_characters"):
+        parse_code_snapshot(
+            snapshot_directory,
+            staging_root,
+            generation_directory="plsql_antlr_4_13_2_analysis_v8",
+            reuse_generation_directory=first_stage,
+            max_segment_characters=501,
+        )
+
+    parent = staging_root / snapshot.snapshot_id
+    assert not (parent / "plsql_antlr_4_13_2_analysis_v8").exists()
+    assert not list(parent.glob(".code-parse-*"))

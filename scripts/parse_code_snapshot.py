@@ -36,6 +36,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=settings.code_parse_timeout_seconds,
     )
     parser.add_argument(
+        "--reuse-generation",
+        help="Existing generation name from the same immutable snapshot whose parse/retrieval artifacts may be reused.",
+    )
+    parser.add_argument(
         "--memory-limit-mib",
         type=int,
         default=settings.code_parse_memory_limit_mib,
@@ -69,6 +73,12 @@ def main(argv: Sequence[str] | None = None) -> None:
         max_retrieval_unit_characters=args.max_retrieval_unit_characters,
         retrieval_overlap_characters=args.retrieval_overlap_characters,
         analysis_policy=load_code_analysis_policy(get_settings().code_analysis_policy_path),
+        generation_directory=PARSER_GENERATION_DIRECTORY,
+        reuse_generation_directory=(
+            args.staging_root / args.snapshot_id / args.reuse_generation
+            if args.reuse_generation
+            else None
+        ),
     )
     output_directory = (
         args.staging_root / manifest.snapshot_id / PARSER_GENERATION_DIRECTORY
@@ -82,6 +92,8 @@ def main(argv: Sequence[str] | None = None) -> None:
                 "file_count": manifest.file_count,
                 "state_counts": manifest.state_counts,
                 "analysis_policy_sha256": manifest.analysis_policy_sha256,
+                "reused_from_generation": manifest.reused_from_generation,
+                "reused_parse_file_count": manifest.reused_parse_file_count,
                 "external_calls_performed": False,
             },
             indent=2,
