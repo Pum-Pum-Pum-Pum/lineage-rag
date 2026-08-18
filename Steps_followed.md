@@ -1220,3 +1220,199 @@ Compilation passed, focused tests passed `11/11`, `git diff --check` reported no
 whitespace errors, and the full regression passed `517` tests with the one
 existing non-failing Starlette/HTTPX deprecation warning. No OpenAI call,
 embedding, Qdrant write, retrieval evaluation, or activation occurred.
+
+## Step 161V - Embed the explicitly authorized reviewed code contract
+
+The user explicitly authorized disclosure of the 111 prepared internal PL/SQL
+embedding inputs to OpenAI and accepted the associated provider cost. Ran the
+reviewed `code_index_contract_v5` artifact through the pinned
+`text-embedding-3-large` embedding path.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\embed_code_index_artifacts.py `
+  data\staging\code_indexes\fci-custom-r1-a47f5d4d54e1\code_index_contract_v5\code_index_artifact.json `
+  --output-root data\staging\code_embeddings `
+  --authorization I_AUTHORIZE_OPENAI_CODE_DISCLOSURE_AND_COST
+```
+
+```text
+status: embedded
+records / unique inputs: 111 / 111
+cached / newly embedded: 0 / 111
+OpenAI requests: 4
+vector dimension: 3072
+external calls performed: true
+```
+
+Production interpretation: every approved source occurrence retains a distinct
+record and future Qdrant point, while identical semantic inputs could reuse a
+cache vector in later compatible generations. The recorded request count proves
+external work occurred but does not prove the provider's final monetary charge;
+billing remains provider-authoritative.
+
+Failure controls required reviewed packet/ledger bindings, the exact deliberate
+authorization acknowledgement, a new no-overwrite output generation, complete
+vectors, and one consistent dimension. The earlier unauthorized invocation had
+already proven fail-closed behavior.
+
+## Step 161W - Index an isolated code-only Qdrant generation
+
+Created the new local code vector-store path and collection
+`code_custom_r1_v1` from the completed embedded artifact. The `code_custom_`
+prefix and separate `data/qdrant_code_local` path keep code evidence isolated
+from the active FDD collection `functional_specs_v4`.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\index_code_qdrant.py `
+  data\staging\code_embeddings\fci-custom-r1-a47f5d4d54e1\code_index_text_embedding_3_large_v1\code_index_artifact.json `
+  --qdrant-path data\qdrant_code_local `
+  --collection-name code_custom_r1_v1
+```
+
+Production interpretation: this is an isolated indexed generation, not an
+active application knowledge lane. The current FDD API/UI configuration was not
+changed, and no combined retrieval or automatic routing was enabled.
+
+Failure testing repeated the indexing command against the existing collection.
+It failed with `FileExistsError` before modification, demonstrating immutable
+generation behavior instead of silently upserting into a previously verified
+namespace.
+
+## Step 161X - Verify exact code points and update the runbook
+
+Ran the independent verifier before and after the rejected duplicate-index
+attempt. Both passes confirmed exact equality between the embedded artifact and
+the isolated collection.
+
+```text
+expected / verified points: 111 / 111
+vector dimension: 3072
+artifact identity: fd2285b3e3f0cfa39c4b53f9be87fab046e94b7a7cf81d58fcdbcf24746762dd
+external calls during indexing/verification: false
+```
+
+The verifier checks exact count, deterministic point IDs, provenance payloads,
+and vector dimensions separately. This proves storage exactness, not semantic
+retrieval relevance, citations, grounded answers, or activation readiness.
+
+Updated `docs/Steps_for_Code_Snapshot_Ingestion.md` from the obsolete v9/v4
+examples to the v12 analysis, hash-bound review-ledger import, reviewed
+`code_index_contract_v5`, exact ledger verification, and explicit disclosure
+acknowledgement used by the controlled embedding command.
+
+Failure-mode and regression verification passed `10/10` focused indexing,
+embedding-boundary, and native-package tests. `git diff --check` reported no
+whitespace errors. The immediately preceding complete suite remains `517`
+passing tests with one existing non-failing Starlette/HTTPX warning.
+
+## Step 161Y - Publish a five-file successor snapshot without mutating r1
+
+Validated the expanded `data/raw_code/fci-custom-r1/source/` intake. It contains
+the two original branch-report files plus three additions:
+`pkgamlaintegration_p_custom.spc`, `pkgamlaintegration_p_custom.sql`, and
+`pkgutils_custom.sql`. The request remains SVN revision `1` and build `Code1`,
+because this is expanded coverage of the same curated revision, and now names
+the immutable r1 snapshot as its base with the three expected additions.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\build_code_snapshot.py `
+  data\raw_code\fci-custom-r1 --validate-only
+```
+
+The existing r1 archive had the previously observed Windows ACL defect. An
+approved inheritance reset was attempted only on that exact directory, but
+Windows denied it. Ownership was not taken and permissions were not weakened.
+The successor was therefore built against the byte-verified recovery copy,
+then copied as a new sibling and fully revalidated from the normal archive.
+
+```text
+successor: fci-custom-r1-b1c79c6dc2c5
+files: 5
+added / unchanged: 3 / 2
+modified / deleted / renamed: 0 / 0 / 0
+missing expected / unexpected: 0 / 0
+warnings: 0
+external calls: 0
+```
+
+Production interpretation: the old snapshot and `code_custom_r1_v1` remain
+immutable. The new content is a successor generation rather than an in-place
+append, preserving rollback, diff evidence, citations, and snapshot identity.
+
+Failure controls included allowlist/encoding/binary/secret validation, exact
+source hashes, base diff assertions, no-overwrite publication, target-absence
+checks, and complete post-copy manifest/source verification.
+
+## Step 161Z - Parse five files with measured resource-bound failures
+
+The first correct 120-second parser run was terminated by an insufficient
+outer shell limit and published nothing. A 30-second experiment then failed
+closed on the branch-report body because it could no longer prove a top-level
+program unit. The normal 120-second run later proved that `pkgutils_custom.sql`
+was the remaining parser-resource boundary, despite being only about 112 KB.
+
+An isolated utility-package diagnostic showed that the valid package can be
+recovered as `segmented_parse`, requiring approximately 300 seconds for the
+failed full attempt plus 186 seconds for segmented recovery. The final run used
+a recorded 220-second per-attempt boundary and sufficient orchestration time:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\parse_code_snapshot.py `
+  fci-custom-r1-b1c79c6dc2c5 --timeout-seconds 220
+```
+
+```text
+status: complete_with_degradation
+files: 5
+full / segmented / fallback / failed: 2 / 3 / 0 / 0
+policy: a052206a...be18129
+wall time: approximately 17 minutes
+external calls: 0
+```
+
+Production interpretation: grammar complexity, not source size alone, drives
+ANTLR cost. Seventeen minutes is tolerable for this controlled five-file run
+but is not a viable 4,000-file ingestion design. Verified content-hash reuse and
+bounded concurrency are required before bulk scaling.
+
+Failure behavior was deliberately exercised: both shell-timeout and reduced
+parser-timeout attempts left no published generation; temporary stages were
+removed only after exact path validation. The final stage still records all
+degradation and resource-policy inputs in its immutable manifest.
+
+## Step 161AA - Pass the expanded pre-index gate and export new SME scope
+
+Ran the independent real-corpus gate against all five source files and the new
+v12 generation.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\check_code_preindex_gate.py `
+  fci-custom-r1-b1c79c6dc2c5 `
+  --snapshot-root data\code_snapshots `
+  --generation plsql_antlr_4_13_2_analysis_v12
+```
+
+The gate passed with exact deterministic rebuild and source mapping for every
+file. AMLa retained 41/41 body declarations and 91 retrieval units; branch
+reports retained 20/20 and 101 units; utilities inventoried 29 declarations,
+retained 28 top-level routine segments, and produced 39 retrieval units. No
+declaration was uncovered and no known SQL false-call marker reappeared.
+
+The canonical dependency exporter produced a new draft packet:
+
+```text
+review cases: 33
+occurrences: 313
+packet identity: cda3ab782c452c0f2312bf7f428b27e9aa2670b525079b710cb6c9199c508741
+external calls: 0
+```
+
+Production interpretation: structural preparation passed, but the previous
+one-case SME ledger cannot approve dependencies introduced by the expanded
+snapshot. The 33 new cases require SME decisions before a reviewed v5 index
+contract can be prepared.
+
+Failure boundary: no embedding was attempted. The prior authorization was tied
+to the old 111-input contract and does not authorize disclosure or cost for this
+new artifact. Focused snapshot, parsing, review-packet, and ledger tests passed
+`28/28`; `git diff --check` reported no whitespace errors.

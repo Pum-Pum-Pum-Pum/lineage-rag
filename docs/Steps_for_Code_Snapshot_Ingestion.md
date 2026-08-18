@@ -437,13 +437,13 @@ Run the local real-corpus gate and export the focused SME packet:
 & .\.venv\Scripts\python.exe scripts\check_code_preindex_gate.py `
   <snapshot-id> `
   --snapshot-root <verified-snapshot-root> `
-  --generation plsql_antlr_4_13_2_analysis_v9 `
-  --output data\exports\code_analysis\<snapshot-id>-analysis-v9-preindex-gate.json
+  --generation plsql_antlr_4_13_2_analysis_v12 `
+  --output data\exports\code_analysis\<snapshot-id>-analysis-v12-preindex-gate.json
 
 & .\.venv\Scripts\python.exe scripts\export_code_dependency_review.py `
   <snapshot-id> `
   --snapshot-root <verified-snapshot-root> `
-  --generation plsql_antlr_4_13_2_analysis_v9
+  --generation plsql_antlr_4_13_2_analysis_v12
 ```
 
 The packet groups repeated occurrences by target, proposed kind, resolution
@@ -453,19 +453,31 @@ definitions are absent; the review is focused on unresolved/ambiguous routine
 calls, inferred kernel boundaries, and dynamic SQL. Packet publication is
 no-overwrite and performs no external call.
 
-After the real-corpus parser gate passes, prepare deterministic code indexing
-records without calling OpenAI:
+After SME review, import the completed Markdown as a hash-bound, no-overwrite
+ledger. The importer validates the canonical packet identity, generation,
+review IDs, verdicts, and rationales without calling OpenAI:
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\import_code_dependency_review.py `
+  <canonical-dependency-review.json> `
+  <reviewed-dependency-review.md> `
+  --reviewer <reviewer-or-approved-role> `
+  --output data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
+```
+
+Then prepare deterministic reviewed code-index records without calling OpenAI:
 
 ```powershell
 & .\.venv\Scripts\python.exe scripts\prepare_code_index_artifacts.py `
   fci-custom-r1-a47f5d4d54e1 `
-  --parse-generation plsql_antlr_4_13_2_analysis_v9
+  --parse-generation plsql_antlr_4_13_2_analysis_v12 `
+  --dependency-review-ledger data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
 ```
 
 The output is isolated beneath:
 
 ```text
-data/staging/code_indexes/<snapshot-id>/code_index_contract_v4/
+data/staging/code_indexes/<snapshot-id>/code_index_contract_v5/
 ```
 
 Each record preserves snapshot, module, file, routine/chunk, line/offset,
@@ -478,7 +490,7 @@ Run local lexical search with:
 
 ```powershell
 & .\.venv\Scripts\python.exe scripts\query_code_lexical.py `
-  data\staging\code_indexes\fci-custom-r1-a47f5d4d54e1\code_index_contract_v4\code_index_artifact.json `
+  data\staging\code_indexes\fci-custom-r1-a47f5d4d54e1\code_index_contract_v5\code_index_artifact.json `
   "spPNBRPT006 branch report"
 ```
 
@@ -486,7 +498,8 @@ Verify the prepared contract by rebuilding it from the immutable stage:
 
 ```powershell
 & .\.venv\Scripts\python.exe scripts\verify_prepared_code_index.py `
-  data\staging\code_indexes\<snapshot-id>\code_index_contract_v4\code_index_artifact.json
+  data\staging\code_indexes\<snapshot-id>\code_index_contract_v5\code_index_artifact.json `
+  --dependency-review-ledger data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
 ```
 
 Verification checks the current approved policy hash and exact equality of the
@@ -509,8 +522,9 @@ nothing. A real run is fail-closed unless both conditions hold:
 
 1. the index contract records `dependency_review_status="reviewed"` following
    SME review of representative dependency labels;
-2. the operator supplies the exact disclosure/cost authorization token printed
-   by `--help` and documented in the controlled run procedure.
+2. after explicit approval to disclose the prepared internal code and incur
+   provider cost, the operator supplies the exact acknowledgement token
+   `I_AUTHORIZE_OPENAI_CODE_DISCLOSURE_AND_COST` to `--authorization`.
 
 Internal code excerpts are sent to OpenAI during a real embedding run. General
 permission to implement Phase 2 does not authorize that disclosure. Never put

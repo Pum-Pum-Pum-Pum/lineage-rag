@@ -881,3 +881,61 @@ Gate status: **Steps 161S-161U learner gate accepted.** The reviewed v12
 prepared contract may advance only after separate explicit authorization to
 send its 111 code embedding inputs to OpenAI and incur the associated cost.
 No such authorization is inferred from these interview answers.
+
+## Steps 161V-161X - Code embedding and isolated indexing interview gate
+
+### Step 161V - Authorized code embeddings
+
+1. Why does four successful embedding requests not by itself prove all 111
+   source occurrences were preserved correctly?
+2. Why can the artifact content identity remain stable from prepared to
+   embedded while vector completeness and dimension require separate checks?
+3. Why is provider billing the authority for actual cost even though the local
+   run records request and input counts?
+
+### Step 161W - Isolated Qdrant generation
+
+4. Why must the code collection use a separate path and namespace from
+   `functional_specs_v4`?
+5. Why should a second indexing attempt fail instead of upserting the same 111
+   points into `code_custom_r1_v1`?
+6. Why does successfully indexing `code_custom_r1_v1` not make it active for
+   API, UI, code, or combined retrieval?
+
+### Step 161X - Exact verification and remaining gates
+
+7. What distinct failures are detected by point count, deterministic ID,
+   payload, and vector-dimension verification?
+8. Why was it important to verify the collection again after the deliberately
+   rejected duplicate-index attempt?
+9. Which Steps 162-170 capabilities and evaluations must pass before this code
+   generation can be deliberately activated?
+
+## Steps 161Y-161AA - Expanded five-file code generation interview gate
+
+### Step 161Y - Immutable successor snapshot
+
+1. Why must three additional files create a successor snapshot instead of
+   being appended directly to the already indexed r1 snapshot?
+2. Why are two unchanged files retained in the complete successor snapshot even
+   though only three files were newly supplied?
+3. What does the three-added/two-unchanged diff prove, and what parser or
+   retrieval property does it not prove?
+
+### Step 161Z - Parser resource behavior
+
+4. Why did lowering the per-attempt timeout to 30 seconds correctly block
+   publication rather than provide a faster acceptable generation?
+5. Why can a 112 KB PL/SQL package require more parser time than a 1.66 MB
+   package, and what does that imply for capacity planning?
+6. Why are content-hash reuse and bounded concurrency better scale controls for
+   4,000 files than globally increasing every parser timeout?
+
+### Step 161AA - Pre-index and disclosure gates
+
+7. What does zero uncovered declarations and exact source mapping prove, and
+   what dependency/retrieval/answer quality remains unproven?
+8. Why can the old accepted SME ledger not approve the new 33-case packet even
+   when two source files are unchanged?
+9. Why does the earlier authorization for 111 embedding inputs not authorize
+   embedding this successor generation, and what must happen next?
