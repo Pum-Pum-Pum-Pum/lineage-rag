@@ -3,7 +3,12 @@ from __future__ import annotations
 import hashlib
 
 from app.code_ingestion.plsql_parser_core import parse_plsql_source
-from app.code_ingestion.plsql_segmentation import build_fallback_segments, find_routine_segments
+from app.code_ingestion.plsql_segmentation import (
+    build_fallback_segments,
+    find_routine_segments,
+    inventory_routine_declarations,
+    uncovered_routine_declarations,
+)
 from app.code_ingestion.snapshot_models import CompilerContext
 
 
@@ -154,6 +159,41 @@ END real_one;
     segments = find_routine_segments(source, source_path="safe.prc")
 
     assert [segment.display_name for segment in segments] == ["real_one"]
+
+
+def test_sql_case_expression_does_not_hide_following_routine_end() -> None:
+    source = """PROCEDURE sp_report IS
+  l_value VARCHAR2(20);
+BEGIN
+  SELECT CASE WHEN status = 'A' THEN 'ACTIVE' ELSE 'OTHER' END AS status_text
+    INTO l_value
+    FROM report_status;
+END sp_report;
+
+FUNCTION sf_report RETURN BOOLEAN IS
+BEGIN
+  sp_report;
+  RETURN TRUE;
+END sf_report;
+"""
+
+    segments = find_routine_segments(source, source_path="pkg_report_custom.sql")
+
+    assert [segment.display_name for segment in segments] == ["sp_report", "sf_report"]
+
+
+def test_independent_inventory_exposes_a_missing_top_level_segment() -> None:
+    source = """PROCEDURE first_one IS BEGIN NULL; END first_one;
+PROCEDURE missing_one IS BEGIN NULL; END missing_one;
+"""
+    declarations = inventory_routine_declarations(source, source_path="pkg_custom.sql")
+    segments = find_routine_segments(source, source_path="pkg_custom.sql")
+
+    missing = uncovered_routine_declarations(declarations, (segments[0],))
+
+    assert [(item.display_name, item.source_map.start_line) for item in missing] == [
+        ("missing_one", 2)
+    ]
 
 
 def test_fallback_bounds_are_validated() -> None:

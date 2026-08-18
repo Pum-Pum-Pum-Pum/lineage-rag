@@ -21,6 +21,13 @@ POLICY = CodeAnalysisPolicy(
         kernel_package_names=("MYSTERY_PACKAGE", "PKG_KERNEL"),
         kernel_package_prefixes=("KERNEL_",),
         external_package_prefixes=("DBMS_", "UTL_"),
+        infrastructure_utility_calls=(
+            "DEBUG.PR_DEBUG",
+            "GLOBAL.PR_INIT",
+            "ISDEBUG.WRITELINE",
+            "PKGGLOBAL.PR_INIT",
+            "PR_DEBUG",
+        ),
         ignored_builtin_calls=("COUNT", "NVL"),
     )
 )
@@ -343,6 +350,56 @@ END pkg_noise;
         and edge.target_canonical_name == "CLAIM_TABLE"
     )
     assert table.resolution_state == "unresolved"
+
+
+def test_outer_join_cursor_and_infrastructure_utility_calls_are_separated() -> None:
+    source = """CREATE OR REPLACE PACKAGE BODY pkg_report_custom AS
+  CURSOR cur_fin_txn(p_fund_id VARCHAR2) IS
+    SELECT alc.transactionnumber
+      FROM allocation_table alc, transaction_table txn
+     WHERE txn.transactionnumber = alc.transactionnumber(+);
+  PROCEDURE run_report(p_fund_id VARCHAR2) IS
+  BEGIN
+    FOR row_item IN cur_fin_txn(p_fund_id) LOOP
+      isdebug.writeline(row_item.transactionnumber);
+      GLOBAL.pr_init('000', 'USER');
+      debug.pr_debug('done');
+    END LOOP;
+  END run_report;
+END pkg_report_custom;
+/
+"""
+    parsed = _parse(source)
+    parsed = parsed.model_copy(
+        update={
+            "extracted_nodes": tuple(
+                node for node in parsed.extracted_nodes if node.node_kind != "cursor"
+            )
+        }
+    )
+    symbols = extract_symbols(parsed, module_id="fci-custom")
+
+    edges = extract_dependencies(
+        source,
+        parsed,
+        file_symbols=symbols,
+        all_symbols=symbols,
+        schema_objects=(),
+        policy=POLICY,
+    )
+    by_target = {edge.target_canonical_name: edge for edge in edges}
+
+    assert "ALC.TRANSACTIONNUMBER" not in by_target
+    assert by_target["CUR_FIN_TXN"].dependency_kind == "cursor_reference"
+    assert by_target["CUR_FIN_TXN"].resolution_state == "resolved_in_snapshot"
+    assert by_target["ISDEBUG.WRITELINE"].dependency_kind == "infrastructure_utility"
+    assert by_target["GLOBAL.PR_INIT"].dependency_kind == "infrastructure_utility"
+    assert by_target["DEBUG.PR_DEBUG"].dependency_kind == "infrastructure_utility"
+    assert all(
+        edge.resolution_state == "external_schema"
+        for target, edge in by_target.items()
+        if target in {"ISDEBUG.WRITELINE", "GLOBAL.PR_INIT", "DEBUG.PR_DEBUG"}
+    )
 
 
 def test_symbol_lookup_indexes_thousands_of_program_units_without_changing_resolution() -> None:

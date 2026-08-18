@@ -60,6 +60,7 @@ _NON_CALL_PREFIX_TYPES = {
     PlSqlLexer.RETURN,
     PlSqlLexer.PROCEDURE,
     PlSqlLexer.FUNCTION,
+    PlSqlLexer.CURSOR,
 }
 
 
@@ -95,6 +96,11 @@ def extract_dependencies(
         for node in parse_artifact.extracted_nodes
         if node.node_kind in _DECLARATION_EDGE_KINDS
     )
+    declared_cursor_names = {
+        oracle_identifier(node.display_name).canonical_name
+        for node in declarations
+        if node.node_kind == "cursor"
+    } | _declared_cursor_names(default_tokens(source_text))
     edges: list[DependencyEdge] = []
     for symbol in file_symbols:
         snippet = source_text[symbol.source_map.start_offset : symbol.source_map.end_offset]
@@ -110,6 +116,7 @@ def extract_dependencies(
                 symbol=symbol,
                 all_symbols=all_symbols,
                 declarations=declarations,
+                declared_cursor_names=declared_cursor_names,
                 policy=policy,
                 symbol_lookup=symbol_lookup,
             )
@@ -188,6 +195,7 @@ def _routine_call_edges(
     symbol: CodeSymbol,
     all_symbols: tuple[CodeSymbol, ...],
     declarations: tuple[ExtractedCodeNode, ...],
+    declared_cursor_names: set[str],
     policy: CodeAnalysisPolicy,
     symbol_lookup: SymbolLookup | None,
 ) -> list[DependencyEdge]:
@@ -211,6 +219,9 @@ def _routine_call_edges(
         right_index = matching_right_parenthesis(tokens, left_index)
         if right_index is None:
             continue
+        argument_tokens = tokens[left_index + 1 : right_index]
+        if _is_legacy_outer_join_marker(argument_tokens):
+            continue
         if _is_insert_column_list(tokens, start_index) or _is_collection_assignment(
             tokens, right_index
         ):
@@ -225,7 +236,6 @@ def _routine_call_edges(
             or final_name in declared_types
         ):
             continue
-        argument_tokens = tokens[left_index + 1 : right_index]
         argument_count = 0 if not argument_tokens else len(split_top_level(argument_tokens))
         candidates = _call_candidates(
             canonical_target,
@@ -236,7 +246,13 @@ def _routine_call_edges(
         )
         target_components = canonical_target.split(".")
         owner_component = target_components[-2] if len(target_components) >= 2 else None
-        if candidates:
+        if final_name in declared_cursor_names:
+            state, kind, confidence = "resolved_in_snapshot", "cursor_reference", "high"
+            candidates = ()
+        elif canonical_target in policy.boundaries.infrastructure_utility_calls:
+            state = "resolved_in_snapshot" if candidates else "external_schema"
+            kind, confidence = "infrastructure_utility", "high"
+        elif candidates:
             distinct_keys = {candidate.symbol_key for candidate in candidates}
             state = "resolved_in_snapshot" if len(distinct_keys) == 1 else "ambiguous"
             kind = "routine_call"
@@ -622,7 +638,11 @@ def _qualified_name_before(tokens: tuple[Token, ...], left_index: int) -> tuple[
     if end < 0 or not _is_name_token(tokens[end]):
         return ()
     start = end
-    while start >= 2 and tokens[start - 1].type == PlSqlLexer.PERIOD and _is_name_token(tokens[start - 2]):
+    while (
+        start >= 2
+        and tokens[start - 1].type == PlSqlLexer.PERIOD
+        and _is_qualified_owner_token(tokens[start - 2])
+    ):
         start -= 2
     return tokens[start : end + 1]
 
@@ -646,6 +666,29 @@ def _canonical_name_tokens(tokens: Sequence[Token]) -> str:
 
 def _is_name_token(token: Token) -> bool:
     return token.type in {PlSqlLexer.REGULAR_ID, PlSqlLexer.DELIMITED_ID}
+
+
+def _is_qualified_owner_token(token: Token) -> bool:
+    if _is_name_token(token):
+        return True
+    text = token.text or ""
+    return bool(text) and (text[0].isalpha() or text[0] in {'"', "_", "$", "#"})
+
+
+def _is_legacy_outer_join_marker(tokens: Sequence[Token]) -> bool:
+    """Recognize Oracle's column ``(+)`` marker without treating it as a call."""
+
+    return len(tokens) == 1 and tokens[0].type == PlSqlLexer.PLUS_SIGN
+
+
+def _declared_cursor_names(tokens: Sequence[Token]) -> set[str]:
+    """Retain cursor identity when a degraded parse lacks declaration nodes."""
+
+    return {
+        oracle_identifier(tokens[index + 1].text).canonical_name
+        for index, token in enumerate(tokens[:-1])
+        if token.type == PlSqlLexer.CURSOR and _is_name_token(tokens[index + 1])
+    }
 
 
 def _is_insert_column_list(tokens: tuple[Token, ...], name_start_index: int) -> bool:

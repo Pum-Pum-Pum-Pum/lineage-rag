@@ -898,3 +898,325 @@ Final verification: `510 passed` with the one existing Starlette/HTTPX
 deprecation warning. The v4 embedding dry run reported 96 records and 96 unique
 inputs with `external_calls_performed=false`; `git diff --check` passed with
 line-ending notices only.
+
+## Step 161J - Add an independent routine-declaration inventory
+
+Added `inventory_routine_declarations()` as a lexer-only inventory of every
+PL/SQL `PROCEDURE` and `FUNCTION` declaration start. Added
+`uncovered_routine_declarations()` to compare that inventory with independently
+constructed routine segments. This closes the previous circular gate, which
+could only prove that already-detected segments reached retrieval artifacts.
+
+```python
+declarations = inventory_routine_declarations(source_text, source_path=path)
+uncovered = uncovered_routine_declarations(declarations, parsed.segments)
+if uncovered:
+    raise RuntimeError("Routine declaration coverage failed")
+```
+
+Production interpretation: a top-level routine can no longer disappear from
+the code knowledge lane merely because the segmenter failed to return it.
+Nested declarations remain covered by their retained parent routine. The real
+body inventory initially exposed `spPNBRPT023` at line 32499 as missing.
+
+Failure-mode tests deliberately remove one routine segment and prove the
+independent inventory reports the omitted declaration and original line.
+
+## Step 161K - Repair SQL CASE-aware structural segmentation
+
+Updated the token-aware end detector to maintain a separate `CASE` depth.
+`END AS alias` from a SQL CASE expression is no longer mistaken for the end of
+the PL/SQL routine. The detector also avoids aborting its scan when an apparent
+block end is not followed by a nearby semicolon.
+
+```python
+if token.type == PlSqlLexer.CASE:
+    case_depth += 1
+elif token.type == PlSqlLexer.END and case_depth:
+    case_depth -= 1
+```
+
+Production interpretation: this repairs the mechanism rather than manually
+marking one dependency edge as resolved. On the real 1.66 MB package, the
+result changed from 19 detected body routines to 20, with `spPNBRPT023`
+retained at exact source lines 32499-33237 and no uncovered declarations.
+
+Failure-mode coverage includes a SQL CASE expression followed by `END AS`, a
+second routine after it, comments/string false declarations, and legacy-parser
+reuse rejection.
+
+## Step 161L - Fail closed, publish v10, and verify the corrected edge
+
+Added parser contract `plsql_parser_contract_v2`, bumped the immutable
+generation to `plsql_antlr_4_13_2_analysis_v10`, and prevented v9 parse reuse.
+The pipeline now requires routine segments to have extracted nodes, citeable
+retrieval units, and symbol occurrences before atomic publication. The
+pre-index report is now `code_preindex_gate_v2` and includes declaration counts
+and uncovered declaration details.
+
+The original archive remains ACL-inaccessible. A recovery snapshot rebuilt
+from the unchanged intake bytes reproduced snapshot ID
+`fci-custom-r1-a47f5d4d54e1` and the exact content hash before v10 parsing.
+
+Real v10 result:
+
+```text
+status: complete_with_degradation
+parser contract: plsql_parser_contract_v2
+full/segmented/fallback/failed: 1/1/0/0
+body declarations/segments/retained: 20/20/20
+uncovered declarations: 0
+retrieval units: 111 total
+SPPNBRPT023 symbol: implementation, lines 32499-33237
+SPPNBRPT023 call: resolved_in_snapshot, one candidate, line 36417
+external calls: 0
+```
+
+The strengthened pre-index gate passed. A new draft v10 SME packet contains 40
+cases covering 121 ambiguous occurrences and correctly contains zero
+`SPPNBRPT023` review hits. Packet identity:
+`41f9dca34556548eb8be1cffa5a7ee76ae71eac4efa59eadf05b274b8aedf0c3`.
+
+Failure behavior: old parser-contract reuse is rejected before publication;
+missing declarations, nodes, retrieval units, or symbols fail closed; the
+active FDD collection and historical v9 artifacts remain unchanged. No OpenAI
+call, embedding, Qdrant write, prepared-contract promotion, or activation was
+performed.
+
+Verification: targeted parser/pipeline tests passed `19/19`; Python compilation
+passed; the full suite passed `513` tests with the one existing non-failing
+Starlette/HTTPX deprecation warning. Ruff was unavailable in the project
+environment, so no Ruff claim is made.
+
+## Step 161M - Preserve the received mixed SME submission
+
+The reviewed Markdown in the original export location was left unchanged after
+validation found that its header identified v10 while its case body mixed v9
+and v10 content. The file remains available as received for diagnosis and
+comparison; no verdict text was silently migrated or discarded.
+
+```python
+original_submission = Path("data/exports/code_analysis/...analysis_v10-dependency-review.md")
+assert original_submission.is_file()
+```
+
+Production interpretation: SME input is evidence and must not be overwritten
+when its generation binding is uncertain. Preserving it allows later decisions
+to be reconciled by stable review ID rather than case number.
+
+Failure check: target-set validation found missing `ALCS.TRANSACTIONNUMBER`, an
+extra stale `SPPNBRPT023`, three placeholder verdicts, and the first ordering
+drift at case 2. The mixed packet was therefore not approved.
+
+## Step 161N - Regenerate a canonical v10 review packet
+
+Ran the existing deterministic local exporter against immutable
+`plsql_antlr_4_13_2_analysis_v10` artifacts and the verified recovery snapshot,
+writing to the separate `data/exports/code_analysis/canonical/` namespace.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\export_code_dependency_review.py `
+  fci-custom-r1-a47f5d4d54e1 `
+  --snapshot-root data\tmp\snapshot-recovery-step161j `
+  --generation plsql_antlr_4_13_2_analysis_v10 `
+  --output-root data\exports\code_analysis\canonical
+```
+
+Production interpretation: a separate no-overwrite namespace prevents a valid
+canonical packet from destroying the SME submission. The exporter reconstructs
+cases from the v10 analysis rather than trusting edited Markdown headings.
+
+Failure behavior: the exporter refuses if either canonical output already
+exists, preventing accidental replacement of a packet under review. No external
+API or vector-store operation is part of this command.
+
+## Step 161O - Verify canonical identity and review scope
+
+Compared the regenerated JSON with the original v10 JSON using SHA-256 and
+checked the rendered Markdown scope.
+
+```text
+JSON SHA-256: B0D7592C386C982415A4A0412030B1D6D370EC005B9ED00580959A4BB7C3FC13
+JSON bytes equal: true
+packet identity: 41f9dca34556548eb8be1cffa5a7ee76ae71eac4efa59eadf05b274b8aedf0c3
+headings/placeholders: 40/40
+ALCS.TRANSACTIONNUMBER: present once
+SPPNBRPT023: absent
+external calls: 0
+```
+
+Production interpretation: the regenerated review file is bound to the exact
+v10 case contract and is safe for a new SME pass. Structural identity does not
+approve any verdict; all 40 canonical placeholders still require review.
+
+Failure checks compare hashes, target counts, required/forbidden targets, and
+placeholder counts. The original mixed submission remains non-promotable.
+
+## Step 161P - Version approved infrastructure-utility policy
+
+Upgraded `code_analysis_policy_v3` to `code_analysis_policy_v4` and added the
+normalized `infrastructure_utility_calls` boundary. The approved exact calls
+are `DEBUG.PR_DEBUG`, `GLOBAL.PR_INIT`, `ISDEBUG.WRITELINE`,
+`PKGGLOBAL.PR_INIT`, and `PR_DEBUG`. Added `infrastructure_utility` as a
+first-class dependency kind.
+
+```toml
+infrastructure_utility_calls = [
+  "DEBUG.PR_DEBUG",
+  "GLOBAL.PR_INIT",
+  "ISDEBUG.WRITELINE",
+  "PKGGLOBAL.PR_INIT",
+  "PR_DEBUG"
+]
+```
+
+Production interpretation: logging and initialization procedures remain
+visible execution-flow dependencies, but approved utility calls no longer
+pollute business-dependency SME review. Exact configuration avoids treating all
+non-custom packages as kernel or infrastructure.
+
+Failure tests normalize case, reject duplicate/unknown policy entries, preserve
+real routine-call syntax, and exclude utility dependencies from the ambiguity
+packet without deleting them from static analysis.
+
+## Step 161Q - Separate Oracle outer joins and degraded cursor references
+
+The call extractor now rejects the exact Oracle legacy outer-join marker `(+)`
+before argument counting. `CURSOR name(...)` declarations are excluded as
+calls, while cursor invocations are emitted as resolved `cursor_reference`
+edges. A full-file token inventory supplies cursor identities when segmented
+parsing cannot produce ANTLR cursor declaration nodes. Keyword owners such as
+`GLOBAL.PR_INIT` are retained in qualified names.
+
+```python
+if len(argument_tokens) == 1 and argument_tokens[0].type == PlSqlLexer.PLUS_SIGN:
+    continue
+if final_name in declared_cursor_names:
+    state, kind = "resolved_in_snapshot", "cursor_reference"
+```
+
+Production interpretation: SQL columns, cursor execution, and routine calls
+now have different dependency semantics. This improves impact analysis without
+silently discarding cursors or utility calls.
+
+The first immutable v11 run exposed that per-routine cursor discovery was too
+narrow for package-level declarations in degraded parsing. v11 was retained as
+failed-quality evidence. A deliberate test removed ANTLR cursor nodes and
+failed until full-file cursor inventory was implemented for v12.
+
+## Step 161R - Publish and gate immutable dependency analysis v12
+
+Published `plsql_antlr_4_13_2_analysis_v12` under policy hash
+`a052206a131a7402afa8c0765a631e3d263973fcf49ceb68c5789244dbe18129`.
+Parse/retrieval artifacts were safely reused because source bytes and parser
+contract v2 were unchanged; static analysis was rebuilt under policy v4.
+
+```text
+status: complete_with_degradation
+parse/retrieval reuse: 2/2 from v11
+body declarations/segments retained: 20/20
+uncovered declarations: 0
+routine calls resolved/custom-missing/unresolved: 174/9/0
+cursor references resolved: 19
+infrastructure utility occurrences: 19
+table edges: 544
+SME cases/occurrences: 1/9
+external calls: 0
+```
+
+The only remaining SME case is
+`PKGPAYINSLIP_P_CUSTOM.FNGETPAYINSLIPNUMBER`, correctly proposed as
+`routine_call / custom_source_missing` because its package follows the approved
+custom convention but was not included in this snapshot. Packet identity:
+`cb26f0af0185abf408c379b478a1aa53579e8e2719f67d236ab16e9d718dbbb6`.
+
+Failure behavior: v10 and v11 remain immutable; policy changes produce a new
+hash and generation; the pre-index v2 gate passed; no embedding, OpenAI call,
+Qdrant write, prepared-contract promotion, or activation occurred.
+
+Verification: focused tests passed `23/23`, Python compilation passed, and the
+full regression passed `514` tests with the one existing non-failing
+Starlette/HTTPX deprecation warning. `git diff --check` is run separately.
+
+## Step 161S - Import the accepted v12 SME decision into a hash-bound ledger
+
+Added a strict local importer that validates the canonical packet identity,
+the reviewed Markdown header, exact case order and review IDs, allowed verdicts,
+and non-empty rationale before producing a no-overwrite JSON ledger.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\import_code_dependency_review.py `
+  data\exports\code_analysis\canonical\fci-custom-r1-a47f5d4d54e1-plsql_antlr_4_13_2_analysis_v12-dependency-review.json `
+  data\exports\code_analysis\canonical\fci-custom-r1-a47f5d4d54e1-plsql_antlr_4_13_2_analysis_v12-dependency-review.md `
+  --reviewer project-sme `
+  --output data\exports\code_analysis\reviews\fci-custom-r1-a47f5d4d54e1-analysis-v12-dependency-review-ledger.json
+```
+
+The ledger records one accepted `routine_call / custom_source_missing`
+decision for `PKGPAYINSLIP_P_CUSTOM.FNGETPAYINSLIPNUMBER`. It is bound to
+packet identity `cb26f0af...718dbbb6`, the exact packet JSON and reviewed
+Markdown hashes, policy hash `a052206a...be18129`, and ledger identity
+`d26b5ffa...17f0cb`.
+
+Production interpretation: human approval is now a reproducible input to later
+indexing rather than an informal chat state. Acceptance preserves the missing
+source boundary; it does not assert that the absent implementation is known.
+
+Failure tests reject packet-identity tampering, reordered/missing cases,
+placeholder or invalid verdicts, blank rationale, header-generation mismatch,
+post-import ledger mutation, and attempts to overwrite an existing ledger.
+No external call occurred.
+
+## Step 161T - Build the reviewed v12 code-index contract
+
+Upgraded the prepared-artifact directory contract to `code_index_contract_v5`.
+A reviewed artifact must now contain both the dependency packet identity and
+the reviewed ledger identity. Draft contracts must contain neither, preventing
+an unreviewed artifact from presenting review hashes selectively.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\prepare_code_index_artifacts.py `
+  fci-custom-r1-a47f5d4d54e1 `
+  --parse-generation plsql_antlr_4_13_2_analysis_v12 `
+  --dependency-review-ledger data\exports\code_analysis\reviews\fci-custom-r1-a47f5d4d54e1-analysis-v12-dependency-review-ledger.json
+```
+
+The immutable prepared result contains 111 records, 111 unique embedding
+inputs, and artifact identity
+`fd2285b3e3f0cfa39c4b53f9be87fab046e94b7a7cf81d58fcdbcf24746762dd`.
+Its status is `prepared` and dependency-review status is `reviewed`.
+
+Production interpretation: the artifact defines exactly which source units
+would be disclosed and indexed, while retaining snapshot, parser, policy,
+packet, ledger, path, symbol, and line provenance. Prepared does not mean
+embedded, indexed, retrievable, or active.
+
+Failure tests reject a ledger from another snapshot, parser generation,
+analysis policy, or packet; inconsistent draft/reviewed hash combinations;
+artifact-identity tampering; and overwrite of an existing contract.
+
+## Step 161U - Verify exactness and stop at the paid-operation boundary
+
+The verifier recomputed the v12 artifact identity and confirmed 111 records,
+111 unique point IDs, 111 unique cache keys, the expected policy, and exact
+packet/ledger bindings. The embedding launcher was then exercised only in dry
+run mode.
+
+```text
+status: dry_run
+records / unique embedding inputs: 111 / 111
+embedding model: text-embedding-3-large
+external_code_would_be_sent: true
+external_calls_performed: false
+```
+
+Production interpretation: the disclosure surface and paid-work size are now
+reviewable before any code leaves the local environment. A real run still
+requires the exact, deliberate disclosure-and-cost authorization token.
+
+Failure testing invoked the non-dry command without authorization; it failed
+closed with `PermissionError` before creating embeddings or writing Qdrant.
+Compilation passed, focused tests passed `11/11`, `git diff --check` reported no
+whitespace errors, and the full regression passed `517` tests with the one
+existing non-failing Starlette/HTTPX deprecation warning. No OpenAI call,
+embedding, Qdrant write, retrieval evaluation, or activation occurred.

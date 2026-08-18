@@ -18,9 +18,14 @@ from app.code_ingestion.plsql_models import (
 )
 from app.code_ingestion.snapshot_builder import load_snapshot_manifest
 from app.code_ingestion.program_unit_validation import validate_custom_program_unit
+from app.code_ingestion.plsql_segmentation import (
+    inventory_routine_declarations,
+    uncovered_routine_declarations,
+)
 
 
-PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v9"
+PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v12"
+PARSER_CONTRACT_VERSION = "plsql_parser_contract_v2"
 
 
 def parse_code_snapshot(
@@ -126,6 +131,7 @@ def parse_code_snapshot(
                 source_handler=entry.source_handler,
                 allowed_suffixes=selected_analysis_policy.boundaries.custom_program_unit_suffixes,
             )
+            _validate_routine_parse_coverage(source_text, parsed, retrieval)
             stem = _artifact_stem(entry.path)
             parse_relative = f"parse/{stem}.json"
             retrieval_relative = f"retrieval/{stem}.json"
@@ -152,6 +158,12 @@ def parse_code_snapshot(
             module_id=snapshot.request.module_set,
             policy=selected_analysis_policy,
         )
+        for analysis_input, analysis in zip(
+            analysis_inputs,
+            analysis_artifacts,
+            strict=True,
+        ):
+            _validate_routine_symbol_coverage(analysis_input.parse_artifact, analysis)
         for analysis in analysis_artifacts:
             stem = _artifact_stem(analysis.source_path)
             analysis_relative = f"analysis/{stem}.json"
@@ -164,6 +176,7 @@ def parse_code_snapshot(
             snapshot_id=snapshot.snapshot_id,
             snapshot_content_sha256=snapshot.snapshot_content_sha256,
             parser_generation=generation_directory,
+            parser_contract_version=PARSER_CONTRACT_VERSION,
             analysis_policy_sha256=selected_analysis_policy.sha256,
             file_count=len(snapshot.files),
             state_counts=state_counts,
@@ -228,6 +241,10 @@ def _load_reuse_catalog(
     manifest = CodeParseStageManifest.model_validate_json(
         (directory / "parse_stage_manifest.json").read_text(encoding="utf-8")
     )
+    if manifest.parser_contract_version != PARSER_CONTRACT_VERSION:
+        raise ValueError(
+            "Reuse generation parser contract does not match the current segmentation contract"
+        )
     for field, value in expected.items():
         if getattr(manifest, field) != value:
             raise ValueError(f"Reuse generation {field} does not match the requested parse contract")
@@ -267,8 +284,80 @@ def _parse_reuse_key(**values: object) -> str:
         "antlr_tool_version": "4.13.2",
         "antlr_runtime_version": "4.13.2",
         "grammar_commit": "a7704d4c029c33a89818ac103f758f7c72d8d16c",
+        "parser_contract_version": PARSER_CONTRACT_VERSION,
         **values,
     }
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def _validate_routine_parse_coverage(source_text, parsed, retrieval) -> None:
+    declarations = inventory_routine_declarations(
+        source_text,
+        source_path=parsed.source_path,
+    )
+    routine_segments = tuple(
+        segment
+        for segment in parsed.segments
+        if segment.segment_kind in {"procedure", "procedure_spec", "function", "function_spec"}
+    )
+    node_offsets = {
+        node.source_map.start_offset
+        for node in parsed.extracted_nodes
+        if node.node_kind in {"procedure", "procedure_spec", "function", "function_spec"}
+    }
+    routine_nodes = tuple(
+        node
+        for node in parsed.extracted_nodes
+        if node.node_kind in {"procedure", "procedure_spec", "function", "function_spec"}
+    )
+    if parsed.parser_state == "segmented_parse":
+        uncovered = uncovered_routine_declarations(declarations, parsed.segments)
+    elif parsed.parser_state == "full_parse":
+        uncovered = tuple(
+            item
+            for item in declarations
+            if not any(
+                node.display_name.casefold() == item.display_name.casefold()
+                and node.source_map.start_offset
+                <= item.source_map.start_offset
+                < node.source_map.end_offset
+                for node in routine_nodes
+            )
+        )
+    else:
+        uncovered = ()
+    if uncovered:
+        details = ", ".join(
+            f"{item.display_name}@{item.source_map.start_line}" for item in uncovered[:10]
+        )
+        raise RuntimeError(
+            f"Routine declaration coverage failed for {parsed.source_path}: {details}"
+        )
+
+    missing_nodes = [
+        segment for segment in routine_segments if segment.source_map.start_offset not in node_offsets
+    ]
+    if missing_nodes:
+        raise RuntimeError(f"Routine segments lack extracted nodes: {parsed.source_path}")
+
+    retrieval_parent_maps = {
+        unit.parent_source_map or unit.source_map for unit in retrieval.units
+    }
+    if any(segment.source_map not in retrieval_parent_maps for segment in routine_segments):
+        raise RuntimeError(f"Routine segments lack citeable retrieval units: {parsed.source_path}")
+
+
+def _validate_routine_symbol_coverage(parsed, analysis) -> None:
+    expected_offsets = {
+        node.source_map.start_offset
+        for node in parsed.extracted_nodes
+        if node.node_kind in {"procedure", "procedure_spec", "function", "function_spec"}
+    }
+    symbol_offsets = {symbol.source_map.start_offset for symbol in analysis.symbols}
+    missing = sorted(expected_offsets - symbol_offsets)
+    if missing:
+        raise RuntimeError(
+            f"Routine nodes lack symbol occurrences for {parsed.source_path}: {missing[:10]}"
+        )

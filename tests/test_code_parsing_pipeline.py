@@ -238,3 +238,37 @@ END;
     parent = staging_root / snapshot.snapshot_id
     assert not (parent / "plsql_antlr_4_13_2_analysis_v8").exists()
     assert not list(parent.glob(".code-parse-*"))
+
+
+def test_legacy_parser_contract_cannot_reuse_pre_fix_segments(tmp_path: Path) -> None:
+    snapshot_directory, snapshot = _build_snapshot(
+        tmp_path,
+        """CREATE OR REPLACE PACKAGE BODY pkg_customer_custom AS
+  PROCEDURE run IS BEGIN NULL; END;
+END;
+/
+""",
+    )
+    staging_root = tmp_path / "staging"
+    first = parse_code_snapshot(
+        snapshot_directory,
+        staging_root,
+        generation_directory="plsql_antlr_4_13_2_analysis_v9",
+    )
+    first_stage = staging_root / snapshot.snapshot_id / first.parser_generation
+    manifest_path = first_stage / "parse_stage_manifest.json"
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["parser_contract_version"] = "plsql_parser_contract_v1"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="parser contract"):
+        parse_code_snapshot(
+            snapshot_directory,
+            staging_root,
+            generation_directory="plsql_antlr_4_13_2_analysis_v10",
+            reuse_generation_directory=first_stage,
+        )
+
+    parent = staging_root / snapshot.snapshot_id
+    assert not (parent / "plsql_antlr_4_13_2_analysis_v10").exists()
+    assert not list(parent.glob(".code-parse-*"))

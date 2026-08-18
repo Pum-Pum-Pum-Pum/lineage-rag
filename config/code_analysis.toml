@@ -1,4 +1,4 @@
-schema_version = "code_analysis_policy_v3"
+schema_version = "code_analysis_policy_v4"
 
 [boundaries]
 # Application convention: package owners ending in this suffix are custom.
@@ -8,6 +8,13 @@ infer_noncustom_qualified_packages_as_kernel = false
 kernel_package_names = []
 kernel_package_prefixes = []
 external_package_prefixes = ["DBMS_", "UTL_"]
+infrastructure_utility_calls = [
+  "DEBUG.PR_DEBUG",
+  "GLOBAL.PR_INIT",
+  "ISDEBUG.WRITELINE",
+  "PKGGLOBAL.PR_INIT",
+  "PR_DEBUG"
+]
 ignored_builtin_calls = [
   "ABS", "AVG", "CAST", "COALESCE", "COUNT", "DECODE", "GREATEST",
   "LEAST", "LOWER", "MAX", "MIN", "NVL", "NVL2", "ROUND", "SUBSTR",

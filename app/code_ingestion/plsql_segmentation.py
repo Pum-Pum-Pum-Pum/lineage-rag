@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 
 from antlr4 import CommonTokenStream, InputStream, Token
 
@@ -8,18 +9,79 @@ from app.code_ingestion.generated.plsql.PlSqlLexer import PlSqlLexer
 from app.code_ingestion.plsql_models import ParsedSegment, SourceMap
 
 
+@dataclass(frozen=True)
+class RoutineDeclaration:
+    """Lexer-observed routine declaration used independently of end detection."""
+
+    display_name: str
+    declaration_kind: str
+    source_map: SourceMap
+
+
+def inventory_routine_declarations(
+    source_text: str,
+    *,
+    source_path: str,
+) -> tuple[RoutineDeclaration, ...]:
+    """Inventory declaration starts without depending on routine segmentation."""
+
+    tokens = _default_tokens(source_text)
+    declarations: list[RoutineDeclaration] = []
+    for index, token in enumerate(tokens):
+        if token.type not in {PlSqlLexer.PROCEDURE, PlSqlLexer.FUNCTION}:
+            continue
+        if index + 1 >= len(tokens):
+            continue
+        name_token = tokens[index + 1]
+        declarations.append(
+            RoutineDeclaration(
+                display_name=name_token.text,
+                declaration_kind=(
+                    "procedure" if token.type == PlSqlLexer.PROCEDURE else "function"
+                ),
+                source_map=SourceMap(
+                    source_path=source_path,
+                    start_line=token.line,
+                    end_line=name_token.line,
+                    start_offset=token.start,
+                    end_offset=name_token.stop + 1,
+                ),
+            )
+        )
+    return tuple(declarations)
+
+
+def uncovered_routine_declarations(
+    declarations: tuple[RoutineDeclaration, ...],
+    segments: tuple[ParsedSegment, ...],
+) -> tuple[RoutineDeclaration, ...]:
+    """Return declarations absent from a top-level segment and any retained parent routine."""
+
+    routine_segments = tuple(
+        segment
+        for segment in segments
+        if segment.segment_kind in {
+            "procedure",
+            "procedure_spec",
+            "function",
+            "function_spec",
+        }
+    )
+    return tuple(
+        declaration
+        for declaration in declarations
+        if not any(
+            segment.source_map.start_offset <= declaration.source_map.start_offset
+            < segment.source_map.end_offset
+            for segment in routine_segments
+        )
+    )
+
+
 def find_routine_segments(source_text: str, *, source_path: str) -> tuple[ParsedSegment, ...]:
     """Conservatively split routines using lexer tokens, never source regexes."""
 
-    lexer = PlSqlLexer(InputStream(source_text))
-    lexer.removeErrorListeners()
-    stream = CommonTokenStream(lexer)
-    stream.fill()
-    tokens = [
-        token
-        for token in stream.tokens
-        if token.type != Token.EOF and token.channel == Token.DEFAULT_CHANNEL
-    ]
+    tokens = _default_tokens(source_text)
     segments: list[ParsedSegment] = []
     index = 0
     while index < len(tokens):
@@ -131,6 +193,7 @@ def _find_routine_end(tokens: list[Token], start_index: int) -> tuple[int, bool]
     paren_depth = 0
     body_started = False
     begin_depth = 0
+    case_depth = 0
     declaration_keyword_seen = False
     for index in range(start_index + 1, len(tokens)):
         token = tokens[index]
@@ -143,13 +206,25 @@ def _find_routine_end(tokens: list[Token], start_index: int) -> tuple[int, bool]
         elif paren_depth == 0 and token.type == PlSqlLexer.BEGIN:
             body_started = True
             begin_depth += 1
+        elif body_started and token.type == PlSqlLexer.CASE:
+            case_depth += 1
         elif body_started and token.type == PlSqlLexer.END:
             next_type = tokens[index + 1].type if index + 1 < len(tokens) else Token.EOF
-            if next_type not in {PlSqlLexer.IF, PlSqlLexer.LOOP, PlSqlLexer.CASE}:
-                begin_depth = max(0, begin_depth - 1)
-                if begin_depth == 0:
-                    semicolon = _next_token_type(tokens, index + 1, PlSqlLexer.SEMICOLON)
-                    return (semicolon, False) if semicolon is not None else None
+            if next_type in {PlSqlLexer.IF, PlSqlLexer.LOOP}:
+                continue
+            if next_type == PlSqlLexer.CASE:
+                case_depth = max(0, case_depth - 1)
+                continue
+            if case_depth:
+                case_depth -= 1
+                continue
+            previous_depth = begin_depth
+            begin_depth = max(0, begin_depth - 1)
+            if begin_depth == 0:
+                semicolon = _next_token_type(tokens, index + 1, PlSqlLexer.SEMICOLON)
+                if semicolon is not None:
+                    return semicolon, False
+                begin_depth = previous_depth
         elif paren_depth == 0 and token.type == PlSqlLexer.SEMICOLON:
             if not declaration_keyword_seen:
                 return index, True
@@ -175,6 +250,18 @@ def _contains_external(tokens: list[Token], start: int, end: int) -> bool:
     return any(token.type == PlSqlLexer.EXTERNAL for token in tokens[start:end])
 
 
+def _default_tokens(source_text: str) -> list[Token]:
+    lexer = PlSqlLexer(InputStream(source_text))
+    lexer.removeErrorListeners()
+    stream = CommonTokenStream(lexer)
+    stream.fill()
+    return [
+        token
+        for token in stream.tokens
+        if token.type != Token.EOF and token.channel == Token.DEFAULT_CHANNEL
+    ]
+
+
 def _remove_contained_duplicates(segments: list[ParsedSegment]) -> list[ParsedSegment]:
     result: list[ParsedSegment] = []
     for segment in segments:
@@ -186,4 +273,3 @@ def _remove_contained_duplicates(segments: list[ParsedSegment]) -> list[ParsedSe
             continue
         result.append(segment)
     return result
-

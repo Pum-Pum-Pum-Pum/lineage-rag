@@ -74,6 +74,7 @@ class DependencyEdge(FrozenModel):
         "dynamic_sql",
         "kernel_boundary",
         "external_package",
+        "infrastructure_utility",
     ]
     source_symbol_occurrence_id: str | None = None
     source_path: str

@@ -20,6 +20,7 @@ class AnalysisBoundaries(BaseModel):
     kernel_package_names: tuple[str, ...] = ()
     kernel_package_prefixes: tuple[str, ...] = ()
     external_package_prefixes: tuple[str, ...] = ("DBMS_", "UTL_")
+    infrastructure_utility_calls: tuple[str, ...] = ()
     ignored_builtin_calls: tuple[str, ...] = ()
 
     @field_validator(
@@ -27,6 +28,7 @@ class AnalysisBoundaries(BaseModel):
         "kernel_package_names",
         "kernel_package_prefixes",
         "external_package_prefixes",
+        "infrastructure_utility_calls",
         "ignored_builtin_calls",
     )
     @classmethod
@@ -42,7 +44,7 @@ class AnalysisBoundaries(BaseModel):
 class CodeAnalysisPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["code_analysis_policy_v3"] = "code_analysis_policy_v3"
+    schema_version: Literal["code_analysis_policy_v4"] = "code_analysis_policy_v4"
     boundaries: AnalysisBoundaries
 
     @property

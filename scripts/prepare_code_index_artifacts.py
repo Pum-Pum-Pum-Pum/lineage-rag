@@ -17,6 +17,7 @@ from app.code_indexing.contract import (
     write_code_index_artifact_no_overwrite,
 )
 from app.core.config import get_settings
+from app.code_ingestion.dependency_review_ledger import load_dependency_review_ledger
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -31,13 +32,23 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=settings.data_dir / "staging/code_indexes",
     )
     parser.add_argument("--embedding-model", default=settings.openai_embedding_model)
+    parser.add_argument("--dependency-review-ledger", type=Path)
     return parser.parse_args(argv)
 
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
     parse_stage = args.parse_staging_root / args.snapshot_id / args.parse_generation
-    artifact = build_code_index_artifact(parse_stage, embedding_model=args.embedding_model)
+    ledger = (
+        load_dependency_review_ledger(args.dependency_review_ledger)
+        if args.dependency_review_ledger
+        else None
+    )
+    artifact = build_code_index_artifact(
+        parse_stage,
+        embedding_model=args.embedding_model,
+        dependency_review_ledger=ledger,
+    )
     target = args.output_root / args.snapshot_id / CODE_INDEX_CONTRACT_DIRECTORY
     output = write_code_index_artifact_no_overwrite(artifact, target)
     print(json.dumps({
@@ -46,6 +57,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         "parse_generation": artifact.parse_generation,
         "embedding_model": artifact.embedding_model,
         "records": artifact.total_records,
+        "dependency_review_status": artifact.dependency_review_status,
+        "dependency_review_ledger_sha256": artifact.dependency_review_ledger_sha256,
         "unique_embedding_inputs": len({record.cache_key for record in artifact.records}),
         "artifact_identity_sha256": artifact.artifact_identity_sha256,
         "output": str(output.resolve()),

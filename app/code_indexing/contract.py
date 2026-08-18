@@ -8,9 +8,10 @@ from uuid import NAMESPACE_URL, uuid5
 
 from app.code_indexing.models import CodeIndexArtifact, CodeIndexRecord
 from app.code_ingestion.plsql_models import CodeParseStageManifest, CodeRetrievalArtifact
+from app.code_ingestion.dependency_review_ledger import DependencyReviewLedger
 
 
-CODE_INDEX_CONTRACT_DIRECTORY = "code_index_contract_v4"
+CODE_INDEX_CONTRACT_DIRECTORY = "code_index_contract_v5"
 CODE_EMBEDDING_INPUT_VERSION = "code_embedding_input_v1"
 
 
@@ -18,9 +19,22 @@ def build_code_index_artifact(
     parse_stage_directory: Path,
     *,
     embedding_model: str,
+    dependency_review_ledger: DependencyReviewLedger | None = None,
 ) -> CodeIndexArtifact:
     manifest = CodeParseStageManifest.model_validate_json(
         (parse_stage_directory / "parse_stage_manifest.json").read_text(encoding="utf-8")
+    )
+    _validate_review_ledger(manifest, dependency_review_ledger)
+    review_status = "reviewed" if dependency_review_ledger is not None else "draft"
+    packet_sha256 = (
+        dependency_review_ledger.packet_identity_sha256
+        if dependency_review_ledger is not None
+        else None
+    )
+    ledger_sha256 = (
+        dependency_review_ledger.ledger_identity_sha256
+        if dependency_review_ledger is not None
+        else None
     )
     records: list[CodeIndexRecord] = []
     module_id: str | None = None
@@ -65,7 +79,9 @@ def build_code_index_artifact(
         snapshot_hash=manifest.snapshot_content_sha256,
         parse_generation=manifest.parser_generation,
         policy_hash=manifest.analysis_policy_sha256,
-        dependency_review_status="draft",
+        dependency_review_status=review_status,
+        dependency_review_packet_sha256=packet_sha256,
+        dependency_review_ledger_sha256=ledger_sha256,
         embedding_model=embedding_model,
         records=ordered,
     )
@@ -75,7 +91,9 @@ def build_code_index_artifact(
         snapshot_content_sha256=manifest.snapshot_content_sha256,
         parse_generation=manifest.parser_generation,
         analysis_policy_sha256=manifest.analysis_policy_sha256,
-        dependency_review_status="draft",
+        dependency_review_status=review_status,
+        dependency_review_packet_sha256=packet_sha256,
+        dependency_review_ledger_sha256=ledger_sha256,
         module_id=module_id or _module_from_snapshot(manifest.snapshot_id),
         embedding_model=embedding_model,
         total_records=len(ordered),
@@ -126,6 +144,7 @@ def verify_prepared_code_index_artifact(
     parse_stage_directory: Path,
     *,
     expected_policy_sha256: str,
+    dependency_review_ledger: DependencyReviewLedger | None = None,
 ) -> dict[str, object]:
     if artifact.status != "prepared":
         raise ValueError("Local prepared-contract verification requires status=prepared")
@@ -134,6 +153,7 @@ def verify_prepared_code_index_artifact(
     rebuilt = build_code_index_artifact(
         parse_stage_directory,
         embedding_model=artifact.embedding_model,
+        dependency_review_ledger=dependency_review_ledger,
     )
     if rebuilt != artifact:
         raise RuntimeError("Prepared artifact does not exactly match a deterministic rebuild")
@@ -143,6 +163,8 @@ def verify_prepared_code_index_artifact(
         "parse_generation": artifact.parse_generation,
         "analysis_policy_sha256": artifact.analysis_policy_sha256,
         "dependency_review_status": artifact.dependency_review_status,
+        "dependency_review_packet_sha256": artifact.dependency_review_packet_sha256,
+        "dependency_review_ledger_sha256": artifact.dependency_review_ledger_sha256,
         "records": artifact.total_records,
         "unique_point_ids": len({record.point_id for record in artifact.records}),
         "unique_cache_keys": len({record.cache_key for record in artifact.records}),
@@ -192,6 +214,28 @@ def _artifact_identity(**values) -> str:
         ],
     }
     return _sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+
+def _validate_review_ledger(
+    manifest: CodeParseStageManifest,
+    ledger: DependencyReviewLedger | None,
+) -> None:
+    if ledger is None:
+        return
+    if ledger.status != "reviewed":
+        raise ValueError("Dependency review ledger is not complete")
+    expected = (
+        manifest.snapshot_id,
+        manifest.parser_generation,
+        manifest.analysis_policy_sha256,
+    )
+    observed = (
+        ledger.snapshot_id,
+        ledger.parser_generation,
+        ledger.analysis_policy_sha256,
+    )
+    if observed != expected:
+        raise ValueError("Dependency review ledger does not match the parse stage")
 
 
 def _sha256(value: str) -> str:

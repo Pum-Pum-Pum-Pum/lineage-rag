@@ -25,6 +25,7 @@ from app.code_ingestion.plsql_models import (
     CodeRetrievalUnit,
     SourceMap,
 )
+from app.code_ingestion.dependency_review_ledger import DependencyReviewLedger
 from app.vectorstore.qdrant_schema import create_local_qdrant_client
 
 
@@ -149,6 +150,45 @@ def test_prepared_contract_verifier_rejects_wrong_policy_or_tampering(tmp_path: 
             expected_policy_sha256="b" * 64,
         )
 
+
+def test_reviewed_contract_is_bound_to_matching_dependency_ledger(tmp_path: Path) -> None:
+    _prepared(tmp_path)
+    ledger = DependencyReviewLedger.model_construct(
+        status="reviewed",
+        reviewer="project-sme",
+        snapshot_id="fci-custom-r1-abc",
+        parser_generation="plsql_antlr_4_13_2_analysis_v12",
+        analysis_policy_sha256="b" * 64,
+        packet_identity_sha256="d" * 64,
+        packet_json_sha256="e" * 64,
+        reviewed_markdown_sha256="f" * 64,
+        ledger_identity_sha256="1" * 64,
+        decisions=(),
+        external_calls_performed=False,
+    )
+    artifact = build_code_index_artifact(
+        tmp_path / "parse",
+        embedding_model="text-embedding-3-large",
+        dependency_review_ledger=ledger,
+    )
+
+    assert artifact.dependency_review_status == "reviewed"
+    assert artifact.dependency_review_packet_sha256 == "d" * 64
+    assert artifact.dependency_review_ledger_sha256 == "1" * 64
+    assert verify_prepared_code_index_artifact(
+        artifact,
+        tmp_path / "parse",
+        expected_policy_sha256="b" * 64,
+        dependency_review_ledger=ledger,
+    )["status"] == "pass"
+
+    wrong = ledger.model_copy(update={"parser_generation": "analysis-wrong"})
+    with pytest.raises(ValueError, match="does not match"):
+        build_code_index_artifact(
+            tmp_path / "parse",
+            embedding_model="text-embedding-3-large",
+            dependency_review_ledger=wrong,
+        )
 
 def test_code_embedding_maps_reordered_response_and_reuses_cache(tmp_path: Path) -> None:
     prepared = _prepared(tmp_path)

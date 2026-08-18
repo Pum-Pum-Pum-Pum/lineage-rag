@@ -57,6 +57,14 @@ class CodeIndexArtifact(FrozenModel):
     parse_generation: str
     analysis_policy_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     dependency_review_status: Literal["draft", "reviewed"] = "draft"
+    dependency_review_packet_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    dependency_review_ledger_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
     module_id: str
     embedding_model: str
     embedding_input_version: Literal["code_embedding_input_v1"] = (
@@ -75,6 +83,14 @@ class CodeIndexArtifact(FrozenModel):
             raise ValueError("Code index unit IDs must be unique")
         if len({record.point_id for record in self.records}) != len(self.records):
             raise ValueError("Code index point IDs must be unique")
+        review_hashes = (
+            self.dependency_review_packet_sha256,
+            self.dependency_review_ledger_sha256,
+        )
+        if self.dependency_review_status == "reviewed" and not all(review_hashes):
+            raise ValueError("Reviewed code indexes require packet and ledger identities")
+        if self.dependency_review_status == "draft" and any(review_hashes):
+            raise ValueError("Draft code indexes must not claim review identities")
         if self.status == "prepared" and any(
             record.embedding_status != "pending" for record in self.records
         ):

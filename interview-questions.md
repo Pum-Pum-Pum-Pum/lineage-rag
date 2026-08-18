@@ -613,3 +613,271 @@ promotion.
    corpus without changing grounded resolution semantics?
 9. What does the verified v4 prepared contract prove, and what unpaid review,
    paid embedding, retrieval, citation, and answer gates remain?
+
+## Steps 161J-161L - Parser-coverage remediation interview gate
+
+### Step 161J - Independent declaration inventory
+
+1. Why was comparing retrieval units only with already-detected routine
+   segments a circular coverage check?
+2. How does an independent declaration-start inventory detect a top-level
+   routine omitted by the segmenter without pretending to fully parse it?
+3. Why may a nested local declaration be covered by its retained parent while
+   an uncovered top-level declaration must fail the stage?
+
+### Step 161K - CASE-aware segmentation
+
+4. Why did SQL `CASE ... END AS alias` cause `spPNBRPT023` to disappear under
+   the old begin/end-depth algorithm?
+5. Why is tracking CASE depth structurally safer than adding `END AS` to a
+   corpus-specific exception list?
+6. What does recovering exact lines 32499-33237 prove, and what retrieval or
+   answer-quality property does it still not prove?
+
+### Step 161L - Immutable v10 and fail-closed gates
+
+7. Why must v10 reject reuse of v9 parse artifacts even though source hashes,
+   ANTLR versions, and chunk limits are unchanged?
+8. Why must declaration coverage, extracted-node coverage, retrieval-unit
+   coverage, and symbol coverage be checked separately?
+9. Why does the passing v10 pre-index gate remove `SPPNBRPT023` from ambiguity
+   review but still require SME review of the other 40 cases before paid code
+   embeddings?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** The answer identifies the circular oracle correctly: a set of
+   already-detected segments cannot reveal a declaration the segmenter omitted.
+   The independent lexer inventory establishes a separate expected set.
+2. **Accepted with precision refinement.** The implemented inventory detects
+   declaration starts, names, kinds, and source positions; it does not determine
+   complete routine boundaries. Comparing those starts with independently built
+   segments is sufficient to expose an omitted top-level declaration.
+3. **Accepted with precision refinement.** Parent containment proves that the
+   nested source remains available in a retained citeable parent range. It does
+   not create an independent nested symbol or prove local dependency resolution.
+   An uncovered top-level declaration has no retained routine parent and must
+   fail closed.
+4. **Accepted.** The SQL CASE `END` reduced the old PL/SQL begin depth and the
+   following `AS` prevented a valid routine terminator match, so the segment scan
+   abandoned `spPNBRPT023`.
+5. **Accepted.** CASE-depth state generalizes across aliases, whitespace, nested
+   CASE expressions, and formatting, whereas an `END AS` exception would encode
+   one corpus observation rather than the syntax relationship.
+6. **Accepted.** Exact lines prove recovered source coverage and provenance for
+   this procedure only. The later node, retrieval, symbol, and dependency gates
+   separately prove those transformations; retrieval relevance and answer
+   quality remain untested.
+7. **Accepted.** Parse identity includes the derivation contract, not merely
+   source bytes and ANTLR versions. Reusing v9 would preserve the defect under a
+   misleading v10 generation label.
+8. **Accepted.** Each boundary can lose or corrupt information independently,
+   so declaration, node, retrieval-unit, and symbol checks provide distinct
+   failure localization and must not be collapsed into one count.
+9. **Accepted.** `SPPNBRPT023` now has one direct in-snapshot candidate and is no
+   longer ambiguous. The remaining packet cases require SME judgment because
+   static evidence has not established a definitive target or has exposed a
+   likely classifier false positive.
+
+Gate status: **Steps 161J-161L learner gate accepted.** The strengthened v10
+pre-index mechanism is approved. The v10 dependency packet remains `draft`;
+SME review of its 40 cases is still required. No OpenAI code disclosure, paid
+embedding, Qdrant indexing, or activation is authorized by this acceptance.
+
+## Steps 161M-161O - Canonical SME packet regeneration interview gate
+
+### Step 161M - Preserve the submitted review
+
+1. Why must a generation-mismatched SME submission be preserved rather than
+   silently overwritten with a canonical packet?
+2. Why is the packet header insufficient to prove that the body belongs to the
+   stated parser generation?
+3. Why should verdict migration use stable review IDs instead of ordinal case
+   numbers or target names alone?
+
+### Step 161N - Deterministic no-overwrite regeneration
+
+4. Why regenerate from v10 analysis artifacts rather than repair the edited
+   Markdown headings manually?
+5. Why is a separate canonical output namespace safer than overwriting the
+   SME-edited file?
+6. What external cost or disclosure occurred during local regeneration, and
+   why?
+
+### Step 161O - Identity and scope verification
+
+7. What does byte-identical JSON prove, and what SME-quality property does it
+   not prove?
+8. Why must both required-target presence and stale-target absence be checked?
+9. Why do 40/40 placeholders represent a structurally correct packet but not a
+   completed review gate?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** The original submission is human-review evidence, including
+   its generation mismatch. Overwriting it would erase diagnostic history and
+   could falsely imply that its verdicts were made against canonical v10 cases.
+2. **Accepted.** Header metadata is not a content-integrity control. Case IDs,
+   target set, order, packet identity, and source artifact bindings must agree
+   with the declared generation.
+3. **Accepted with precision refinement.** Stable review IDs prevent ordinal
+   drift, but a verdict must also be bound to the packet identity because the
+   same-looking target can have different evidence or proposed states in a
+   later packet.
+4. **Accepted.** Deterministic regeneration reconstructs case identity,
+   evidence, and provenance from v10 artifacts. Manual heading repair changes
+   presentation without repairing the evidence contract.
+5. **Accepted.** The separate namespace preserves both the SME submission and
+   canonical output. In this incident it primarily separates canonical v10
+   regeneration from a mixed human-edited submission, not merely v9 from v10.
+6. **Accepted.** The operation read local verified artifacts and rendered local
+   JSON/Markdown. It made no OpenAI request, embedding call, or Qdrant write and
+   therefore incurred no provider cost or new source disclosure.
+7. **Accepted with precision refinement.** Byte equality proves exact
+   equivalence to the compared v10 JSON. By itself it does not establish that
+   either file is authoritative; deterministic reconstruction and verified
+   snapshot/analysis identities provide that provenance.
+8. **Accepted.** Presence and absence detect complementary failure modes: an
+   incomplete new packet and a mixed packet containing stale evidence.
+9. **Accepted.** Placeholder completeness proves render/schema scope only. It
+   explicitly proves that none of the 40 dependency judgments has yet been
+   supplied in the canonical packet.
+
+Gate status: **Steps 161M-161O learner gate accepted.** Canonical v10 packet
+regeneration and identity verification are approved. The canonical packet
+still requires SME verdicts for all 40 cases; paid code embeddings, Qdrant
+indexing, and activation remain unauthorized.
+
+## Steps 161P-161R - Dependency-noise remediation interview gate
+
+### Step 161P - Approved infrastructure utilities
+
+1. Why must debug and initialization procedures remain dependency edges even
+   when they are excluded from business-dependency SME review?
+2. Why is an exact versioned utility-call list safer than classifying every
+   non-custom package as infrastructure or kernel?
+3. What must happen to the policy hash and derived analysis when an approved
+   utility name is added or removed?
+
+### Step 161Q - Structural SQL and cursor classification
+
+4. Why is `ALC.TRANSACTIONNUMBER(+)` not a function call despite containing
+   parentheses?
+5. Why should `FOR rec IN CUR_FINTXN(...)` create a `cursor_reference` instead
+   of disappearing from the graph as a false positive?
+6. Why was full-file cursor inventory necessary when the large package used
+   token-structural segmented parsing?
+
+### Step 161R - Immutable v12 quality gate
+
+7. Why was v11 retained rather than overwritten after its 19-case cursor gap
+   was discovered?
+8. Why was parse/retrieval reuse safe for v12 while static dependency analysis
+   still had to be rebuilt?
+9. What does reducing the SME packet from 40 cases/121 occurrences to one
+   case/nine occurrences prove, and what embedding/retrieval/answer properties
+   remain unproven?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** Debug and initialization calls remain real static graph edges,
+   while the business-review filter prevents infrastructure scaffolding from
+   consuming SME attention.
+2. **Accepted.** Exact configured identities avoid the unsupported inference
+   that every non-custom package is infrastructure or kernel.
+3. **Accepted.** The utility set is part of the classification contract, so a
+   change requires a new policy hash and a new immutable derived analysis.
+4. **Accepted.** `(+)` is Oracle outer-join syntax on a column reference in this
+   context, not a routine argument list.
+5. **Accepted.** A distinct `cursor_reference` retains meaningful control/data
+   flow without falsely representing cursor use as a procedure/function call.
+6. **Accepted.** Package-level cursor declarations may sit outside a segmented
+   routine, so a source-mapped full-file inventory is required to reconcile
+   invocation identity across segment boundaries.
+7. **Accepted.** Preserving v11 retains reproducible evidence of the failed
+   cursor-quality gate and prevents history from being rewritten.
+8. **Accepted.** Source, parser, and retrieval derivation inputs were unchanged,
+   while the dependency policy changed; only the affected derived layer could
+   be reused safely.
+9. **Accepted.** The reduction demonstrates substantially better static
+   classification and a smaller human-review burden on this corpus. It does not
+   prove embeddings, retrieval relevance, citations, grounded answers, or
+   production readiness.
+
+Gate status: **Steps 161P-161R learner gate accepted.** The single canonical
+v12 SME case was subsequently accepted and imported in Step 161S. This learner
+gate alone did not authorize OpenAI code disclosure or paid embedding.
+
+## Steps 161S-161U - Reviewed code-index contract interview gate
+
+### Step 161S - Hash-bound SME decision ledger
+
+1. Why must the ledger bind both the canonical packet JSON and the reviewed
+   Markdown instead of storing only the final verdict?
+2. Why does accepting `custom_source_missing` preserve an unknown boundary
+   rather than resolve the missing package implementation?
+3. Why should an attempted edit or overwrite of the ledger fail instead of
+   silently producing a newer review file at the same path?
+
+### Step 161T - Reviewed v12 prepared contract
+
+4. Why must a `reviewed` code-index artifact contain both packet and ledger
+   hashes, while a `draft` artifact must contain neither?
+5. What do 111 records, point IDs, and cache keys prove separately, and what
+   semantic retrieval property do they not prove?
+6. Why is `prepared` deliberately different from `embedded`, `indexed`, and
+   `active`?
+
+### Step 161U - Paid-operation boundary
+
+7. What information does the dry run provide for disclosure and cost review,
+   and why can it not prove provider billing or embedding quality?
+8. Why must the real embedding command fail closed when the exact authorization
+   token is absent even though SME dependency review is complete?
+9. After a paid embedding run is explicitly authorized, which exact-index,
+   retrieval, citation, grounded-answer, rollback, and activation gates still
+   remain?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** The answer correctly binds the human decision to both the
+   machine-readable canonical case contract and the exact presentation reviewed
+   by the SME. A verdict without those inputs would not be reproducible.
+2. **Accepted.** `custom_source_missing` remains a qualified absence state. SME
+   acceptance validates that classification; it does not provide or infer the
+   unavailable implementation.
+3. **Accepted.** A no-overwrite ledger preserves the approved decision and its
+   audit history. Any later correction must be represented by a separately
+   identifiable review artifact rather than an in-place rewrite.
+4. **Accepted with precision refinement.** The packet hash identifies the
+   reviewed cases and proposed evidence, while the ledger hash identifies the
+   resulting human decisions. A draft omits both review bindings because no
+   accepted SME decision is being claimed.
+5. **Accepted.** Record count checks scope, point IDs preserve distinct source
+   occurrences, and cache keys identify reusable semantic inputs. None measures
+   relevance, ranking, recall, or answer grounding.
+6. **Accepted.** The four states correctly separate local contract preparation,
+   external vector creation, isolated vector-store publication, and deliberate
+   serving activation.
+7. **Accepted with precision refinement.** The current dry run reports the
+   exact record/input count and disclosure intent, but it does not calculate a
+   reliable currency estimate. Actual tokens, provider billing, vectors,
+   indexing, and retrieval behavior remain unproven.
+8. **Accepted.** Dependency-label quality and permission to disclose internal
+   code to an external paid service are independent approvals.
+9. **Accepted.** The answer identifies the remaining generation-isolation,
+   exactness, vector-schema, retrieval, citation, grounding, unknown-handling,
+   SME, rollback, and activation gates in the correct order.
+
+Gate status: **Steps 161S-161U learner gate accepted.** The reviewed v12
+prepared contract may advance only after separate explicit authorization to
+send its 111 code embedding inputs to OpenAI and incur the associated cost.
+No such authorization is inferred from these interview answers.

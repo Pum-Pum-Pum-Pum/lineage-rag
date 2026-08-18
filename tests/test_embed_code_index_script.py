@@ -16,6 +16,8 @@ def _empty_artifact(tmp_path, *, review_status="draft"):
         parse_generation="analysis-v1",
         analysis_policy_sha256="b" * 64,
         dependency_review_status=review_status,
+        dependency_review_packet_sha256="d" * 64 if review_status == "reviewed" else None,
+        dependency_review_ledger_sha256="e" * 64 if review_status == "reviewed" else None,
         module_id="fci-custom",
         embedding_model="text-embedding-3-large",
         total_records=0,

@@ -20,6 +20,10 @@ from app.code_ingestion.plsql_models import (
     PlSqlFileParseArtifact,
 )
 from app.code_ingestion.snapshot_builder import load_snapshot_manifest
+from app.code_ingestion.plsql_segmentation import (
+    inventory_routine_declarations,
+    uncovered_routine_declarations,
+)
 
 
 ROUTINE_KINDS = {"procedure", "procedure_spec", "function", "function_spec"}
@@ -92,6 +96,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         routine_segments = [
             segment for segment in parsed.segments if segment.segment_kind in ROUTINE_KINDS
         ]
+        declaration_inventory = inventory_routine_declarations(
+            source_text,
+            source_path=entry.path,
+        )
         retained = 0
         for segment in routine_segments:
             if any(
@@ -101,6 +109,45 @@ def main(argv: Sequence[str] | None = None) -> None:
                 retained += 1
         if retained != len(routine_segments):
             failures.append(f"{entry.path}: one or more routine segments were not retained")
+        routine_node_offsets = {
+            node.source_map.start_offset
+            for node in parsed.extracted_nodes
+            if node.node_kind in ROUTINE_KINDS
+        }
+        routine_nodes = tuple(
+            node for node in parsed.extracted_nodes if node.node_kind in ROUTINE_KINDS
+        )
+        if parsed.parser_state == "segmented_parse":
+            uncovered_declarations = uncovered_routine_declarations(
+                declaration_inventory,
+                tuple(routine_segments),
+            )
+        elif parsed.parser_state == "full_parse":
+            uncovered_declarations = tuple(
+                item
+                for item in declaration_inventory
+                if not any(
+                    node.display_name.casefold() == item.display_name.casefold()
+                    and node.source_map.start_offset
+                    <= item.source_map.start_offset
+                    < node.source_map.end_offset
+                    for node in routine_nodes
+                )
+            )
+        else:
+            uncovered_declarations = ()
+        if uncovered_declarations:
+            failures.append(
+                f"{entry.path}: declarations missing from parsed coverage: "
+                + ", ".join(
+                    f"{item.display_name}@{item.source_map.start_line}"
+                    for item in uncovered_declarations[:10]
+                )
+            )
+        routine_symbol_offsets = {symbol.source_map.start_offset for symbol in analysis.symbols}
+        missing_symbol_offsets = sorted(routine_node_offsets - routine_symbol_offsets)
+        if missing_symbol_offsets:
+            failures.append(f"{entry.path}: routine nodes are missing symbol occurrences")
         calls = [
             edge for edge in analysis.dependencies if edge.dependency_kind == "routine_call"
         ]
@@ -115,6 +162,14 @@ def main(argv: Sequence[str] | None = None) -> None:
                 "source_path": entry.path,
                 "parser_state": parsed.parser_state,
                 "routine_segments": len(routine_segments),
+                "declaration_inventory": len(declaration_inventory),
+                "uncovered_declarations": [
+                    {
+                        "display_name": item.display_name,
+                        "line": item.source_map.start_line,
+                    }
+                    for item in uncovered_declarations
+                ],
                 "retained_routine_segments": retained,
                 "retrieval_units": retrieval.total_units,
                 "child_units": sum(unit.parent_unit_id is not None for unit in retrieval.units),
@@ -142,11 +197,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     if manifest.state_counts["fallback_parse"] or manifest.state_counts["failed"]:
         failures.append("Stage contains fallback or failed files")
     report = {
-        "schema_version": "code_preindex_gate_v1",
+        "schema_version": "code_preindex_gate_v2",
         "status": "pass" if not failures else "fail",
         "snapshot_id": manifest.snapshot_id,
         "snapshot_content_sha256": manifest.snapshot_content_sha256,
         "parser_generation": manifest.parser_generation,
+        "parser_contract_version": manifest.parser_contract_version,
         "max_segment_characters": manifest.max_segment_characters,
         "max_retrieval_unit_characters": manifest.max_retrieval_unit_characters,
         "retrieval_overlap_characters": manifest.retrieval_overlap_characters,
