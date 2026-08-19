@@ -15,7 +15,7 @@ def _project(tmp_path: Path) -> Path:
         ".env.example": "OPENAI_API_KEY=\n",
         "README.md": "runtime",
         "config/ingestion_sources.toml": "schema_version = 'ingestion_source_policy_v1'\n",
-        "config/code_analysis.toml": "schema_version = 'code_analysis_policy_v4'\n",
+        "config/code_analysis.toml": "schema_version = 'code_analysis_policy_v5'\n",
         "pyproject.toml": "[project]\n",
         "uv.lock": "version = 1\n",
         "app/main.py": "print('app')\n",

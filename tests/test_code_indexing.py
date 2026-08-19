@@ -157,7 +157,7 @@ def test_reviewed_contract_is_bound_to_matching_dependency_ledger(tmp_path: Path
         status="reviewed",
         reviewer="project-sme",
         snapshot_id="fci-custom-r1-abc",
-        parser_generation="plsql_antlr_4_13_2_analysis_v12",
+        parser_generation="plsql_antlr_4_13_2_analysis_v13",
         analysis_policy_sha256="b" * 64,
         packet_identity_sha256="d" * 64,
         packet_json_sha256="e" * 64,

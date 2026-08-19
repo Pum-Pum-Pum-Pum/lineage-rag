@@ -10,10 +10,11 @@ from app.code_ingestion.analysis_policy import load_code_analysis_policy
 def test_versioned_policy_normalizes_boundaries_and_has_stable_hash(tmp_path: Path) -> None:
     first = tmp_path / "first.toml"
     second = tmp_path / "second.toml"
-    content = """schema_version = "code_analysis_policy_v4"
+    content = """schema_version = "code_analysis_policy_v5"
 [boundaries]
 custom_program_unit_suffixes = ["_custom", "_main"]
 infer_noncustom_qualified_packages_as_kernel = true
+kernel_program_unit_suffixes = ["_kernel"]
 kernel_package_names = ["kernel_claim"]
 kernel_package_prefixes = ["kernel_"]
 external_package_prefixes = ["dbms_"]
@@ -27,6 +28,7 @@ ignored_builtin_calls = ["nvl"]
     second_policy = load_code_analysis_policy(second)
 
     assert first_policy.boundaries.kernel_package_prefixes == ("KERNEL_",)
+    assert first_policy.boundaries.kernel_program_unit_suffixes == ("_KERNEL",)
     assert first_policy.boundaries.custom_program_unit_suffixes == ("_CUSTOM", "_MAIN")
     assert first_policy.boundaries.infrastructure_utility_calls == ("ISDEBUG.WRITELINE",)
     assert first_policy.sha256 == second_policy.sha256
@@ -35,11 +37,12 @@ ignored_builtin_calls = ["nvl"]
 def test_duplicate_or_unknown_policy_entries_fail_closed(tmp_path: Path) -> None:
     policy = tmp_path / "invalid.toml"
     policy.write_text(
-        """schema_version = "code_analysis_policy_v4"
+        """schema_version = "code_analysis_policy_v5"
 unexpected = true
 [boundaries]
 custom_program_unit_suffixes = ["_CUSTOM", "_custom"]
 infer_noncustom_qualified_packages_as_kernel = true
+kernel_program_unit_suffixes = ["_KERNEL", "_kernel"]
 kernel_package_names = []
 kernel_package_prefixes = ["KERNEL_", "kernel_"]
 external_package_prefixes = []

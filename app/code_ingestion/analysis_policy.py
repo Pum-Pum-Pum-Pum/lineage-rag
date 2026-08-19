@@ -17,17 +17,25 @@ class AnalysisBoundaries(BaseModel):
 
     custom_program_unit_suffixes: tuple[str, ...] = ("_CUSTOM", "_MAIN")
     infer_noncustom_qualified_packages_as_kernel: bool = False
+    kernel_program_unit_suffixes: tuple[str, ...] = ("_KERNEL",)
     kernel_package_names: tuple[str, ...] = ()
     kernel_package_prefixes: tuple[str, ...] = ()
     external_package_prefixes: tuple[str, ...] = ("DBMS_", "UTL_")
+    external_object_type_names: tuple[str, ...] = (
+        "JSON_ARRAY_T",
+        "JSON_ELEMENT_T",
+        "JSON_OBJECT_T",
+    )
     infrastructure_utility_calls: tuple[str, ...] = ()
     ignored_builtin_calls: tuple[str, ...] = ()
 
     @field_validator(
         "custom_program_unit_suffixes",
+        "kernel_program_unit_suffixes",
         "kernel_package_names",
         "kernel_package_prefixes",
         "external_package_prefixes",
+        "external_object_type_names",
         "infrastructure_utility_calls",
         "ignored_builtin_calls",
     )
@@ -44,7 +52,7 @@ class AnalysisBoundaries(BaseModel):
 class CodeAnalysisPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["code_analysis_policy_v4"] = "code_analysis_policy_v4"
+    schema_version: Literal["code_analysis_policy_v5"] = "code_analysis_policy_v5"
     boundaries: AnalysisBoundaries
 
     @property

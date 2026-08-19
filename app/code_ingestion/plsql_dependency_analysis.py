@@ -205,6 +205,10 @@ def _routine_call_edges(
         for node in declarations
         if node.node_kind == "type"
     }
+    external_object_variables = _declared_external_object_variables(
+        tokens,
+        policy.boundaries.external_object_type_names,
+    )
     indexed_access_names = _indexed_access_names(tokens)
     for left_index, token in enumerate(tokens):
         if token.type != PlSqlLexer.LEFT_PAREN or left_index == 0:
@@ -227,7 +231,15 @@ def _routine_call_edges(
         ):
             continue
         canonical_target = _canonical_name_tokens(name_tokens)
-        if canonical_target in indexed_access_names:
+        preliminary_components = canonical_target.split(".")
+        preliminary_owner = (
+            preliminary_components[-2] if len(preliminary_components) >= 2 else None
+        )
+        if (
+            canonical_target in indexed_access_names
+            and preliminary_owner not in external_object_variables
+            and preliminary_owner not in policy.boundaries.external_object_type_names
+        ):
             continue
         final_name = canonical_target.rsplit(".", 1)[-1]
         if (
@@ -236,17 +248,39 @@ def _routine_call_edges(
             or final_name in declared_types
         ):
             continue
-        argument_count = 0 if not argument_tokens else len(split_top_level(argument_tokens))
-        candidates = _call_candidates(
-            canonical_target,
-            argument_count=argument_count,
-            source_symbol=symbol,
-            all_symbols=all_symbols,
-            symbol_lookup=symbol_lookup,
-        )
         target_components = canonical_target.split(".")
         owner_component = target_components[-2] if len(target_components) >= 2 else None
-        if final_name in declared_cursor_names:
+        preclassified = False
+        if _is_chained_collection_access(tokens, right_index):
+            state, kind, confidence = "unresolved", "collection_reference", "high"
+            candidates = ()
+            preclassified = True
+        elif (
+            owner_component in policy.boundaries.external_object_type_names
+            or owner_component in external_object_variables
+            or _is_chained_object_method(tokens, start_index)
+        ):
+            state = (
+                "external_schema"
+                if owner_component in policy.boundaries.external_object_type_names
+                or owner_component in external_object_variables
+                else "unresolved"
+            )
+            kind, confidence = "object_method_call", "high"
+            candidates = ()
+            preclassified = True
+        else:
+            argument_count = 0 if not argument_tokens else len(split_top_level(argument_tokens))
+            candidates = _call_candidates(
+                canonical_target,
+                argument_count=argument_count,
+                source_symbol=symbol,
+                all_symbols=all_symbols,
+                symbol_lookup=symbol_lookup,
+            )
+        if preclassified:
+            pass
+        elif final_name in declared_cursor_names:
             state, kind, confidence = "resolved_in_snapshot", "cursor_reference", "high"
             candidates = ()
         elif canonical_target in policy.boundaries.infrastructure_utility_calls:
@@ -264,6 +298,10 @@ def _routine_call_edges(
             state, kind, confidence = "custom_source_missing", "routine_call", "high"
         elif owner_component is not None and (
             owner_component in policy.boundaries.kernel_package_names
+            or any(
+                owner_component.endswith(suffix)
+                for suffix in policy.boundaries.kernel_program_unit_suffixes
+            )
             or any(
                 owner_component.startswith(prefix)
                 for prefix in policy.boundaries.kernel_package_prefixes
@@ -717,6 +755,44 @@ def _is_collection_assignment(tokens: tuple[Token, ...], right_index: int) -> bo
     ):
         cursor += 2
     return cursor < len(tokens) and tokens[cursor].type == PlSqlLexer.ASSIGN_OP
+
+
+def _is_chained_collection_access(tokens: tuple[Token, ...], right_index: int) -> bool:
+    """Recognize `collection(key)(index)` without claiming a routine call."""
+
+    return (
+        right_index + 1 < len(tokens)
+        and tokens[right_index + 1].type == PlSqlLexer.LEFT_PAREN
+    )
+
+
+def _is_chained_object_method(tokens: tuple[Token, ...], name_start_index: int) -> bool:
+    """Recognize a method invoked on an expression returned by another call."""
+
+    return (
+        name_start_index >= 2
+        and tokens[name_start_index - 1].type == PlSqlLexer.PERIOD
+        and tokens[name_start_index - 2].type == PlSqlLexer.RIGHT_PAREN
+    )
+
+
+def _declared_external_object_variables(
+    tokens: tuple[Token, ...],
+    external_object_type_names: tuple[str, ...],
+) -> set[str]:
+    """Return variables whose declared type is an approved Oracle object type."""
+
+    approved_types = set(external_object_type_names)
+    result: set[str] = set()
+    for index in range(len(tokens) - 1):
+        variable = tokens[index]
+        declared_type = tokens[index + 1]
+        if not _is_name_token(variable) or not _is_name_token(declared_type):
+            continue
+        canonical_type = oracle_identifier(declared_type.text).canonical_name
+        if canonical_type in approved_types:
+            result.add(oracle_identifier(variable.text).canonical_name)
+    return result
 
 
 def _indexed_access_names(tokens: tuple[Token, ...]) -> set[str]:

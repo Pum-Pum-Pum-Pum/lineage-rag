@@ -24,7 +24,7 @@ from app.code_ingestion.plsql_segmentation import (
 )
 
 
-PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v12"
+PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v13"
 PARSER_CONTRACT_VERSION = "plsql_parser_contract_v2"
 
 

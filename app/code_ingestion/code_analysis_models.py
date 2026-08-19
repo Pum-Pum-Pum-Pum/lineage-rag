@@ -75,6 +75,8 @@ class DependencyEdge(FrozenModel):
         "kernel_boundary",
         "external_package",
         "infrastructure_utility",
+        "object_method_call",
+        "collection_reference",
     ]
     source_symbol_occurrence_id: str | None = None
     source_path: str

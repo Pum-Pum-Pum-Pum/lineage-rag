@@ -222,11 +222,7 @@ def render_dependency_review_markdown(packet: DependencyReviewPacket) -> str:
 def _requires_review(edge: DependencyEdge) -> bool:
     if edge.dependency_kind == "dynamic_sql":
         return True
-    if edge.dependency_kind == "routine_call" and edge.resolution_state in {
-        "unresolved",
-        "ambiguous",
-        "custom_source_missing",
-    }:
+    if edge.dependency_kind == "routine_call" and edge.resolution_state == "ambiguous":
         return True
     return edge.dependency_kind == "kernel_boundary" and edge.confidence != "high"
 

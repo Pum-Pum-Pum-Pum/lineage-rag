@@ -260,7 +260,7 @@ class CodeParseStageManifest(FrozenModel):
     snapshot_id: str
     snapshot_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     parser_generation: str = Field(
-        default="plsql_antlr_4_13_2_analysis_v12",
+        default="plsql_antlr_4_13_2_analysis_v13",
         pattern=r"^plsql_antlr_4_13_2_analysis_v(?:[6-9]|[1-9][0-9]+)$",
     )
     parser_contract_version: str = "plsql_parser_contract_v1"

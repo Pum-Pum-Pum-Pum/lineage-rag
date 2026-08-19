@@ -407,8 +407,10 @@ The configured application convention is stored in `config/code_analysis.toml`:
 ```toml
 custom_program_unit_suffixes = ["_CUSTOM", "_MAIN"]
 infer_noncustom_qualified_packages_as_kernel = false
+kernel_program_unit_suffixes = ["_KERNEL"]
 kernel_package_names = []
 kernel_package_prefixes = []
+external_object_type_names = ["JSON_ARRAY_T", "JSON_ELEMENT_T", "JSON_OBJECT_T"]
 ```
 
 For PL/SQL intake, the declared top-level package, standalone function, or
@@ -419,10 +421,18 @@ an accepted package is available custom source regardless of the member name.
 
 Resolved uploaded symbols take precedence. An absent target whose package or
 standalone unit ends `_CUSTOM`/`_MAIN` is `custom_source_missing`. A target is
-`kernel_unavailable` only when its owning package matches an approved exact
-kernel package name or prefix. Blanket non-suffix inference is disabled because
-record fields, table aliases, and `SCHEMA.FUNCTION` syntax can resemble package
-calls. Unqualified uncertainty remains unresolved.
+`kernel_unavailable` only when its owning package ends `_KERNEL` or matches an
+approved exact kernel package name/prefix. Blanket non-suffix inference is
+disabled because record fields, table aliases, and `SCHEMA.FUNCTION` syntax can
+resemble package calls. Other syntactically valid calls remain visible as
+resolved, custom-source-missing, or unresolved dependencies. Unresolved and
+custom-source-missing calls are explicit unknowns rather than repetitive SME
+review cases; ambiguous overloads and dynamic SQL remain reviewable.
+
+Approved Oracle JSON object receivers are retained as `object_method_call`
+edges. Repeated-parenthesis indexed access is retained as
+`collection_reference`, not misclassified as a procedure/function call. Neither
+classification is silently dropped from the technical dependency graph.
 
 This convention never filters tables or views. All statically visible table
 reads/writes remain indexed whether or not their names end `_CUSTOM`.
@@ -437,13 +447,13 @@ Run the local real-corpus gate and export the focused SME packet:
 & .\.venv\Scripts\python.exe scripts\check_code_preindex_gate.py `
   <snapshot-id> `
   --snapshot-root <verified-snapshot-root> `
-  --generation plsql_antlr_4_13_2_analysis_v12 `
-  --output data\exports\code_analysis\<snapshot-id>-analysis-v12-preindex-gate.json
+  --generation plsql_antlr_4_13_2_analysis_v13 `
+  --output data\exports\code_analysis\<snapshot-id>-analysis-v13-preindex-gate.json
 
 & .\.venv\Scripts\python.exe scripts\export_code_dependency_review.py `
   <snapshot-id> `
   --snapshot-root <verified-snapshot-root> `
-  --generation plsql_antlr_4_13_2_analysis_v12
+  --generation plsql_antlr_4_13_2_analysis_v13
 ```
 
 The packet groups repeated occurrences by target, proposed kind, resolution
@@ -470,7 +480,7 @@ Then prepare deterministic reviewed code-index records without calling OpenAI:
 ```powershell
 & .\.venv\Scripts\python.exe scripts\prepare_code_index_artifacts.py `
   fci-custom-r1-a47f5d4d54e1 `
-  --parse-generation plsql_antlr_4_13_2_analysis_v12 `
+  --parse-generation plsql_antlr_4_13_2_analysis_v13 `
   --dependency-review-ledger data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
 ```
 

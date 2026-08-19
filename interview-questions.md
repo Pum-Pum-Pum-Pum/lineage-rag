@@ -939,3 +939,61 @@ No such authorization is inferred from these interview answers.
    when two source files are unchanged?
 9. Why does the earlier authorization for 111 embedding inputs not authorize
    embedding this successor generation, and what must happen next?
+
+## Steps 161AB-161AD - Dependency policy v5 and successor preparation interview gate
+
+### Step 161AB - Dependency semantics
+
+1. Why must an unsuffixed unresolved package call remain `routine_call /
+   unresolved` instead of being inferred as kernel merely because its source is
+   absent?
+2. Why is `GET_STRING` better represented as an `object_method_call` than
+   deleted as `not_routine_call`?
+3. Why should `ipTxnData.Desc_Fields(...)(1)(...)` remain a
+   `collection_reference` edge rather than disappear entirely?
+
+### Step 161AC - Immutable v13 and review migration
+
+4. Why could v13 reuse all parse/retrieval artifacts but not reuse v12 static
+   dependency artifacts?
+5. Why was matching target and verdict insufficient by itself when migrating
+   the two accepted dynamic-SQL reviews?
+6. What does reducing the SME packet from 33 cases to two prove, and what
+   dependency accuracy does it still not prove?
+
+### Step 161AD - Cached successor embedding plan
+
+7. Why do the two unchanged source files need new Qdrant point identities even
+   though 111 vectors can be reused?
+8. Why does 111 cache hits plus 168 misses require verifying model, input text,
+   cache key, and vector consistency rather than matching filenames?
+9. What exactly would a new authorization permit, and which indexing,
+   retrieval, citation, answer, rollback, and activation gates would remain?
+
+## Steps 161AE-161AG - Cache-aware successor indexing interview gate
+
+### Step 161AE - Authorized cache-aware embeddings
+
+1. Why does `cached_records=111` prove more than simply finding 111 matching
+   filenames, and which compatibility fields protect reuse correctness?
+2. Why must cached and newly returned vectors still pass one common dimension
+   check before the embedded artifact can be published?
+3. What do six successful OpenAI requests prove, and what provider-cost or
+   semantic-quality property remains unproven?
+
+### Step 161AF - Immutable v2 collection
+
+4. Why is v2 a complete 279-point generation rather than a 168-point delta
+   collection containing only newly embedded inputs?
+5. Why must a duplicate v2 indexing attempt fail instead of idempotently
+   upserting points with the same IDs?
+6. Why does creating `code_custom_r1_v2` not change API/UI behavior?
+
+### Step 161AG - Dual-generation verification
+
+7. Why verify v1 again after writing v2 when the collections have different
+   names?
+8. Why re-verify v2 after the rejected duplicate-index attempt?
+9. What retrieval, citation, grounded-answer, impact-analysis, unknown-handling,
+   rollback, and activation evidence is still required before v2 can serve
+   users?

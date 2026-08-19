@@ -160,6 +160,83 @@ END;
     assert by_target["APP.AUDIT_CUSTOM"].dependency_kind == "table_read"
 
 
+def test_only_approved_kernel_owner_suffix_creates_kernel_boundary() -> None:
+    source = """CREATE OR REPLACE PROCEDURE run_report_custom IS
+BEGIN
+  pkg_transaction_kernel.run_it();
+  pkg_transaction.run_it();
+END;
+/
+"""
+    parsed = _parse(source)
+    symbols = extract_symbols(parsed, module_id="fci-custom")
+    edges = extract_dependencies(
+        source,
+        parsed,
+        file_symbols=symbols,
+        all_symbols=symbols,
+        schema_objects=(),
+        policy=CodeAnalysisPolicy(
+            boundaries=AnalysisBoundaries(
+                custom_program_unit_suffixes=("_CUSTOM", "_MAIN"),
+                kernel_program_unit_suffixes=("_KERNEL",),
+            )
+        ),
+    )
+    by_target = {edge.target_canonical_name: edge for edge in edges}
+
+    assert by_target["PKG_TRANSACTION_KERNEL.RUN_IT"].dependency_kind == "kernel_boundary"
+    assert by_target["PKG_TRANSACTION_KERNEL.RUN_IT"].resolution_state == "kernel_unavailable"
+    assert by_target["PKG_TRANSACTION.RUN_IT"].dependency_kind == "routine_call"
+    assert by_target["PKG_TRANSACTION.RUN_IT"].resolution_state == "unresolved"
+
+
+def test_json_methods_and_chained_collection_indexes_are_not_routine_calls() -> None:
+    source = """CREATE OR REPLACE PROCEDURE process_payload_custom(ip_txn_data VARCHAR2) IS
+  mykad_jo JSON_OBJECT_T;
+  resp_jo JSON_OBJECT_T;
+  l_value VARCHAR2(100);
+BEGIN
+  mykad_jo := JSON_OBJECT_T.parse(ip_txn_data);
+  resp_jo := mykad_jo.get_Object('response');
+  l_value := resp_jo.get_Object('CardData').get_String('Religion');
+  l_value := ip_txn_data.desc_fields('TABLE_NAME')(1)('FIELD_NAME');
+END;
+/
+"""
+    parsed = _parse(source)
+    symbols = extract_symbols(parsed, module_id="fci-custom")
+    edges = extract_dependencies(
+        source,
+        parsed,
+        file_symbols=symbols,
+        all_symbols=symbols,
+        schema_objects=(),
+        policy=POLICY,
+    )
+    by_target = {edge.target_canonical_name: edge for edge in edges}
+
+    for target in {
+        "JSON_OBJECT_T.PARSE",
+        "MYKAD_JO.GET_OBJECT",
+        "RESP_JO.GET_OBJECT",
+        "GET_STRING",
+    }:
+        assert by_target[target].dependency_kind == "object_method_call"
+    assert by_target["IP_TXN_DATA.DESC_FIELDS"].dependency_kind == "collection_reference"
+    assert not {
+        "JSON_OBJECT_T.PARSE",
+        "MYKAD_JO.GET_OBJECT",
+        "RESP_JO.GET_OBJECT",
+        "GET_STRING",
+        "IP_TXN_DATA.DESC_FIELDS",
+    } & {
+        edge.target_canonical_name
+        for edge in edges
+        if edge.dependency_kind == "routine_call"
+    }
+
+
 def test_dynamic_sql_is_explicit_unknown_and_static_tables_still_resolve() -> None:
     source = """CREATE OR REPLACE PROCEDURE update_customer(p_sql VARCHAR2) IS
   v_id NUMBER;

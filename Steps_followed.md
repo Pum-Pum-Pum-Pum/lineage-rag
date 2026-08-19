@@ -1416,3 +1416,182 @@ Failure boundary: no embedding was attempted. The prior authorization was tied
 to the old 111-input contract and does not authorize disclosure or cost for this
 new artifact. Focused snapshot, parsing, review-packet, and ledger tests passed
 `28/28`; `git diff --check` reported no whitespace errors.
+
+## Step 161AB - Separate kernel suffixes, object methods, and collection access
+
+Applied the SME's naming rule as versioned `code_analysis_policy_v5`: only the
+qualified owner package ending `_KERNEL` is classified as a retained
+`kernel_boundary`. Exact configured kernel names/prefixes remain available but
+are empty in the active policy. Other syntactically valid calls remain visible
+as resolved, `custom_source_missing`, or `unresolved`; uncertainty is not
+rewritten as kernel behavior.
+
+```toml
+kernel_program_unit_suffixes = ["_KERNEL"]
+external_object_type_names = ["JSON_ARRAY_T", "JSON_ELEMENT_T", "JSON_OBJECT_T"]
+```
+
+Added first-class `object_method_call` and `collection_reference` dependency
+kinds. Declared Oracle JSON object receivers and fluent method chains remain in
+the graph without becoming ordinary PL/SQL routine calls. Repeated-parenthesis
+access such as `ipTxnData.Desc_Fields(...)(1)(...)` is retained as collection
+access instead of a procedure/function call.
+
+Production interpretation: `GET_STRING` was not dropped as
+`not_routine_call`; it is a real JSON object-method relationship. The
+`IPTXNDATA.DESC_FIELDS` correction becomes a collection relationship. Both are
+technical evidence but no longer business-dependency SME noise.
+
+The review contract now asks SMEs about dynamic SQL, ambiguous overloads, and
+non-high-confidence kernel inference. Explicit unresolved and missing-source
+routine edges remain visible unknowns but do not require repetitive approval.
+
+Failure tests prove `_KERNEL` owner matching without classifying an unsuffixed
+package as kernel, preserve JSON receiver/fluent methods, separate collection
+index chains, retain unresolved calls, and keep ambiguous/dynamic cases
+reviewable. The first focused run exposed and fixed a fluent-method interaction
+with the previous indexed-access heuristic.
+
+## Step 161AC - Rebuild immutable v13 and bind the reduced SME review
+
+Published `plsql_antlr_4_13_2_analysis_v13` with policy hash
+`f707e1f5f9bcc63db8ad48f9d0448d4904e1f28fd53947cc39b427b1e67cd5fc`.
+All five parse and retrieval artifacts were reused from v12 because source,
+parser contract, timeout, memory, and chunk inputs matched; dependency analysis
+was rebuilt under policy v5.
+
+```text
+parse/retrieval reused: 5/5
+full / segmented / fallback / failed: 2 / 3 / 0 / 0
+v13 publication time: 13 seconds
+pre-index gate: pass
+external calls: 0
+```
+
+Routine-call noise in `pkgutils_custom.sql` fell from 391 to 248 and unresolved
+routine calls from 153 to 10 because JSON methods and collection accesses now
+have correct edge kinds. The v13 review packet contains only the two literal
+dynamic-SQL cases already reviewed by the SME: two cases and three occurrences.
+
+Before migrating those acceptances, exact equality was verified for target,
+proposed kind/state, occurrence count, source hash, path, line range, and
+excerpt. Only policy-bound review IDs changed. The resulting reviewed ledger is
+bound to packet `ea9c4b95...568df3` and has identity
+`d5544146...17f08e`.
+
+Production interpretation: compatible parser work was reused, but no v12
+dependency classification or ledger identity was relabeled as v13. The two
+accepted dynamic-SQL decisions are traceable to identical reviewed evidence.
+
+Failure controls reject policy/hash mismatch, stale packet IDs, missing
+rationales, partial case sets, and incompatible parse reuse.
+
+## Step 161AD - Prepare the 279-input successor and plan cache reuse
+
+Prepared and exactly verified the reviewed successor code-index contract.
+
+```text
+status: prepared
+records / point IDs / cache keys: 279 / 279 / 279
+artifact identity: 386def0beab98e14f67a23029cd7bc96d861f2dec26ad197927e47045ee3f5eb
+compatible cached vectors from v1: 111
+new paid embedding inputs: 168
+expected OpenAI requests at batch size 32: 6
+external calls performed: false
+```
+
+Production interpretation: the two unchanged files still create new
+source-occurrence points for the successor snapshot, while their compatible
+semantic vectors can be reused. Only 168 new inputs need external embedding;
+the old 111-input artifact remains the immutable cache source.
+
+The dry run confirms the expanded internal code would be disclosed during a
+real call but sends nothing. The earlier authorization covered only the old
+111-input artifact, so the 168 new paid inputs require a new explicit
+disclosure-and-cost authorization.
+
+Verification: compilation passed, the final focused indexing fixture passed
+`6/6`, and the full regression passed `519` tests with the one existing
+non-failing Starlette/HTTPX warning. `git diff --check` reported no whitespace
+errors. No OpenAI call, new embedding artifact, Qdrant v2 collection, retrieval,
+or activation occurred.
+
+## Step 161AE - Embed the authorized successor with exact cache reuse
+
+The user explicitly authorized disclosure and provider cost for the 168 new
+internal PL/SQL embedding inputs, with reuse of 111 compatible vectors from the
+immutable v1 embedded artifact.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\embed_code_index_artifacts.py `
+  data\staging\code_indexes\fci-custom-r1-b1c79c6dc2c5\code_index_contract_v5\code_index_artifact.json `
+  --output-root data\staging\code_embeddings `
+  --cache-artifact data\staging\code_embeddings\fci-custom-r1-a47f5d4d54e1\code_index_text_embedding_3_large_v1\code_index_artifact.json `
+  --authorization I_AUTHORIZE_OPENAI_CODE_DISCLOSURE_AND_COST
+```
+
+```text
+status: embedded
+records / unique inputs: 279 / 279
+cached / newly embedded: 111 / 168
+OpenAI requests: 6
+vector dimension: 3072
+external calls performed: true
+```
+
+Production interpretation: reuse was based on the exact embedding cache key,
+model, content hash, input text, and vector consistency—not filename or source
+position. Every successor source occurrence retains its own record and future
+point identity even when its semantic vector is reused.
+
+Failure controls required the reviewed v13 ledger, exact scoped authorization,
+compatible embedded cache status/model, conflict-free cached vectors, complete
+provider response indexes, and a single non-zero vector dimension. Actual cost
+remains provider-billing authoritative.
+
+## Step 161AF - Create isolated Qdrant generation code_custom_r1_v2
+
+Indexed only the completed successor embedded artifact into the new collection
+`code_custom_r1_v2` under the separate local code Qdrant path.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\index_code_qdrant.py `
+  data\staging\code_embeddings\fci-custom-r1-b1c79c6dc2c5\code_index_text_embedding_3_large_v1\code_index_artifact.json `
+  --qdrant-path data\qdrant_code_local `
+  --collection-name code_custom_r1_v2
+```
+
+Production interpretation: v2 is an indexed candidate generation containing
+all five files. It does not modify the FDD collection, replace v1, configure the
+API/UI, enable combined retrieval, or become active merely because indexing
+succeeded.
+
+Failure testing repeated the indexing command against v2. It failed closed
+with `FileExistsError` and performed no upsert or mutation into the verified
+namespace.
+
+## Step 161AG - Verify v2 exactness and preserve v1 rollback
+
+Independent verification checked the embedded artifacts against both
+collections:
+
+```text
+code_custom_r1_v2: 279 expected / 279 verified, dimension 3072
+v2 artifact: 386def0beab98e14f67a23029cd7bc96d861f2dec26ad197927e47045ee3f5eb
+code_custom_r1_v1: 111 expected / 111 verified, dimension 3072
+v1 artifact: fd2285b3e3f0cfa39c4b53f9be87fab046e94b7a7cf81d58fcdbcf24746762dd
+```
+
+V2 was verified again after the rejected duplicate-index attempt and remained
+exact. Count, deterministic IDs, provenance payloads, and dimensions were
+checked separately.
+
+Production interpretation: v1 is a verified rollback generation and v2 is a
+verified candidate. Neither exact storage nor vector creation proves semantic
+retrieval, source-line citations, grounded code explanations, impact analysis,
+unknown handling, or activation readiness.
+
+Focused cache/indexing and authorization-boundary tests passed `9/9`.
+`git diff --check` reported no whitespace errors. The preceding complete suite
+remains `519` passing tests with one existing non-failing Starlette/HTTPX
+warning. Retrieval and activation remain deliberately deferred.

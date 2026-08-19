@@ -48,9 +48,9 @@ END;
 
     assert first == second
     by_target = {case.target_canonical_name: case for case in first.cases}
-    assert "PKG_VISIBLE_CUSTOM.DO_WORK" in by_target
-    assert by_target["PKG_KERNEL.DO_WORK"].proposed_resolution_state == "unresolved"
-    assert "UNKNOWN_LOCAL" in by_target
+    assert "PKG_VISIBLE_CUSTOM.DO_WORK" not in by_target
+    assert "PKG_KERNEL.DO_WORK" not in by_target
+    assert "UNKNOWN_LOCAL" not in by_target
     assert "P_SQL" in by_target
     assert "APP.BUSINESS_TABLE" not in by_target
     assert "SME verdict" in render_dependency_review_markdown(first)
