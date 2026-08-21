@@ -142,6 +142,28 @@ def test_retrieve_query_evidence_dense_mode_uses_qdrant(tmp_path: Path) -> None:
     assert routed.results[0].payload["unit_id"] == "dense-shared"
 
 
+def test_retrieve_query_evidence_reuses_explicit_vector_without_embedding(
+    tmp_path: Path,
+) -> None:
+    client, collection_name = _build_qdrant_client_with_dense_records()
+    artifact_dir = _write_retrieval_ready_artifact(tmp_path)
+
+    routed = retrieve_query_evidence(
+        qdrant_client=client,
+        collection_name=collection_name,
+        query_text="branch report",
+        embedding_model="text-embedding-3-large",
+        embedding_client=FailingOpenAIClient(),
+        query_vector=[1.0, 0.0],
+        retrieval_config=_retrieval_config("hybrid"),
+        lexical_artifact_directory=artifact_dir,
+        limit=2,
+    )
+
+    assert routed.retrieval_mode == "hybrid"
+    assert routed.dense_candidates[0].payload["unit_id"] == "dense-shared"
+
+
 def test_retrieve_query_evidence_lexical_mode_uses_artifacts(tmp_path: Path) -> None:
     client, collection_name = _build_qdrant_client_with_dense_records()
     artifact_dir = _write_retrieval_ready_artifact(tmp_path)

@@ -76,7 +76,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help=(
             "Optional retrieval-ready artifact directory paired with --collection-name. "
-            "For v4 use data/indexes/functional_specs_v4/processed."
+            "For v5 use data/indexes/functional_specs_v5/processed."
         ),
     )
     parser.add_argument(

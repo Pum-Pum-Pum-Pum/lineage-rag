@@ -15,7 +15,7 @@ from app.retrieval.temporal_query import (
     build_temporal_query_plan,
     scope_results_to_temporal_plan,
 )
-from app.vectorstore.qdrant_search import QdrantSearchResult
+from app.vectorstore.qdrant_search import QdrantSearchResult, search_vectors
 
 
 @dataclass(frozen=True)
@@ -34,6 +34,7 @@ def retrieve_query_evidence(
     retrieval_config: RetrievalRuntimeConfig,
     lexical_artifact_directory: str | Path,
     embedding_client: Any | None = None,
+    query_vector: list[float] | None = None,
     limit: int = 5,
     document_family: str | None = None,
     release_label: str | None = None,
@@ -57,6 +58,16 @@ def retrieve_query_evidence(
         raise ValueError("qdrant_client is required for dense or hybrid retrieval")
 
     def dense_search(search_limit: int):
+        if query_vector is not None:
+            return search_vectors(
+                client=qdrant_client,
+                collection_name=collection_name,
+                query_vector=query_vector,
+                limit=search_limit,
+                document_family=document_family,
+                release_label=release_label,
+                source_kind=source_kind,
+            )
         return search_query_text(
             qdrant_client=qdrant_client,
             collection_name=collection_name,
@@ -96,6 +107,7 @@ def retrieve_planned_query_evidence(
     retrieval_config: RetrievalRuntimeConfig,
     lexical_artifact_directory: str | Path,
     embedding_client: Any | None = None,
+    query_vector: list[float] | None = None,
     limit: int = 5,
     document_family: str | None = None,
     release_label: str | None = None,
@@ -122,6 +134,7 @@ def retrieve_planned_query_evidence(
         query_text=temporal_plan.retrieval_query,
         embedding_model=embedding_model,
         embedding_client=embedding_client,
+        query_vector=query_vector,
         retrieval_config=retrieval_config,
         lexical_artifact_directory=lexical_artifact_directory,
         limit=retrieval_candidate_limit,

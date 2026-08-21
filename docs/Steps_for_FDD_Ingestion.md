@@ -7,12 +7,12 @@ python -m streamlit run app/ui/streamlit_app.py --server.address 127.0.0.1 --ser
 # Add FDD Documents to the RAG System
 
 Use this workflow for reviewed, deployed FDDs. The currently active local
-generation is `functional_specs_v4`, paired with
-`data/indexes/functional_specs_v4/processed`. **Do not ingest new documents
+generation is `functional_specs_v5`, paired with
+`data/indexes/functional_specs_v5/processed`. **Do not ingest new documents
 directly into that active pair.** Build and evaluate a new versioned generation,
 then activate its Qdrant collection and lexical directory together.
 
-The commands below use `v5` as an example. If either target collection or stage
+The commands below use `v6` as an example. If either target collection or stage
 directory already exists, increment the generation name; never delete or reuse a
 partially built generation.
 
@@ -52,8 +52,8 @@ Set process-local intake targets. These values apply only to the current
 PowerShell window and prevent the master command from writing into live v4:
 
 ```powershell
-$env:QDRANT_COLLECTION_NAME='functional_specs_v5_intake'
-$env:INGESTION_OUTPUT_DIR='data/staging/functional_specs_v5_intake/processed'
+$env:QDRANT_COLLECTION_NAME='functional_specs_v6_intake'
+$env:INGESTION_OUTPUT_DIR='data/staging/functional_specs_v6_intake/processed'
 
 uv run --locked python scripts/master_ingestion_embedding_docs.py --dry-run
 ```
@@ -61,7 +61,7 @@ uv run --locked python scripts/master_ingestion_embedding_docs.py --dry-run
 The dry run must list only the intended files. It does not call OpenAI, write to
 Qdrant, create ingestion artifacts, or move DOCX files.
 
-Before continuing, confirm that `functional_specs_v5_intake` is a new,
+Before continuing, confirm that `functional_specs_v6_intake` is a new,
 disposable intake collection name. It is not a serving collection.
 
 ## 3. Run extraction, embedding, intake indexing, and verification
@@ -104,9 +104,9 @@ generation:
 uv run --locked python scripts/stage_archived_fdd_rebuild.py `
   --dry-run `
   --source-directory data/docs_embedded `
-  --stage-directory data/staging/functional_specs_v5 `
-  --collection-name functional_specs_v5 `
-  --index-generation functional_specs_v5
+  --stage-directory data/staging/functional_specs_v6 `
+  --collection-name functional_specs_v6 `
+  --index-generation functional_specs_v6
 ```
 
 Review the source count, filenames, SHA-256 hashes, target directory, target
@@ -116,26 +116,26 @@ the paid operation and rerun without `--dry-run`:
 ```powershell
 uv run --locked python scripts/stage_archived_fdd_rebuild.py `
   --source-directory data/docs_embedded `
-  --stage-directory data/staging/functional_specs_v5 `
-  --collection-name functional_specs_v5 `
-  --index-generation functional_specs_v5
+  --stage-directory data/staging/functional_specs_v6 `
+  --collection-name functional_specs_v6 `
+  --index-generation functional_specs_v6
 ```
 
 The stage must finish with `status: verified` in
-`data/staging/functional_specs_v5/stage_manifest.json`. Unchanged compatible
+`data/staging/functional_specs_v6/stage_manifest.json`. Unchanged compatible
 embedding inputs reuse cached vectors. New or changed retrieval text—including
 new parent-linked table context—is embedded again.
 
 ## 5. Evaluate before activation
 
-Keep `.env` pointing at v4 while evaluating v5 through explicit paired
+Keep `.env` pointing at v5 while evaluating v6 through explicit paired
 overrides. At minimum:
 
 ```powershell
 uv run --locked python scripts/run_fdd_retrieval_gate.py `
   --eval-file data/evaluations/fdd_grounded_eval_v2_reviewed.jsonl `
-  --collection-name functional_specs_v5 `
-  --lexical-artifact-directory data/staging/functional_specs_v5/processed
+  --collection-name functional_specs_v6 `
+  --lexical-artifact-directory data/staging/functional_specs_v6/processed
 ```
 
 Run reviewed document-specific and lineage cases for the newly added FDDs as
@@ -158,12 +158,12 @@ verify file counts and SHA-256 hashes against the stage, and update both values
 in `.env` together:
 
 ```text
-QDRANT_COLLECTION_NAME=functional_specs_v5
-PROCESSED_DIR=data/indexes/functional_specs_v5/processed
+QDRANT_COLLECTION_NAME=functional_specs_v6
+PROCESSED_DIR=data/indexes/functional_specs_v6/processed
 ```
 
 Restart FastAPI and Streamlit, verify their effective configuration and
-readiness, run a known grounded query with citations, and retain v4 for rollback.
+readiness, run a known grounded query with citations, and retain v5 for rollback.
 Changing only one of these settings creates a mixed vector/lexical generation
 and is a release-blocking error.
 
@@ -173,11 +173,11 @@ and is a release-blocking error.
 | --- | --- |
 | New source awaiting verified intake | `data/raw_specs/` |
 | Verified source archive | `data/docs_embedded/` |
-| Disposable isolated intake artifacts | `data/staging/functional_specs_v5_intake/` |
-| Complete immutable release-candidate stage | `data/staging/functional_specs_v5/` |
+| Disposable isolated intake artifacts | `data/staging/functional_specs_v6_intake/` |
+| Complete immutable release-candidate stage | `data/staging/functional_specs_v6/` |
 | Embedding reuse cache | `data/cache/embeddings/` |
 | Persistent local Qdrant state | `data/qdrant_local/` |
-| Stable active lexical artifacts after promotion | `data/indexes/functional_specs_v5/processed/` |
+| Stable active lexical artifacts after promotion | `data/indexes/functional_specs_v6/processed/` |
 
 These are mutable/generated data artifacts and must remain excluded from Git.
 The source manifest, hashes, evaluation reports, SME decisions, and activation
@@ -195,7 +195,7 @@ decision provide the audit trail.
   artifacts for diagnosis. Do not silently choose one or use
   `--replace-existing-embedding-artifacts` as routine ingestion behavior.
 - `--rebuild-qdrant` is intentionally unsupported for embedded local Qdrant.
-- A failed release candidate must not change `.env`; the active v4 pair remains
+- A failed release candidate must not change `.env`; the active v5 pair remains
   the rollback baseline.
 - Successful point counts alone are insufficient: stale, duplicate, wrong-ID,
   wrong-payload, or wrong-schema points can still exist.

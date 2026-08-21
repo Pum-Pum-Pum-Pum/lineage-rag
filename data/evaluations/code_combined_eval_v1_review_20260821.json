@@ -1,0 +1,85 @@
+{
+  "decisions": [
+    {
+      "case_id": "code-aml-batch-send-001",
+      "rationale": "Correct. The expected code paths and symbols are accurate, and the rationale aligns with the purpose of the test.",
+      "rationale_source": "packet",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "code-aml-unitholder-send-002",
+      "rationale": "Correct. The expected code paths and symbols are accurate, and the rationale aligns with the purpose of the test.",
+      "rationale_source": "packet",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "code-aml-api-online-003",
+      "rationale": "Correct. The expected code paths and symbols are accurate, and the rationale aligns with the purpose of the test.",
+      "rationale_source": "packet",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "code-aml-offline-impact-004",
+      "rationale": "SME confirmed the displayed expectations are correct and the packet looks good.",
+      "rationale_source": "global_approval_note",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "code-kernel-http-negative-005",
+      "rationale": "as Kernel source is unavailable, the expected code paths and symbols are correctly empty, and the rationale aligns with the purpose of the test.",
+      "rationale_source": "packet",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "combined-aml-transaction-flow-001",
+      "rationale": "SME confirmed the displayed expectations are correct and the packet looks good.",
+      "rationale_source": "global_approval_note",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "combined-aml-batch-send-002",
+      "rationale": "SME confirmed the displayed expectations are correct and the packet looks good.",
+      "rationale_source": "global_approval_note",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "combined-aml-unitholder-003",
+      "rationale": "Correct. The expected code paths and symbols are accurate, and the rationale aligns with the purpose of the test.",
+      "rationale_source": "packet",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "combined-aml-offline-impact-004",
+      "rationale": "Correct. The expected code paths and symbols are accurate, and the rationale aligns with the purpose of the test.",
+      "rationale_source": "packet",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "combined-kernel-http-negative-005",
+      "rationale": "as Kernel source is unavailable, the expected code paths and symbols are correctly empty, and the rationale aligns with the purpose of the test.",
+      "rationale_source": "packet",
+      "verdict": "accepted"
+    }
+  ],
+  "ledger_identity_sha256": "76a09f9781ba0a34cf7febf19c3845b1ecb4632a71c2065ece5883f813a39592",
+  "review_file": "data\\exports\\evaluations\\code-combined-eval-v1-sme-review.md",
+  "review_file_sha256": "7f06d2d275989e218d339f796ea3eb99511b2688fa7f33374ca2548219b1d913",
+  "reviewed_at": "2026-08-21T07:35:22.209219+00:00",
+  "reviewed_manifests": {
+    "data\\evaluations\\code_grounded_eval_v1_reviewed.jsonl": "d4b881a9949d2f37f3542b037f2d5c4424aa54de6039b2b346f5f7608f8d3ece",
+    "data\\evaluations\\combined_grounded_eval_v1_reviewed.jsonl": "112518232e7db63b121109b4e4caa2813d70977cccc0d8705afd084fdde53818"
+  },
+  "reviewer": "AIAgentSmith",
+  "schema_version": "code_combined_eval_review_ledger_v1",
+  "source_manifests": {
+    "data\\evaluations\\code_grounded_eval_v1_draft.jsonl": "d59ac11e2b36df7987970490a7a4b3f33efc15407fbeead810dac2676ab64860",
+    "data\\evaluations\\combined_grounded_eval_v1_draft.jsonl": "d6981e505133433e7da59967422ccf2bf8625126e0e01c591d3676f627d16bc5"
+  },
+  "summary": {
+    "accepted_cases": 10,
+    "corrected_cases": 0,
+    "removed_cases": 0,
+    "review_status": "reviewed",
+    "total_cases": 10
+  }
+}

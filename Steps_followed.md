@@ -1595,3 +1595,671 @@ Focused cache/indexing and authorization-boundary tests passed `9/9`.
 `git diff --check` reported no whitespace errors. The preceding complete suite
 remains `519` passing tests with one existing non-failing Starlette/HTTPX
 warning. Retrieval and activation remain deliberately deferred.
+
+## Step 162 - Add explicit isolated code retrieval
+
+Added `app/code_retrieval/service.py`, typed retrieval models, and
+`scripts/query_code_index.py`. The retrieval boundary exposes only explicit
+`lexical`, `dense`, or `hybrid` modes. Dense/hybrid calls require an explicitly
+supplied query vector, Qdrant client, and `code_custom_*` collection; retrieval
+does not silently make an OpenAI call.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\query_code_index.py `
+  data\staging\code_embeddings\fci-custom-r1-b1c79c6dc2c5\code_index_text_embedding_3_large_v1\code_index_artifact.json `
+  "spPNBRPT006 branch report" --mode lexical --limit 2
+```
+
+The real-corpus lexical smoke test selected `spPNBRPT006` first from
+`pkgpnbbranchreports_p_custom.sql`, with exact snapshot, symbol, and line
+provenance. Production interpretation: code retrieval is isolated from the FDD
+lane and one immutable embedded artifact is the identity authority. Qdrant
+filters are defense in depth; every returned unit, point, path, symbol, hash,
+and line range is checked against that artifact before becoming evidence.
+
+Failure tests reject blank/invalid modes, unreviewed or unembedded artifacts,
+missing collections, non-code namespaces, missing/wrong-dimension vectors,
+unknown units, non-code payloads, point-ID mismatches, and tampered provenance.
+The smoke test proves lexical reachability only, not dense relevance or answer
+quality.
+
+## Step 163 - Add exact source-line citation contracts
+
+Added a separate code citation model containing snapshot, path, symbol, source
+kind, exact original line range, score, and a bounded preview. Citeable text is
+always immutable `citation_text`; derived `embedding_text` is retrieval-only.
+
+```python
+citation = CodeCitation(
+    citation_id="C1",
+    source_path="pkg_claim.sql",
+    display_name="process_claim",
+    start_line=10,
+    end_line=12,
+    # remaining identity fields omitted here for brevity
+)
+```
+
+Production interpretation: a user or reviewer can trace a claim to one exact
+source occurrence without mistaking search enrichment for literal PL/SQL.
+Dense and lexical candidate summaries are retained for diagnosis but exclude
+full source text to control trace size and avoid duplicating evidence.
+
+Failure tests reject missing source/text, invalid line ranges, answered content
+without citations, and citation IDs outside the bounded evidence set.
+
+## Step 164 - Add fail-closed grounded code-answer and impact contracts
+
+Added `finalize_code_answer`, which validates a future generated response
+without making an LLM call. Content must begin with `DECISION: ANSWER` or
+`DECISION: REFUSE`; an answer requires valid `[C#]` references. The response
+retains structured parser, conditional-compilation, kernel, dynamic-SQL, and
+external-schema unknowns. Impact analysis carries the explicit limitation that
+reported locations are candidates in visible custom code, not proven root
+causes. Patch generation remains disabled.
+
+```python
+response = finalize_code_answer(
+    query="How is the claim processed?",
+    generated_content="DECISION: ANSWER\nThe visible routine performs ... [C1].",
+    evidence=retrieved_evidence,
+    analysis_kind="explanation",
+)
+```
+
+Production interpretation: helpfulness does not overwrite grounding state.
+Malformed output, no evidence, invalid citations, or patch-like output becomes
+a machine-readable safe refusal. Degraded parsing and unresolved conditional or
+unavailable behavior remain visible qualifications rather than invented facts.
+
+Focused retrieval/citation/answer tests passed `15/15`, including lexical,
+dense, and weighted-RRF hybrid mechanics, tampered-payload rejection, exact
+line citations, no-evidence refusal, conditional/parser unknowns, bounded impact
+language, and patch rejection. No OpenAI call, API/UI routing change, collection
+mutation, or activation occurred in Steps 162-164. The full regression suite
+passed `528` tests with the one existing non-failing Starlette/HTTPX deprecation
+warning.
+
+## Step 164D - Ingest and exactly verify three Neo AML FDDs
+
+The user explicitly authorized OpenAI embedding disclosure and cost for three
+new internal FDDs. A process-local intake generation prevented writes to the
+active v4 pair:
+
+```powershell
+$env:QDRANT_COLLECTION_NAME='functional_specs_v5_intake'
+$env:INGESTION_OUTPUT_DIR='data/staging/functional_specs_v5_intake/processed'
+uv run --locked python scripts/master_ingestion_embedding_docs.py `
+  --request-batch-size 32
+```
+
+Extraction produced 188 retrieval units across the three sources: 79 for the
+R22 document, 41 for R24 Day2, and 68 for R24 Day2 Part2. Intake embedding
+reused 16 compatible vectors and generated 172. Exact Qdrant verification
+confirmed all 188 intended source occurrences before the DOCX files moved from
+`data/raw_specs` to `data/docs_embedded`.
+
+Production interpretation: successful archival means each new source passed
+extraction, all-unit embedding, indexing, and identity verification. It does
+not establish retrieval relevance, release-lineage interpretation, citation
+entailment, or answer correctness. Failure before exact verification would have
+left the affected DOCX in intake for a safe retry.
+
+## Step 164E - Build the complete immutable functional_specs_v5 generation
+
+Built v5 from all 11 archived FDDs rather than appending only the three new
+documents to the live collection:
+
+```powershell
+uv run --locked python scripts/stage_archived_fdd_rebuild.py `
+  --source-directory data/docs_embedded `
+  --stage-directory data/staging/functional_specs_v5 `
+  --collection-name functional_specs_v5 `
+  --index-generation functional_specs_v5
+```
+
+The verified stage manifest records 1,125 records, 667 cache hits, 458 newly
+embedded inputs, 1,125 upserted points, and 1,125 exactly verified points at
+dimension 3,072. Eleven source names, byte sizes, and SHA-256 hashes are bound
+to the generation.
+
+Production interpretation: v5 is independently complete and v4 remains a
+rollback generation. The unexpectedly high 458 embedding count is important:
+188 units came from the new sources, while 270 older retrieval inputs were not
+available under a compatible identity in the central seed cache and were sent
+again. A completed request proves provider response success, not authoritative
+billing or semantic quality. Future rebuild planning must inspect cache scope,
+not assume every vector in an older Qdrant generation is reusable from the
+configured seed directory.
+
+Failure controls rejected existing stage/collection names, validated every
+vector dimension, published a failed manifest on exceptions, and required exact
+artifact-to-point verification before `status=verified`.
+
+## Step 164F - Promote and activate the paired v5 retrieval generation
+
+Promoted the verified lexical artifacts to
+`data/indexes/functional_specs_v5/processed`. All 33 promoted files matched the
+staged files by relative path and SHA-256. Updated the active pair together:
+
+```text
+QDRANT_COLLECTION_NAME=functional_specs_v5
+PROCESSED_DIR=data/indexes/functional_specs_v5/processed
+RETRIEVAL_MODE=hybrid
+HYBRID_DENSE_WEIGHT=0.40
+HYBRID_LEXICAL_WEIGHT=0.60
+```
+
+A fresh settings process confirmed the effective pair. Active Qdrant inspection
+confirmed 1,125 points, cosine distance, and dimension 3,072. The ingestion
+runbook and current evaluation defaults now identify v5 as active and use v6 as
+the next isolated example. V4 was retained for rollback.
+
+Local lexical smoke checks reached all three new document IDs. The broad R22
+Neo AML query ranked a closely related R24 document first and the intended R22
+document second; this is a known cross-release confusion risk. The user
+explicitly deferred semantic evaluation, so this local activation is not a
+claim of production readiness or an evaluation pass. Focused configuration and
+runbook tests passed `7/7`. The complete regression suite passed `528` tests
+with the one existing non-failing Starlette/HTTPX deprecation warning.
+
+## Step 165 - Add reviewed FDD-to-code lineage contracts
+
+Added `app/fdd_code_lineage/models.py` with immutable candidate/reviewed mapping
+artifacts bound to one FDD generation, exact code snapshot, and code artifact
+identity. Targets support broad file scope, all overloads of one symbol, or one
+exact overload. Exact selectors require canonical qualified name, symbol kind,
+and overload discriminator hash; unknown documents, paths, modules, symbols,
+overloads, or snapshot identities fail validation.
+
+```python
+target = FddCodeTarget(
+    module_id="fci-custom",
+    path="pkgamlaintegration_p_custom.sql",
+    selector_scope="file",
+    rationale="Broad candidate; exact symbols require SME selection.",
+)
+```
+
+Created a local candidate artifact for the three Neo AML FDDs with six broad
+file targets covering the AML package specification and body. Its identity is
+`bc21581f77b7e883d936762280cf61be61c355c93d54d37ea11a01f3bd766565`.
+The human review packet is
+`data/exports/code_analysis/neo-aml-fdd-code-lineage-v1-review.md`.
+
+Production interpretation: user-supplied alignment is useful candidate
+evidence, but it is not proof that every routine in the package implements each
+FDD. Only `reviewed` mappings can influence combined retrieval. No-overwrite
+publication and deterministic identities preserve the exact review subject.
+
+Failure tests reject missing FDDs, paths, symbols, overload hashes, mismatched
+snapshot/artifact identities, illegal selector shapes, and overwrite attempts.
+
+## Step 166 - Add independent and mapping-aware combined retrieval
+
+Added `retrieve_combined_evidence` and `scripts/query_combined_index.py`. FDD
+and code retrieval run independently and retain separate evidence and scores.
+Code hybrid mode continues to use weighted RRF inside the code lane only. A
+second bounded code search may follow exact unit IDs resolved from reviewed
+lineage mappings; candidate mappings are never followed.
+
+```python
+combined = retrieve_combined_evidence(
+    query=query,
+    fdd_results=fdd_results,
+    code_artifact=code_artifact,
+    lineage_artifact=lineage_artifact,
+    code_mode="hybrid",
+    # explicit clients/vectors omitted here
+)
+```
+
+Production interpretation: a combined question can retrieve useful visible
+code even before mappings are reviewed, but the response must describe it as
+directly retrieved candidate evidence—not as proven implementation of the FDD.
+Mappings add provenance and bounded expansion; they do not merge FDD and code
+score scales.
+
+The real local Neo AML smoke test retrieved R24 and R22 FDD units plus
+`spBatchTxnEndPoint` units from `pkgamlaintegration_p_custom.sql`. Because the
+artifact is still `candidate`, `mapped_code_evidence` and `reviewed_lineage`
+remained empty and the result explicitly recorded that no reviewed mapping
+applies. No OpenAI call occurred.
+
+Failure tests reject unknown unit filters, cross-snapshot or cross-artifact
+mappings, malformed FDD identities, and candidate mappings used as authority.
+
+## Step 167 - Add four-section combined answer contracts
+
+Added a deterministic combined-answer validator with these independent
+sections:
+
+```text
+Documented functionality
+Visible custom implementation
+Impact and likely change locations
+Unknown or unavailable behavior
+```
+
+Documented claims accept only FDD `[F#]` citations. Implementation and impact
+claims accept only code `[C#]` citations with exact path/symbol/line provenance.
+An invalid or cross-lane citation refuses only the affected section. Unknown
+mapping, kernel, conditional, parser, dynamic-SQL, or external-schema boundaries
+remain explicit. Patch-like output is rejected and impact locations remain
+candidates rather than proven root causes.
+
+Production interpretation: combined mode does not blur documentation into code
+or code into documented requirements. Partial knowledge stays useful while each
+unsupported section fails safely with a machine-readable reason.
+
+Focused lineage, combined retrieval, and answer-contract tests passed `20/20`,
+including exact overload resolution, candidate non-authority, reviewed mapping
+expansion, lane-specific citations, independent section refusal, and patch
+rejection. No API/UI routing, paid generation, mapping approval, or combined-mode
+activation occurred. The complete regression suite passed `533` tests with the
+one existing non-failing Starlette/HTTPX deprecation warning.
+
+## Step 167A - Import and bind the approved Neo AML lineage review
+
+The SME completed all three mapping decisions as `reviewed`, each with the
+rationale `Correct mapping`. The importer verified the candidate artifact ID,
+exact mapping-ID set, nonblank verdicts/rationales, FDD document IDs, code
+snapshot/artifact identity, and all six file targets before publishing a
+separate reviewed artifact.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\import_fdd_code_lineage_review.py `
+  data\staging\fdd_code_lineage\neo_aml_v1\candidate_lineage_artifact.json `
+  data\exports\code_analysis\neo-aml-fdd-code-lineage-v1-review.md `
+  --reviewer AIAgentSmith `
+  --code-artifact data\staging\code_embeddings\fci-custom-r1-b1c79c6dc2c5\code_index_text_embedding_3_large_v1\code_index_artifact.json `
+  --analysis-directory data\staging\code\fci-custom-r1-b1c79c6dc2c5\plsql_antlr_4_13_2_analysis_v13\analysis `
+  --fdd-processed-directory data\indexes\functional_specs_v5\processed `
+  --output data\staging\fdd_code_lineage\neo_aml_v1\reviewed_lineage_artifact.json
+```
+
+```text
+review packet SHA-256: 47c7a8f0bb18167a4810be873f8d37a75cdeda643baac21fd2e0cb4a44ec20e1
+reviewed artifact identity: 85f1623e298b73858abbd68596c66aab36c4409739eb48d9ab07f29998f9d738
+reviewed mappings: 3
+reviewed targets: 6
+```
+
+Production interpretation: review authority is now machine-readable and bound
+to the exact packet and candidate generation. The candidate files remain
+immutable; their status was not edited in place. A local replay followed only
+the reviewed artifact and produced three mapping-bounded code units with no
+mapping unknowns. Two mappings applied because only their FDDs entered the
+top-three evidence set; a reviewed mapping does not force an irrelevant FDD
+into retrieval.
+
+Failure behavior rejects packet/artifact identity mismatch, missing or duplicate
+mapping IDs, blank rationale, non-reviewed verdicts, unknown sources/targets,
+and overwrite attempts. Focused lineage tests passed `5/5`; no OpenAI call or
+combined-mode activation occurred. The complete regression suite remained
+`533` passing tests with the one existing non-failing Starlette/HTTPX
+deprecation warning.
+
+## Step 168 - Draft code-only and combined evaluation manifests
+
+Added a strict `CodeCombinedEvalCase` contract and two versioned draft JSONL
+manifests:
+
+```text
+data/evaluations/code_grounded_eval_v1_draft.jsonl
+data/evaluations/combined_grounded_eval_v1_draft.jsonl
+```
+
+The ten release-free user questions cover exact code explanations, impact
+analysis, reviewed FDD-to-code lineage, and two unavailable-kernel abstention
+cases. Code-only cases cannot declare FDD authority. Answered combined cases
+must declare both expected FDD documents and code paths. Abstention cases cannot
+declare positive evidence expectations, and a case cannot claim reviewed status
+without `sme_reviewed=true`.
+
+```python
+case = CodeCombinedEvalCase(
+    case_id="combined-aml-transaction-flow-001",
+    mode="combined",
+    question="How does the system integrate FCIS transactions with FlagRight?",
+    expected_code_paths=("pkgamlaintegration_p_custom.sql",),
+    expected_fdd_document_ids=("exact-document-id",),
+    require_reviewed_lineage=True,
+    rationale="Checks reviewed cross-lane lineage.",
+)
+```
+
+Generated the no-overwrite SME packet
+`data/exports/evaluations/code-combined-eval-v1-sme-review.md`, bound to both
+manifest hashes. The packet was created locally with zero external API calls.
+
+Production interpretation: these are draft expectations, not a quality gate.
+They prevent release labels from leaking into ordinary questions while keeping
+source identity as hidden evaluation metadata. SME review must validate the
+expected routines, documents, answer state, and unknown boundary before a paid
+run.
+
+Failure tests reject cross-lane case definitions, positive evidence on an
+abstention case, inconsistent SME status, duplicate case IDs, and review-packet
+overwrite.
+
+## Step 169 - Deterministic code/combined retrieval and failure gates
+
+Added `scripts/run_code_combined_retrieval_eval.py` and immutable retrieval
+reports. The runner supports local lexical retrieval and dense/hybrid retrieval
+only when precomputed query vectors are explicitly supplied. It never creates
+query embeddings or calls an LLM. Hybrid code retrieval retains weighted RRF
+with `0.40` dense and `0.60` lexical weights; FDD and code scores remain separate.
+
+```powershell
+& .\.venv\Scripts\python.exe scripts\run_code_combined_retrieval_eval.py `
+  --eval-file data\evaluations\code_grounded_eval_v1_draft.jsonl `
+  --eval-file data\evaluations\combined_grounded_eval_v1_draft.jsonl `
+  --code-mode lexical --allow-unreviewed
+```
+
+The bounded lexical draft run produced
+`data/exports/evaluations/code-combined-v1-draft-lexical-bounded-20260820.json`.
+All four code-only positive cases passed. Two of four combined positives passed;
+the other two retrieved the expected FDD and code file but did not retain the
+expected exact routine. The positive pass rate was `6/8 = 0.75`, below the
+configured `0.90` threshold. Two kernel cases remained abstention diagnostics.
+Because the manifest is unreviewed, release-gate eligibility is false regardless
+of score.
+
+The combined merger was corrected to cap final code evidence at `code_limit`;
+direct and mapping-bounded searches may each produce candidates, but their union
+cannot silently double prompt size. The static-analysis loader now selects
+`code_static_analysis_v1` artifacts by schema and accepts either the generation
+root or its `analysis/` child, avoiding accidental parsing of the stage manifest.
+
+Production interpretation: finding the correct package is insufficient for a
+code claim. The exact routine must survive ranking and bounded evidence packing.
+The two failures are retrieval/evidence-selection findings to review before
+generation, not reasons to tune the LLM.
+
+Failure tests cover wrong-but-nearby symbols, missing FDD evidence, absent
+reviewed mappings, query/case mismatch, unreviewed release-gate exclusion,
+unbounded merged evidence, incompatible query-vector input, and immutable report
+publication.
+
+## Step 170 - Paid answer-evaluation authorization boundary
+
+Added `scripts/prepare_code_combined_answer_eval.py`. It hash-binds the exact
+evaluation manifests and retrieval report, requires exact case-set equality,
+requires a passing retrieval threshold, and records the intended disclosure and
+request counts without calling OpenAI.
+
+```python
+if not report["summary"]["retrieval_threshold_passed"]:
+    raise ValueError("Paid answer evaluation is blocked by the retrieval gate")
+```
+
+The real draft report intentionally triggered this failure because its pass rate
+was `0.75`. Consequently no paid answer plan was published, no question or
+internal evidence was sent externally, and no OpenAI cost was incurred. Even
+after retrieval passes, explicit disclosure/cost authorization and SME answer
+review remain separate gates; activation is not automatic.
+
+Production interpretation: the cheapest safe failure is before generation.
+Spending on an LLM when exact evidence is already known to be missing would add
+cost and nondeterminism without repairing grounding.
+
+Failure tests prove that a failed retrieval gate blocks preparation, report and
+manifest case-set drift is rejected, a valid plan records zero external calls,
+and an existing plan cannot be overwritten.
+
+Focused Steps 168-170 tests passed `14/14`. The complete regression suite passed
+`542` tests with the one existing non-failing Starlette/HTTPX deprecation
+warning. Steps 168-169 mechanisms and the Step 170 authorization boundary are
+implemented; the SME manifest review, two combined retrieval gaps, paid answer
+run, SME answer review, rollback proof, and deliberate activation remain open.
+
+## Step 168A - Import the reviewed code/combined benchmark
+
+Added `scripts/import_code_combined_eval_review.py` to validate the exact
+ten-case review scope, accepted verdicts, absence of unapplied corrections,
+manifest hash bindings, and nonblank per-case or explicit global rationale. It
+published separate reviewed manifests rather than changing the draft evidence:
+
+```text
+data/evaluations/code_grounded_eval_v1_reviewed.jsonl
+data/evaluations/combined_grounded_eval_v1_reviewed.jsonl
+data/evaluations/code_combined_eval_v1_review_20260821.json
+```
+
+```text
+reviewed cases: 10
+review packet SHA-256: 7f06d2d275989e218d339f796ea3eb99511b2688fa7f33374ca2548219b1d913
+review ledger identity: 76a09f9781ba0a34cf7febf19c3845b1ecb4632a71c2065ece5883f813a39592
+```
+
+Three packet sections had accepted verdicts but blank local rationales. The
+importer bound those decisions to the explicit global approval note supplied for
+the whole packet and recorded `rationale_source=global_approval_note`; it did not
+invent source-specific reasoning.
+
+The reviewed lexical gate reproduced the draft result: `6/8` positive cases
+passed (`0.75`), while both abstention cases remained diagnostics. SME approval
+therefore established benchmark authority but did not mask the two exact-symbol
+retrieval failures. The paid-answer preparation boundary continued to fail
+closed, and no OpenAI call or cost occurred.
+
+Production interpretation: human approval determines whether the expectations
+are legitimate; it does not turn a failing system result into a pass. Failure
+tests reject duplicate cases, non-accepted verdicts, unapplied corrections,
+packet/manifest hash drift, scope drift, blank rationale without an explicit
+global approval note, and overwrite of reviewed outputs.
+
+## Step 171 - Localize combined exact-symbol evidence loss
+
+Extended combined retrieval and evaluation traces to retain direct and
+mapping-bounded dense/lexical candidate summaries, including `parent_unit_id`,
+without copying full source text into diagnostic summaries.
+
+```python
+class CombinedRetrievalResult(FrozenModel):
+    direct_lexical_candidates: tuple[CodeCandidateSummary, ...] = ()
+    mapped_lexical_candidates: tuple[CodeCandidateSummary, ...] = ()
+```
+
+The reviewed failures were localized before generation:
+
+```text
+combined-aml-batch-send-002: spSendBatchTxnEndData lexical rank 12
+combined-aml-offline-impact-004: spOfflineParallelUserEnd lexical rank 13
+```
+
+Both expected routines were valid candidates within the configured candidate
+budget of 30. They were lost when repeated bounded children from higher-ranked
+parent routines consumed the final top-10 evidence budget. This ruled out
+ingestion, embedding absence, code-file filtering, FDD selection, reviewed
+mapping, and LLM generation as root causes.
+
+Production interpretation: candidate-lane traces identify the first stage where
+evidence disappears. Full source is excluded from these diagnostics to control
+storage and protect citation provenance.
+
+Failure tests preserve query/case identity, source path, symbol, parent, rank,
+and line ranges independently so nearby code cannot masquerade as the expected
+routine.
+
+## Step 172 - Add parent-first code evidence diversity
+
+Added configurable `max_units_per_parent` selection, defaulting to two, across
+lexical, dense, hybrid, direct, mapped, and final merged code evidence. Selection
+uses parent-first round-robin ordering:
+
+```python
+for occurrence in range(max_units_per_parent):
+    layer = each_parent_at_occurrence(occurrence)
+    add_in_original_rank_order(layer)
+```
+
+The first attempted greedy cap still allowed a second child from an early parent
+to displace the first child of a later parent. Its real-corpus replay continued
+to fail `6/8`, so it was not accepted as the fix. Parent-first round-robin takes
+the best child from each distinct parent before admitting second children. It
+does not alter embeddings, Qdrant points, reviewed mappings, lexical scoring, or
+the weighted-RRF weights.
+
+Production interpretation: bounded child chunks are necessary for large source
+files, but chunk multiplicity must not become an accidental ranking advantage.
+Parent diversity improves symbol coverage while the configurable second round
+still permits extra context when budget remains.
+
+Failure tests cover an unseen parent competing with a higher-ranked second child,
+invalid zero limits, exact parent metadata propagation, final merge bounds, and
+candidate-trace retention. Focused retrieval/lineage/evaluation tests passed
+`30/30`.
+
+## Step 173 - Re-run the reviewed gate and prepare paid evaluation
+
+The reviewed deterministic lexical gate passed every positive case after the
+parent-first correction:
+
+```text
+positive cases: 8/8
+positive pass rate: 1.0
+minimum required: 0.90
+reviewed manifest: true
+release-gate eligible retrieval result: true
+abstention diagnostics: 2
+external API calls: 0
+```
+
+The immutable report is
+`data/exports/evaluations/code-combined-v1-reviewed-lexical-parent-round-robin-20260821.json`
+with SHA-256
+`2bbe56454a2c1a8bf97ae391b5aa1783fbfa3f614a8c2f6e6d1337fb3692c8bb`.
+The two repaired final evidence sets now contain `spSendBatchTxnEndData` and
+`spOfflineParallelUserEnd` respectively.
+
+Prepared, but did not execute, the hash-bound paid evaluation plan at
+`data/exports/evaluations/code-combined-answer-eval-plan-v1-20260821.json`
+(SHA-256
+`8ec0b81d8081e07ea032e085cf3debfb9c4aa1f0ccfd76734960e3762894f988`).
+It covers ten answer-generation requests and ten query-embedding inputs and
+states that evaluation questions plus retrieved internal FDD and PL/SQL excerpts
+would be disclosed to OpenAI.
+
+Production interpretation: deterministic retrieval is now eligible to proceed
+to paid evaluation, but it is not proof of answer correctness or activation.
+Explicit disclosure/cost authorization, paid traces, citation/entailment checks,
+SME answer review, rollback verification, and deliberate activation remain open.
+
+Failure behavior still blocks unreviewed manifests, case-set/report drift,
+failed retrieval thresholds, plan overwrite, and paid execution without explicit
+authorization. No OpenAI call or cost occurred in Steps 171-173. The complete
+regression suite passed `549` tests with the one existing non-failing
+Starlette/HTTPX deprecation warning.
+
+## Step 174 - Harden the paid code/combined evaluation boundary
+
+Added `app/fdd_code_lineage/paid_evaluation.py` and
+`scripts/run_code_combined_paid_answer_eval.py`. The runner hash-validates the
+ten reviewed cases and passing retrieval report, requires an explicit disclosure
+flag, performs one query embedding per case for both FDD and code lanes, disables
+automatic OpenAI retries, retains exact prompts/evidence and provider request and
+usage metadata, validates lane-specific citation contracts, and publishes a
+separate SME review packet. An explicit query vector can now be supplied to the
+FDD retrieval service so it cannot silently create a duplicate embedding call.
+
+Production interpretation: structural validation and request accounting are
+release evidence, not semantic approval. Generated results remain inactive and
+require SME entailment review, rollback evidence, and deliberate activation.
+
+Failure tests cover explicit-vector embedding bypass, malformed or cross-lane
+citations, exact case/hash drift, missing authorization, collection absence,
+output overwrite, and fail-closed partial-run preservation. Focused tests passed
+`21/21`; the complete regression suite passed `550` tests with the existing
+non-failing Starlette/HTTPX deprecation warning.
+
+## Step 175 - Paid run attempted and stopped before generation
+
+The authorized run made one successful query-embedding request for
+`code-aml-batch-send-001`, then failed closed before retrieval or answer
+generation because the command incorrectly used the FDD Qdrant path for the
+separate `code_custom_r1_v2` collection. The immutable partial run is retained at
+`data/exports/evaluations/code-combined-paid-answer-20260821/`:
+
+```text
+embedding requests completed: 1
+answer requests completed: 0
+failed case: code-aml-batch-send-001
+failure: code_custom_r1_v2 absent from data/qdrant_local
+```
+
+The runner now accepts separate FDD and code Qdrant paths and validates both
+required collections before any external call. A corrected dry run succeeded
+with `data/qdrant_local/functional_specs_v5` and
+`data/qdrant_code_local/code_custom_r1_v2`, making zero external calls.
+
+Production interpretation: separate knowledge lanes also have separate physical
+stores. Every paid workflow must complete all local collection/readiness checks
+before consuming external cost. The lost in-memory query vector was not persisted,
+so completing all ten cases requires one replacement embedding call; it will not
+be retried without explicit additional authorization.
+
+The user authorized the required replacement embedding. The first corrected run
+completed all five code-only cases with structural passes, then failed closed on
+the first combined case after its query embedding because `TemporalQueryPlan` is
+a dataclass rather than a Pydantic model. It made six embeddings and five answer
+calls. The completed five cases were preserved and were not regenerated.
+
+## Step 176 - Resume, finish, and structurally evaluate the paid run
+
+Corrected temporal-plan serialization with `dataclasses.asdict` and added a
+hash-validated `--resume-from` mechanism. Resume accepts only a `failed_closed`
+run bound to the same authorization plan, validates completed case IDs and trace
+presence, skips completed cases, and reports prior/current request counts
+separately. Its dry run proved that only the five unfinished combined cases
+would create new requests.
+
+The continuation completed all five combined cases. Across the final run chain:
+
+```text
+reviewed cases completed: 10/10
+structural passes: 8/10
+query embeddings in final run chain: 11 (one replacement after the local failure)
+answer generations: 10
+successful-case embedding tokens: 207
+answer input tokens: 150,560
+answer output tokens: 28,165
+activation authorized: false
+```
+
+Including the earlier wrong-Qdrant-path attempt, the complete operational history
+contains 12 successful embedding requests and 10 answer requests. Automatic API
+retries remained disabled throughout.
+
+The two structural findings are:
+
+- `combined-aml-offline-impact-004` answered with several cited candidate change
+  locations but did not cite the benchmark's expected `spOfflineParallelUserEnd`
+  symbol.
+- `combined-kernel-http-negative-005` correctly refused the exact hidden-kernel
+  fact in its unknown section, but also answered documented/visible-code sections
+  with nearby connection-handling evidence, while the deterministic benchmark
+  expected every material section to refuse.
+
+These are SME-review findings, not automatic proof that either answer is
+semantically unacceptable. The immutable report and review packet are:
+
+```text
+data/exports/evaluations/code-combined-paid-answer-20260821-retry2/run-state.json
+SHA-256: 17cf1836e3f05343fba7c6fd6bdb7e94335321b8575bd032cfa008fac69fa832
+
+data/exports/evaluations/code-combined-paid-answer-20260821-retry2/sme-review.md
+SHA-256: 952989539ed945134e315421a8c3b21b551c6b0405b4b727956bdef12d11fd3f
+```
+
+Production interpretation: a structural gate should expose missing expected
+citations and refusal-state disagreements, but the SME decides whether the
+benchmark is too strict or the answer is materially unsafe. No collection,
+runtime configuration, API/UI route, or activation state changed.
+
+Failure-mode testing covered missing/wrong physical collections before external
+calls, no automatic retries, immutable partial traces, same-plan resume binding,
+completed-case deduplication, dataclass serialization, citation-lane validation,
+expected-symbol citation checks, and strict abstention behavior.

@@ -997,3 +997,414 @@ No such authorization is inferred from these interview answers.
 9. What retrieval, citation, grounded-answer, impact-analysis, unknown-handling,
    rollback, and activation evidence is still required before v2 can serve
    users?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** A cache hit proves exact embedding-input/cache identity, not a
+   filename match. Source-occurrence identity remains separate.
+2. **Accepted.** Cached and newly returned vectors must conform to the same
+   collection dimension; reuse identity alone does not prove schema compatibility.
+3. **Accepted.** Six successful requests prove only that those requests returned
+   usable indexed responses. Coverage, semantic quality, retrieval, citations,
+   answers, and authoritative provider cost remain separate checks.
+4. **Accepted.** A complete 279-point v2 generation is independently verifiable
+   and reversible; a 168-point delta would create a runtime dependency on v1.
+5. **Accepted.** Rejecting duplicate construction preserves the immutable meaning
+   of a verified collection name and avoids silent partial mutation.
+6. **Accepted.** Index creation is not routing or activation, so API/UI behavior
+   remains unchanged until a deliberate serving decision.
+7. **Accepted.** Re-verifying v1 proves that constructing v2 did not disturb the
+   retained rollback generation.
+8. **Accepted.** Re-verifying v2 after the rejected write proves the failure path
+   caused no partial mutation.
+9. **Accepted.** The answer correctly retains retrieval, exact citations,
+   grounding, bounded impact guidance, unknown handling, rollback, SME review,
+   and deliberate activation as independent gates.
+
+Gate status: **Steps 161AE-161AG learner gate accepted.**
+
+## Steps 162-164 - Code retrieval, citation, and grounded-answer interview gate
+
+### Step 162 - Explicit isolated code retrieval
+
+1. Why must dense results be validated against the exact embedded artifact even
+   when Qdrant already filters by `knowledge_lane` and `snapshot_id`?
+2. Why does the retrieval service require an explicit mode and an externally
+   supplied query vector instead of automatically routing or embedding a query?
+3. What does the real lexical `spPNBRPT006` smoke test prove, and what dense or
+   semantic retrieval property does it not prove?
+
+### Step 163 - Exact source-line citation contract
+
+4. Why must code citations use `citation_text`, source path, symbol, and exact
+   line range rather than the derived `embedding_text`?
+5. Why are candidate-lane summaries retained without repeating full source text?
+6. Why must an answered response with no citation, or with an unknown citation
+   ID such as `[C9]`, fail closed rather than be returned with a warning?
+
+### Step 164 - Grounded explanation and graceful failure
+
+7. Why can an impact-analysis answer identify candidate change locations but
+   not claim that any location is a proven root cause?
+8. How should `fallback_parse`, `conditional_unknown`, and unavailable kernel
+   behavior affect a code answer even when some visible custom evidence exists?
+9. What retrieval, paid answer evaluation, SME, API/UI routing, rollback, and
+   activation work still remains after these deterministic contracts pass?
+
+Gate status: **deferred by the user before evaluation** to prioritize the three
+matching FDD documents and v5 activation. No learner score is claimed for this
+gate; its technical coverage is partly revisited in Steps 165-167.
+
+## Steps 164D-164F - FDD v5 ingestion and activation interview gate
+
+### Step 164D - Controlled three-document intake
+
+1. Why did the master intake use `functional_specs_v5_intake` rather than write
+   the three documents directly into active v4 or final v5?
+2. What do 188 exactly verified source occurrences prove, and what retrieval or
+   answer property remains unproven?
+3. Why may duplicate semantic text reuse an embedding while each FDD occurrence
+   still requires a distinct point and citation identity?
+
+### Step 164E - Complete immutable v5 rebuild
+
+4. Why must v5 contain all 11 archived FDDs rather than only the 188 new units?
+5. Why did 458 new embeddings reveal a cache-planning issue even though the
+   rebuild completed successfully, and what should be checked before v6?
+6. What separate evidence is provided by the source manifest, vector dimension,
+   point count, and exact artifact-to-point verification?
+
+### Step 164F - Paired activation with deferred evaluation
+
+7. Why must `QDRANT_COLLECTION_NAME` and `PROCESSED_DIR` be activated together?
+8. Why is the R22 document ranking second behind a related R24 document a real
+   risk even though all three documents are indexed and searchable?
+9. What can be claimed about local v5 activation, and what cannot be claimed
+   while semantic retrieval and grounded-answer evaluation remain deferred?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** Isolation protects both the active and final namespaces from
+   partial ingestion and preserves a clean failure boundary.
+2. **Accepted.** Exact occurrence verification establishes identity, payload,
+   and storage completeness, not semantic retrieval or generated-answer quality.
+3. **Accepted.** Vector identity belongs to semantic input; point and citation
+   identity belong to each distinct source occurrence.
+4. **Accepted.** A complete generation prevents activation from silently
+   dropping the eight previously indexed FDDs and remains independently
+   reproducible and reversible.
+5. **Accepted with precision refinement.** The additional 270 older inputs were
+   absent under compatible identities in the configured central seed cache.
+   Before v6, inspect all compatible prior-stage cache locations and estimate
+   misses from canonical input keys rather than document counts.
+6. **Accepted.** The answer correctly separates source-byte identity, vector
+   schema, namespace cardinality, and exact occurrence correspondence.
+7. **Accepted.** Paired activation exposes one coherent vector/lexical evidence
+   contract and prevents mode-dependent generation drift.
+8. **Accepted with temporal refinement.** For an explicitly R22-scoped request,
+   R24 ranking first is a clear failure. For a current-state request, R24 may be
+   correct; the later evaluation must distinguish explicit historical scope from
+   current-state release selection.
+9. **Accepted with wording refinement.** V5 is already deliberately activated
+   locally. What remains unproven is semantic and production-quality readiness,
+   including ranking, lineage, citations, grounded answers, operational load,
+   and SME acceptance.
+
+Gate status: **Steps 164D-164F learner gate accepted.**
+
+## Steps 165-167 - FDD/code lineage and combined-analysis interview gate
+
+### Step 165 - Reviewed lineage mapping contract
+
+1. Why must a user-supplied FDD/package association remain `candidate` until an
+   SME reviews its scope, even when filenames and source comments align?
+2. Why does an exact overload selector require the canonical qualified name,
+   symbol kind, and overload discriminator hash together?
+3. What risk remains when an SME accepts a broad file-level mapping instead of
+   selecting individual symbols?
+
+### Step 166 - Independent combined retrieval
+
+4. Why must FDD and code retrieval keep separate scores, thresholds, evidence,
+   and candidate traces rather than fuse both lanes into one RRF ranking?
+5. Why should direct code retrieval still run when no reviewed lineage mapping
+   exists, and how must the result be qualified?
+6. What does the local Neo AML combined smoke test prove when it finds both FDD
+   and AML package evidence but refuses to claim a reviewed link?
+
+### Step 167 - Sectioned combined answer contract
+
+7. Why may the documented-functionality section cite only `[F#]` evidence while
+   implementation and impact sections require `[C#]` evidence?
+8. Why should one invalid section fail independently rather than force every
+   otherwise grounded section into the same answer/refusal state?
+9. What SME mapping review, retrieval evaluation, paid answer evaluation, and
+   activation work remains before combined mode can serve users?
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** A supplied association or similar name is candidate evidence,
+   not proof of implementation lineage. Only explicit SME approval may promote
+   it to reviewed authority.
+2. **Accepted.** Qualified ownership, symbol kind, and overload discriminator
+   jointly identify the intended callable. Return type alone cannot distinguish
+   a PL/SQL overload.
+3. **Accepted.** File-level review is deliberately broad and can over-attribute
+   unrelated routines. Combined and impact answers must preserve that scope
+   instead of describing every contained symbol as an exact implementation.
+4. **Accepted.** The lanes have different evidence meanings, score
+   distributions, and thresholds. RRF is appropriate within a lane, but a
+   cross-lane ranking would blur documented requirements and visible code.
+5. **Accepted.** Direct retrieval can surface useful candidate implementation
+   evidence, but without a reviewed link it cannot establish that the code
+   implements the retrieved FDD.
+6. **Accepted.** The smoke test proves one local mechanism path and expected
+   evidence reachability. It does not establish corpus-wide retrieval, mapping,
+   citation, answer, or operational quality.
+7. **Accepted.** Lane-specific citation prefixes preserve claim authority:
+   `[F#]` supports documented behavior and `[C#]` supports visible custom-code
+   and impact claims.
+8. **Accepted.** Independent section failure preserves valid partial knowledge
+   while preventing one unsupported section from contaminating another.
+9. **Accepted.** The answer correctly retains mapping review, code/combined
+   evaluation, citation validation, separately authorized paid generation, SME
+   answer review, rollback, and deliberate activation as independent gates.
+
+Gate status: **Steps 165-167 learner gate accepted.** Steps 168-170 remain
+blocked on the three-item FDD-to-code SME mapping review; candidate mappings
+cannot be silently promoted by the implementation.
+
+### Mapping-review resolution
+
+The SME subsequently marked all three mappings `reviewed` with rationale
+`Correct mapping`. The decisions were imported into a separate hash-bound
+artifact rather than modifying the candidate generation:
+
+```text
+review packet SHA-256: 47c7a8f0bb18167a4810be873f8d37a75cdeda643baac21fd2e0cb4a44ec20e1
+reviewed artifact identity: 85f1623e298b73858abbd68596c66aab36c4409739eb48d9ab07f29998f9d738
+```
+
+The mapping-review prerequisite is now satisfied. Steps 168-170 may begin with
+draft code-only and combined evaluation manifests; paid evaluation remains a
+separate explicit authorization boundary.
+
+## Steps 168-170 - Code and combined evaluation gate
+
+### Step 168 - Evaluation manifest contracts
+
+1. Why should normal evaluation questions omit release labels while retaining
+   exact FDD document IDs as hidden expected metadata?
+2. Why must a code-only case be forbidden from declaring FDD evidence or a
+   reviewed FDD-to-code mapping?
+3. What must the SME validate before the ten draft cases can become a reviewed
+   release-gate manifest, beyond confirming that the wording looks reasonable?
+
+### Step 169 - Deterministic retrieval gate
+
+4. Why does retrieving the expected code file not prove that the evidence is
+   sufficient when the expected routine is absent from final bounded evidence?
+5. Why must the merged direct and mapping-bounded code evidence be capped again
+   after both searches, even though each individual search already has a limit?
+6. What does the `6/8` positive result prove, and why must the two abstention
+   cases remain diagnostics rather than improve the positive pass rate?
+
+### Step 170 - Paid answer-evaluation boundary
+
+7. Why should paid answer generation be blocked when the deterministic
+   retrieval threshold fails instead of letting the LLM try to recover?
+8. Why must the future authorization explicitly cover both evaluation questions
+   and retrieved internal FDD/PLSQL excerpts, rather than mentioning API cost
+   alone?
+9. After retrieval passes and the paid answers are generated, what evidence and
+   reviews are still required before combined mode can be deliberately activated?
+
+Gate status: **awaiting learner answers and SME review of the draft manifests.**
+No paid OpenAI call was made in Steps 168-170.
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted.** Natural business wording tests retrieval and temporal reasoning
+   without leaking release metadata. Hidden document IDs retain an objective,
+   auditable expectation.
+2. **Accepted.** Code-only mode must not borrow FDD authority. Keeping evidence
+   lanes separate prevents documentation that was never retrieved from being
+   used to validate a code claim.
+3. **Accepted.** The answer correctly includes question realism, exact source and
+   symbol expectations, mapping/overload scope, evidence sufficiency, and
+   answered-versus-abstention behavior. SME approval converts developer
+   assumptions into a reviewed benchmark contract.
+4. **Accepted.** Package-level relevance is not symbol-level support. A claim
+   about one routine requires that routine or a provenance-preserving bounded
+   child in final evidence.
+5. **Accepted.** Independent limits do not bound their union. Final merge
+   deduplication and capping are necessary for deterministic prompt size, cost,
+   and evidence balance.
+6. **Accepted.** The answer correctly separates positive retrieval recall from
+   safe-abstention behavior. Mixing them into one numerator would conceal the
+   two positive retrieval failures.
+7. **Accepted.** Generation cannot reliably reconstruct missing evidence. The
+   deterministic evidence gate should fail before cost and model variability are
+   introduced.
+8. **Accepted.** Cost authority and disclosure authority are separate controls.
+   Approval must cover the exact internal questions and FDD/PLSQL excerpts sent
+   to the external service.
+9. **Accepted.** Citation provenance, lane-specific entailment, unknown/refusal
+   behavior, paid evaluation, SME answer review, rollback, and deliberate
+   activation remain independent gates.
+
+Gate status: **Steps 168-170 learner gate accepted.** The draft manifest still
+requires SME review, and the two combined exact-symbol retrieval gaps still
+block paid answer evaluation.
+
+### SME-review resolution
+
+The SME accepted all ten cases. Separate reviewed manifests and a hash-bound
+ledger were published without modifying the drafts:
+
+```text
+review packet SHA-256: 7f06d2d275989e218d339f796ea3eb99511b2688fa7f33374ca2548219b1d913
+review ledger identity: 76a09f9781ba0a34cf7febf19c3845b1ecb4632a71c2065ece5883f813a39592
+```
+
+The reviewed deterministic replay remained `6/8` positive (`0.75`). Benchmark
+review is complete, but the two combined exact-symbol retrieval failures still
+block paid answer evaluation.
+
+### Source-of-truth clarification
+
+Code is authoritative for what the **available custom-code snapshot visibly
+implements**. The FDD is authoritative for **documented business intent and
+functional requirements**. Neither is a universal source of truth:
+
+- visible PL/SQL cannot prove hidden Java/kernel behavior, external services,
+  live configuration, runtime data, privileges, conditional branches, or
+  unresolved dynamic SQL;
+- an FDD can omit implementation details or differ from deployed code;
+- an archived code snapshot can differ from the version actually deployed.
+
+Combined answers must therefore report documented functionality and visible
+custom implementation separately, identify agreement or conflict, and label
+runtime/deployment facts as unknown unless later confirmed by approved runtime
+metadata or deployment evidence.
+
+## Steps 171-173 - Parent-diverse code retrieval gate
+
+### Step 171 - Candidate-lane diagnosis
+
+1. What does finding the expected symbols at lexical ranks 12 and 13 prove, and
+   which ingestion, mapping, retrieval, and generation failure causes does it
+   rule out?
+2. Why must candidate traces retain parent identity, symbol, path, rank, and line
+   range while excluding full source text?
+3. Why would increasing the final evidence limit be a weaker first correction
+   than identifying repeated children from the same parent?
+
+### Step 172 - Parent-first diversity
+
+4. Why did a greedy maximum of two children per parent still fail even though it
+   technically enforced the configured cap?
+5. How does parent-first round-robin differ from deduplicating every symbol to a
+   single chunk, and what trade-off does `max_units_per_parent=2` preserve?
+6. Why is this correction safer than changing global lexical weight, embeddings,
+   or the reviewed FDD-to-code mappings?
+
+### Step 173 - Reviewed replay and paid boundary
+
+7. What does the reviewed `8/8` deterministic result prove, and what semantic or
+   operational properties remain unproven?
+8. Why do the two kernel abstention cases remain outside the positive retrieval
+   pass-rate numerator even after the release gate becomes eligible?
+9. What exact disclosure, cost, trace, citation, SME, rollback, and activation
+   evidence is still required before combined mode can serve users?
+
+Gate status: **awaiting learner answers.** Deterministic retrieval is eligible
+for the next gate; the paid OpenAI operation remains unexecuted and requires
+explicit authorization.
+
+### Evaluation
+
+Overall result: **9/9 accepted.**
+
+1. **Accepted with scope refinement.** Candidate ranks 12 and 13 prove the
+   symbols exist in the approved artifact and were reached by lexical candidate
+   retrieval. Their presence in the mapping-bounded trace also proves they were
+   eligible under the reviewed broad mapping. It does not prove that the mapping
+   is semantically precise, that ranking is acceptable, or that the symbols
+   survive evidence packing.
+2. **Accepted.** Compact identity/rank metadata makes the loss auditable while
+   avoiding source duplication. Original source units remain the only citation
+   authority.
+3. **Accepted.** Raising the limit increases prompt size, latency, and cost while
+   preserving the parent-dominance mechanism. Diversity corrects coverage at the
+   existing budget.
+4. **Accepted.** The greedy cap limited total children but still admitted a
+   second child from an early parent before the first child of a later parent.
+   Ordering, not merely the cap value, caused the remaining loss.
+5. **Accepted with terminology refinement.** The important comparison is one
+   chunk per **parent routine**, not one per symbol name. A strict one-parent-one-
+   chunk rule improves breadth but can omit necessary later lines of a large
+   routine. Parent-first round-robin gives every parent initial representation,
+   then permits a second child when budget remains.
+6. **Accepted.** The correction changes deterministic selection only; it leaves
+   source bytes, vectors, points, scores, RRF weights, and reviewed lineage
+   authority unchanged.
+7. **Accepted.** `8/8` proves the reviewed deterministic positive expectations
+   under this corpus, configuration, and budget. It does not prove semantic
+   entailment, generated-answer quality, broader generalization, live-model
+   stability, or production capacity.
+8. **Accepted.** Safe refusal and positive retrieval measure different system
+   properties and must remain separately reported.
+9. **Accepted with completeness refinement.** In addition to authorization,
+   provenance, lane-specific citations, safe refusal, SME review, rollback, and
+   deliberate activation, the paid run must retain exact prompts/evidence,
+   provider request and usage identifiers, generated answer contracts, failure
+   reasons, and immutable report bindings. Production operational properties
+   remain a later gate.
+
+Gate status: **Steps 171-173 learner gate accepted.** The next action is the
+separately authorized paid code/combined answer evaluation; no authorization is
+inferred from these interview answers.
+
+## Steps 174-176 - Paid code/combined grounded-answer evaluation
+
+### Step 174 - Paid-call and evidence boundary
+
+1. Why should one query embedding be reused across the FDD and code retrieval
+   lanes instead of embedding the same question independently for each lane?
+2. Why must the paid runner preserve exact prompts/evidence, provider request
+   IDs, token usage, and finalized answer contracts without storing API secrets?
+3. Why does disabling automatic retries matter for cost control and reproducible
+   evaluation, and what operational trade-off does it create?
+
+### Step 175 - Fail-closed execution and physical-store readiness
+
+4. Why did verifying `functional_specs_v5` not prove that
+   `code_custom_r1_v2` was available, even though both are Qdrant collections?
+5. Why must collection existence, generation identity, vector dimension, and
+   artifact-to-point verification happen before the first paid query embedding?
+6. Why is preserving a partial failed run and explicitly resuming safer than
+   restarting all ten cases from the beginning?
+
+### Step 176 - Structural results and SME gate
+
+7. Why does missing the expected `spOfflineParallelUserEnd` citation cause a
+   structural failure even when the answer cites several plausible alternative
+   offline-processing routines?
+8. For the hidden-kernel negative case, when is it acceptable to refuse the exact
+   request but still provide clearly separated, cited visible-code context, and
+   why must the global answer state still indicate that the requested fact was
+   unsupported?
+9. What do `8/10` structural passes and `10/10` completed paid answers prove, and
+   what must the SME verify before activation can be considered?
+
+Gate status: **awaiting learner answers and SME review of the ten paid answers.**
+No FDD/code generation or combined mode was activated.

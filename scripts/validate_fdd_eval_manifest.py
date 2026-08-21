@@ -29,7 +29,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--artifact-directory",
         type=Path,
-        default=Path("data/indexes/functional_specs_v4/processed"),
+        default=Path("data/indexes/functional_specs_v5/processed"),
     )
     parser.add_argument(
         "--output-file",

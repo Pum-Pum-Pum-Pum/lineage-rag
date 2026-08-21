@@ -14,6 +14,7 @@ def search_code_lexical_artifact(
     *,
     limit: int = 10,
     source_kind: str | None = None,
+    allowed_unit_ids: set[str] | None = None,
 ) -> list[LexicalSearchResult]:
     documents = [
         LexicalSearchDocument(
@@ -29,6 +30,7 @@ def search_code_lexical_artifact(
             parent_unit_id=record.parent_unit_id,
         )
         for record in artifact.records
+        if allowed_unit_ids is None or record.unit_id in allowed_unit_ids
     ]
     return search_lexical_documents(
         documents,
