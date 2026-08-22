@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -7,6 +9,8 @@ class QueryRequest(BaseModel):
     """Request contract for the grounded answer query endpoint."""
 
     query: str = Field(..., min_length=1)
+    knowledge_mode: Literal["fdd", "code", "combined"] = "fdd"
+    analysis_kind: Literal["explanation", "impact_analysis"] = "explanation"
     limit: int = Field(default=5, gt=0)
     document_family: str | None = None
     release_label: str | None = None
@@ -39,6 +43,24 @@ class CitationResponse(BaseModel):
     source_kind: str | None
     score: float
     text_preview: str
+
+
+class CodeCitationResponse(BaseModel):
+    unit_id: str
+    snapshot_id: str
+    source_path: str
+    display_name: str
+    source_kind: str
+    start_line: int
+    end_line: int
+    score: float
+    text_preview: str
+
+
+class CombinedSectionApiResponse(BaseModel):
+    status: Literal["answered", "refused"]
+    text: str
+    refusal_reason: str | None = None
 
 
 class EvidenceSufficiencyResponse(BaseModel):
@@ -76,3 +98,8 @@ class QueryResponse(BaseModel):
     retrieval_metadata: dict | None = None
     usage: LLMUsageResponse | None = None
     cost: LLMCostResponse | None = None
+    knowledge_mode: Literal["fdd", "code", "combined"] = "fdd"
+    requested_claim_supported: bool | None = None
+    related_grounded_context_provided: bool = False
+    code_citations: list[CodeCitationResponse] = Field(default_factory=list)
+    combined_sections: dict[str, CombinedSectionApiResponse] | None = None

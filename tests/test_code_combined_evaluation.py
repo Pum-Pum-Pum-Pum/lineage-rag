@@ -98,6 +98,18 @@ def test_abstention_is_diagnostic_and_draft_cannot_be_release_gate() -> None:
     assert report["summary"]["release_gate_eligible"] is False
 
 
+def test_advisory_symbol_does_not_turn_relevant_impact_evidence_into_failure() -> None:
+    case = _case(expected_code_symbols=("another_candidate",))
+    case = case.model_copy(update={"expected_code_symbol_policy": "advisory"})
+
+    report = build_code_combined_retrieval_case_report(
+        case=case, retrieval=_code_retrieval(case.question)
+    )
+
+    assert report.missing_code_symbols == ("another_candidate",)
+    assert report.positive_gate_passed is True
+
+
 def test_report_write_is_immutable(tmp_path: Path) -> None:
     path = tmp_path / "report.json"
     write_json_report_no_overwrite({"ok": True}, path)

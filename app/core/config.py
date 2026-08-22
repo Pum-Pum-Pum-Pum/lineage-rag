@@ -41,6 +41,35 @@ class Settings(BaseSettings):
         default=ROOT_DIR / "data" / "indexes" / "code",
         alias="CODE_INDEXES_DIR",
     )
+    code_modes_enabled: bool = Field(default=False, alias="CODE_MODES_ENABLED")
+    code_qdrant_local_path: Path = Field(
+        default=ROOT_DIR / "data" / "qdrant_code_local",
+        alias="CODE_QDRANT_LOCAL_PATH",
+    )
+    code_qdrant_collection_name: str = Field(
+        default="code_custom_r1_v2", alias="CODE_QDRANT_COLLECTION_NAME"
+    )
+    code_index_artifact_path: Path = Field(
+        default=(
+            ROOT_DIR
+            / "data/staging/code_embeddings/fci-custom-r1-b1c79c6dc2c5/"
+            "code_index_text_embedding_3_large_v1/code_index_artifact.json"
+        ),
+        alias="CODE_INDEX_ARTIFACT_PATH",
+    )
+    code_analysis_directory: Path = Field(
+        default=(
+            ROOT_DIR
+            / "data/staging/code/fci-custom-r1-b1c79c6dc2c5/"
+            "plsql_antlr_4_13_2_analysis_v12"
+        ),
+        alias="CODE_ANALYSIS_DIRECTORY",
+    )
+    fdd_code_lineage_artifact_path: Path = Field(
+        default=ROOT_DIR / "data/staging/fdd_code_lineage/neo_aml_v1/reviewed_lineage_artifact.json",
+        alias="FDD_CODE_LINEAGE_ARTIFACT_PATH",
+    )
+    fdd_generation: str = Field(default="functional_specs_v5", alias="FDD_GENERATION")
     code_parse_timeout_seconds: float = Field(
         default=120.0,
         alias="CODE_PARSE_TIMEOUT_SECONDS",

@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.api.main import create_app
 from app.api.routes import query as query_route
 from app.llm.answer_contract import Citation, GroundedAnswerResponse
+from app.code_retrieval.answer_contract import CodeAnswerResponse, CodeCitation
 from app.retrieval.evidence_sufficiency import EvidenceSufficiencyDecision
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
 from app.services.answer_orchestration import AnswerOrchestrationResult
@@ -173,6 +174,137 @@ def test_query_endpoint_rejects_blank_query() -> None:
     response = TestClient(create_app()).post("/query", json={"query": "   "})
 
     assert response.status_code == 422
+
+
+def test_code_mode_is_fail_closed_until_explicitly_enabled(monkeypatch, tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.code_modes_enabled = False
+    monkeypatch.setattr(query_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        query_route,
+        "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config("hybrid"),
+    )
+
+    response = TestClient(create_app()).post(
+        "/query", json={"query": "Explain the routine", "knowledge_mode": "code"}
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Code and combined knowledge modes are not activated."
+
+
+def test_enabled_code_mode_uses_explicit_runtime_contract(monkeypatch, tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.code_modes_enabled = True
+    citation = CodeCitation(
+        citation_id="C1",
+        unit_id="unit-1",
+        snapshot_id="snapshot-1",
+        source_path="pkg_custom.sql",
+        display_name="PROCESS_AML",
+        source_kind="procedure",
+        start_line=10,
+        end_line=20,
+        score=0.9,
+        text_preview="PROCEDURE PROCESS_AML",
+    )
+    result = SimpleNamespace(
+        mode="code",
+        answer=CodeAnswerResponse(
+            query="Explain the routine",
+            analysis_kind="explanation",
+            answer="Visible behavior [C1].",
+            is_answered=True,
+            citations=(citation,),
+        ),
+        answer_call={
+            "model": "test-chat-model",
+            "prompt_tokens": 100,
+            "completion_tokens": 20,
+            "total_tokens": 120,
+        },
+        trace_id="code-trace",
+        trace_output_path=tmp_path / "code-trace.json",
+    )
+    monkeypatch.setattr(query_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        query_route,
+        "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config("hybrid"),
+    )
+    monkeypatch.setattr(query_route, "run_code_or_combined_query", lambda **kwargs: result)
+
+    response = TestClient(create_app()).post(
+        "/query", json={"query": "Explain the routine", "knowledge_mode": "code"}
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["knowledge_mode"] == "code"
+    assert payload["requested_claim_supported"] is True
+    assert payload["code_citations"][0]["source_path"] == "pkg_custom.sql"
+    assert payload["citations"] == []
+
+
+def test_code_mode_feature_flag_supports_atomic_enable_and_rollback(
+    monkeypatch, tmp_path: Path
+) -> None:
+    settings = _settings(tmp_path)
+    settings.code_modes_enabled = False
+    calls = {"runtime": 0}
+    answer = CodeAnswerResponse(
+        query="Explain the routine",
+        analysis_kind="explanation",
+        answer="Visible behavior [C1].",
+        is_answered=True,
+        citations=(
+            CodeCitation(
+                citation_id="C1",
+                unit_id="unit-1",
+                snapshot_id="snapshot-1",
+                source_path="pkg_custom.sql",
+                display_name="PROCESS_AML",
+                source_kind="procedure",
+                start_line=1,
+                end_line=2,
+                score=0.9,
+                text_preview="PROCESS_AML",
+            ),
+        ),
+    )
+
+    def fake_runtime(**kwargs):
+        calls["runtime"] += 1
+        return SimpleNamespace(
+            mode="code",
+            answer=answer,
+            answer_call={
+                "model": "test-chat",
+                "prompt_tokens": 10,
+                "completion_tokens": 5,
+                "total_tokens": 15,
+            },
+            trace_id="rollback-trace",
+            trace_output_path=tmp_path / "rollback-trace.json",
+        )
+
+    monkeypatch.setattr(query_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        query_route,
+        "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config("hybrid"),
+    )
+    monkeypatch.setattr(query_route, "run_code_or_combined_query", fake_runtime)
+    client = TestClient(create_app())
+    body = {"query": "Explain the routine", "knowledge_mode": "code"}
+
+    assert client.post("/query", json=body).status_code == 503
+    settings.code_modes_enabled = True
+    assert client.post("/query", json=body).status_code == 200
+    settings.code_modes_enabled = False
+    assert client.post("/query", json=body).status_code == 503
+    assert calls["runtime"] == 1
 
 
 def test_query_endpoint_skips_qdrant_collection_check_for_lexical(monkeypatch, tmp_path: Path) -> None:

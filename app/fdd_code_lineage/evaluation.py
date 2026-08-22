@@ -15,7 +15,9 @@ class FrozenModel(BaseModel):
 
 
 class CodeCombinedEvalCase(FrozenModel):
-    schema_version: Literal["code_combined_eval_case_v1"] = (
+    schema_version: Literal[
+        "code_combined_eval_case_v1", "code_combined_eval_case_v2"
+    ] = (
         "code_combined_eval_case_v1"
     )
     case_id: str = Field(min_length=3, pattern=r"^[a-z0-9][a-z0-9-]+$")
@@ -25,6 +27,7 @@ class CodeCombinedEvalCase(FrozenModel):
     expected_claims: tuple[str, ...] = ()
     expected_code_paths: tuple[str, ...] = ()
     expected_code_symbols: tuple[str, ...] = ()
+    expected_code_symbol_policy: Literal["all", "any", "advisory"] = "all"
     expected_fdd_document_ids: tuple[str, ...] = ()
     require_reviewed_lineage: bool = False
     should_abstain: bool = False
@@ -179,8 +182,17 @@ def build_code_combined_retrieval_case_report(
     failures: list[str] = []
     if missing_paths:
         failures.append(f"Missing code paths: {list(missing_paths)}")
-    if missing_symbols:
+    if missing_symbols and case.expected_code_symbol_policy == "all":
         failures.append(f"Missing code symbols: {list(missing_symbols)}")
+    if (
+        case.expected_code_symbols
+        and case.expected_code_symbol_policy == "any"
+        and not set(case.expected_code_symbols).intersection(code_symbols)
+    ):
+        failures.append(
+            "None of the alternative expected code symbols were retrieved: "
+            f"{list(case.expected_code_symbols)}"
+        )
     if missing_documents:
         failures.append(f"Missing FDD document IDs: {list(missing_documents)}")
     if case.require_reviewed_lineage and not mapping_ids:

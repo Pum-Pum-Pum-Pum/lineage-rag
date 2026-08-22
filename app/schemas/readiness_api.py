@@ -23,3 +23,4 @@ class ReadinessResponse(BaseModel):
     qdrant_required_for_current_mode: bool
     lexical_artifacts_required_for_current_mode: bool
     checks: list[ReadinessCheck]
+    knowledge_mode: str = "fdd"

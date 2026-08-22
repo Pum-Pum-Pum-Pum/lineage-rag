@@ -40,8 +40,10 @@ those claims in separate sections. Do not infer hidden Java/kernel behavior,
 runtime dynamic SQL targets, external schemas, or a proven root cause. Never
 generate a patch.
 Return one JSON object with exactly these keys:
-documented_functionality, visible_custom_implementation,
+requested_claim_supported, documented_functionality, visible_custom_implementation,
 impact_and_likely_change_locations, unknown_or_unavailable_behavior.
+requested_claim_supported must be false when the user's exact requested fact
+cannot be established, even if separately labelled related context is useful.
 Each value must be an object with status (answered or refused) and text.
 Documented functionality may cite only [F#]. Implementation and impact may cite
 only [C#]. Every material answered claim needs a valid citation. Refuse each
@@ -95,8 +97,13 @@ def generate_grounded_answer(
     model: str,
     case: CodeCombinedEvalCase,
     retrieval: CodeRetrievalResult | CombinedRetrievalResult,
+    conversation_context: str | None = None,
 ) -> tuple[CodeAnswerResponse | CombinedAnswerResponse, dict[str, Any]]:
-    system_prompt, user_prompt = build_paid_prompt(case=case, retrieval=retrieval)
+    system_prompt, user_prompt = build_paid_prompt(
+        case=case,
+        retrieval=retrieval,
+        conversation_context=conversation_context,
+    )
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -146,14 +153,22 @@ def build_paid_prompt(
     *,
     case: CodeCombinedEvalCase,
     retrieval: CodeRetrievalResult | CombinedRetrievalResult,
+    conversation_context: str | None = None,
 ) -> tuple[str, str]:
+    context = (
+        "Conversation context for reference resolution only; it is not source "
+        "evidence and must not support or receive citations:\n"
+        f"{conversation_context.strip()}\n\n"
+        if conversation_context and conversation_context.strip()
+        else ""
+    )
     if isinstance(retrieval, CodeRetrievalResult):
         evidence = "\n\n".join(
             _code_block(index, item)
             for index, item in enumerate(retrieval.evidence, start=1)
         ) or "No code evidence was retrieved."
         task = (
-            f"Analysis kind: {case.analysis_kind}\nQuestion: {case.question}\n\n"
+            f"Analysis kind: {case.analysis_kind}\nQuestion: {case.question}\n\n{context}"
             f"Original code evidence:\n{evidence}"
         )
         return CODE_SYSTEM_PROMPT, task
@@ -175,7 +190,7 @@ def build_paid_prompt(
         for index, item in enumerate(retrieval.code_evidence, start=1)
     ) or "No code evidence was retrieved."
     task = (
-        f"Analysis kind: {case.analysis_kind}\nQuestion: {case.question}\n\n"
+        f"Analysis kind: {case.analysis_kind}\nQuestion: {case.question}\n\n{context}"
         f"Original FDD evidence:\n{fdd}\n\nOriginal code evidence:\n{code}\n\n"
         "Retrieval boundary notes:\n"
         + ("\n".join(f"- {item}" for item in retrieval.unknowns) or "- None recorded")
@@ -207,9 +222,11 @@ def evaluate_answer_structure(
         answered = any(item.status == "answered" for item in substantive)
         cited_paths = {item.source_path for item in answer.code_citations}
         cited_symbols = {item.display_name for item in answer.code_citations}
-        if case.should_abstain and answered:
-            failures.append("Expected all material sections to refuse")
+        if case.should_abstain and answer.requested_claim_supported:
+            failures.append("Expected the requested claim to be marked unsupported")
         if not case.should_abstain:
+            if not answer.requested_claim_supported:
+                failures.append("Expected the requested claim to be marked supported")
             if answer.documented_functionality.status != "answered":
                 failures.append("Documented functionality did not answer")
             if answer.visible_custom_implementation.status != "answered":
@@ -223,8 +240,17 @@ def evaluate_answer_structure(
     missing_symbols = sorted(set(case.expected_code_symbols) - cited_symbols)
     if missing_paths:
         failures.append(f"Missing expected cited code paths: {missing_paths}")
-    if missing_symbols:
+    if missing_symbols and case.expected_code_symbol_policy == "all":
         failures.append(f"Missing expected cited code symbols: {missing_symbols}")
+    if (
+        case.expected_code_symbols
+        and case.expected_code_symbol_policy == "any"
+        and not set(case.expected_code_symbols).intersection(cited_symbols)
+    ):
+        failures.append(
+            "No alternative expected code symbol was cited: "
+            f"{list(case.expected_code_symbols)}"
+        )
     return {
         "passed": not failures,
         "failures": failures,

@@ -252,3 +252,24 @@ def test_ready_endpoint_flags_missing_model_configuration(monkeypatch, tmp_path:
     assert model_check["is_ready"] is False
     assert "OPENAI_API_KEY" in model_check["detail"]
     assert "test-api-key" not in response.text
+
+
+def test_code_readiness_fails_closed_when_feature_is_disabled(monkeypatch, tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.code_modes_enabled = False
+    settings.code_index_artifact_path = tmp_path / "missing-code-artifact.json"
+    settings.code_qdrant_local_path = tmp_path / "code-qdrant"
+    settings.code_qdrant_collection_name = "code_custom_test_v1"
+    monkeypatch.setattr(api_main, "get_settings", lambda: settings)
+    monkeypatch.setattr(readiness_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        readiness_route, "create_persistent_qdrant_client", lambda path: FakeQdrantClient(False)
+    )
+
+    response = TestClient(create_app()).get("/ready?knowledge_mode=code")
+
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["knowledge_mode"] == "code"
+    assert _check_by_name(payload, "code_modes_activation")["is_ready"] is False
+    assert _check_by_name(payload, "code_artifact")["is_ready"] is False

@@ -23,6 +23,7 @@ class CombinedSectionDraft(FrozenModel):
 
 
 class CombinedAnswerDraft(FrozenModel):
+    requested_claim_supported: bool
     documented_functionality: CombinedSectionDraft
     visible_custom_implementation: CombinedSectionDraft
     impact_and_likely_change_locations: CombinedSectionDraft
@@ -48,6 +49,8 @@ class CombinedSectionResponse(FrozenModel):
 
 class CombinedAnswerResponse(FrozenModel):
     query: str
+    requested_claim_supported: bool
+    related_grounded_context_provided: bool
     documented_functionality: CombinedSectionResponse
     visible_custom_implementation: CombinedSectionResponse
     impact_and_likely_change_locations: CombinedSectionResponse
@@ -131,6 +134,14 @@ def finalize_combined_answer(
     )
     return CombinedAnswerResponse(
         query=retrieval.query,
+        requested_claim_supported=draft.requested_claim_supported,
+        related_grounded_context_provided=(
+            not draft.requested_claim_supported
+            and any(
+                item.status == "answered"
+                for item in (documented, implementation, impact)
+            )
+        ),
         documented_functionality=documented,
         visible_custom_implementation=implementation,
         impact_and_likely_change_locations=impact,

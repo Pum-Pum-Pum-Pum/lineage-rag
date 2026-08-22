@@ -312,6 +312,7 @@ def test_combined_answer_enforces_lane_specific_citations(tmp_path: Path) -> Non
         code_mode="lexical",
     )
     draft = CombinedAnswerDraft(
+        requested_claim_supported=True,
         documented_functionality=CombinedSectionDraft(
             status="answered", text="The documented integration sends an AML flag [F1]."
         ),
@@ -326,6 +327,8 @@ def test_combined_answer_enforces_lane_specific_citations(tmp_path: Path) -> Non
         ),
     )
     answer = finalize_combined_answer(retrieval=retrieval, draft=draft)
+    assert answer.requested_claim_supported is True
+    assert answer.related_grounded_context_provided is False
     assert answer.documented_functionality.status == "answered"
     assert answer.visible_custom_implementation.status == "answered"
     assert answer.fdd_citations[0].citation_id == "F1"
@@ -343,6 +346,13 @@ def test_combined_answer_enforces_lane_specific_citations(tmp_path: Path) -> Non
     refused = finalize_combined_answer(retrieval=retrieval, draft=crossed)
     assert refused.documented_functionality.status == "refused"
     assert refused.documented_functionality.refusal_reason == "invalid_or_cross_lane_citation"
+
+    helpful_refusal = finalize_combined_answer(
+        retrieval=retrieval,
+        draft=draft.model_copy(update={"requested_claim_supported": False}),
+    )
+    assert helpful_refusal.requested_claim_supported is False
+    assert helpful_refusal.related_grounded_context_provided is True
 
 
 def test_combined_impact_rejects_patch_output(tmp_path: Path) -> None:
@@ -364,6 +374,7 @@ def test_combined_impact_rejects_patch_output(tmp_path: Path) -> None:
         code_mode="lexical",
     )
     draft = CombinedAnswerDraft(
+        requested_claim_supported=True,
         documented_functionality=CombinedSectionDraft(status="refused", text="Not requested."),
         visible_custom_implementation=CombinedSectionDraft(
             status="answered", text="The custom routine is visible [C1]."

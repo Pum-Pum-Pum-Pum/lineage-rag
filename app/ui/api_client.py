@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 from urllib.parse import quote
 
 import httpx
@@ -56,8 +56,17 @@ class RagApiClient:
     def get_health(self) -> HealthResponse:
         return self._request("GET", "/health", response_model=HealthResponse)
 
-    def get_readiness(self) -> ReadinessResponse:
-        return self._request("GET", "/ready", response_model=ReadinessResponse)
+    def get_readiness(
+        self,
+        knowledge_mode: Literal["fdd", "code", "combined"] = "fdd",
+    ) -> ReadinessResponse:
+        if knowledge_mode not in {"fdd", "code", "combined"}:
+            raise ValueError("Unsupported knowledge mode")
+        return self._request(
+            "GET",
+            f"/ready?knowledge_mode={quote(knowledge_mode, safe='')}",
+            response_model=ReadinessResponse,
+        )
 
     def query(self, request: QueryRequest) -> QueryResponse:
         return self._request(

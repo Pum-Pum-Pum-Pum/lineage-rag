@@ -27,6 +27,7 @@ def test_ui_api_client_returns_typed_health_response() -> None:
 
 def test_ui_api_client_returns_typed_readiness_response() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["knowledge_mode"] == "fdd"
         return httpx.Response(200, json=_readiness_payload())
 
     with _client(handler) as api:
@@ -54,6 +55,8 @@ def test_ui_api_client_posts_validated_query_payload() -> None:
 
     assert captured["payload"] == {
         "query": "What changed in branch reports?",
+        "knowledge_mode": "fdd",
+        "analysis_kind": "explanation",
         "limit": 3,
         "release_label": "R24",
     }
@@ -101,7 +104,12 @@ def test_ui_api_client_supports_conversation_lifecycle_and_turns() -> None:
     assert turn.answer.is_answered is True
     assert archived.is_archived is True
     assert calls[0][2] == {"title": "Release chat"}
-    assert calls[3][2] == {"content": "What changed?", "limit": 5}
+    assert calls[3][2] == {
+        "content": "What changed?",
+        "knowledge_mode": "fdd",
+        "analysis_kind": "explanation",
+        "limit": 5,
+    }
 
 
 @pytest.mark.parametrize(

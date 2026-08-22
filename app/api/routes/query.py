@@ -8,6 +8,8 @@ from app.core.request_observability import get_request_id
 from app.retrieval.retrieval_config import build_retrieval_runtime_config
 from app.schemas.query_api import (
     CitationResponse,
+    CodeCitationResponse,
+    CombinedSectionApiResponse,
     EvidenceSufficiencyResponse,
     LLMCostResponse,
     LLMUsageResponse,
@@ -15,6 +17,7 @@ from app.schemas.query_api import (
     QueryResponse,
 )
 from app.services.answer_orchestration import AnswerOrchestrationResult, run_grounded_answer_query
+from app.services.knowledge_mode_orchestration import run_code_or_combined_query
 from app.vectorstore.qdrant_schema import create_persistent_qdrant_client
 
 
@@ -38,6 +41,34 @@ def execute_query_request(
 
     settings = get_settings()
     retrieval_config = build_retrieval_runtime_config(settings)
+    if request.knowledge_mode != "fdd":
+        if not bool(getattr(settings, "code_modes_enabled", False)):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Code and combined knowledge modes are not activated.",
+            )
+        try:
+            result = run_code_or_combined_query(
+                mode=request.knowledge_mode,
+                query=request.query,
+                analysis_kind=request.analysis_kind,
+                settings=settings,
+                retrieval_config=retrieval_config,
+                limit=request.limit,
+                correlation_id=get_request_id(),
+                conversation_context=conversation_context,
+            )
+            return _build_extended_query_response(result)
+        except HTTPException:
+            raise
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("Code/combined query processing failed")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal code/combined query processing error.",
+            ) from exc
     qdrant_required = _requires_qdrant_collection(retrieval_config.retrieval_mode)
     min_top_score = (
         request.min_top_score
@@ -159,3 +190,83 @@ def _requires_qdrant_collection(retrieval_mode: str) -> bool:
     """Return whether the selected retrieval mode requires a Qdrant collection."""
 
     return retrieval_mode in {"dense", "hybrid"}
+
+
+def _build_extended_query_response(result) -> QueryResponse:
+    answer = result.answer
+    answer_call = result.answer_call
+    if result.mode == "code":
+        code_citations = answer.citations
+        text = answer.answer
+        is_answered = answer.is_answered
+        refusal_reason = answer.refusal_reason
+        requested_supported = answer.is_answered
+        related = False
+        fdd_citations = []
+        sections = None
+    else:
+        code_citations = answer.code_citations
+        ordered = {
+            "documented_functionality": answer.documented_functionality,
+            "visible_custom_implementation": answer.visible_custom_implementation,
+            "impact_and_likely_change_locations": answer.impact_and_likely_change_locations,
+            "unknown_or_unavailable_behavior": answer.unknown_or_unavailable_behavior,
+        }
+        text = "\n\n".join(
+            f"{name.replace('_', ' ').title()}\n{section.text}"
+            for name, section in ordered.items()
+        )
+        is_answered = answer.requested_claim_supported
+        refusal_reason = None if is_answered else "requested_claim_unsupported"
+        requested_supported = answer.requested_claim_supported
+        related = answer.related_grounded_context_provided
+        fdd_citations = [
+            CitationResponse(
+                unit_id=item.unit_id,
+                document_family=item.document_family,
+                release_label=item.release_label,
+                source_kind=item.source_kind,
+                score=item.score,
+                text_preview=item.text_preview,
+            )
+            for item in answer.fdd_citations
+        ]
+        sections = {
+            name: CombinedSectionApiResponse(**section.model_dump())
+            for name, section in ordered.items()
+        }
+    scores = [item.score for item in code_citations] + [item.score for item in fdd_citations]
+    return QueryResponse(
+        query=answer.query,
+        answer=text,
+        is_answered=is_answered,
+        refusal_reason=refusal_reason,
+        retrieval_mode="hybrid",
+        citations=fdd_citations,
+        sufficiency=EvidenceSufficiencyResponse(
+            is_sufficient=is_answered,
+            reason=(
+                "The requested claim was supported by the selected evidence."
+                if is_answered
+                else "The requested claim was not directly supported."
+            ),
+            result_count=len(code_citations) + len(fdd_citations),
+            top_score=max(scores) if scores else None,
+        ),
+        trace_id=result.trace_id,
+        trace_output_path=str(result.trace_output_path),
+        retrieval_metadata={"knowledge_mode": result.mode},
+        usage=LLMUsageResponse(
+            model=answer_call["model"],
+            prompt_tokens=answer_call["prompt_tokens"],
+            completion_tokens=answer_call["completion_tokens"],
+            total_tokens=answer_call["total_tokens"],
+        ),
+        knowledge_mode=result.mode,
+        requested_claim_supported=requested_supported,
+        related_grounded_context_provided=related,
+        code_citations=[
+            CodeCitationResponse(**item.model_dump()) for item in code_citations
+        ],
+        combined_sections=sections,
+    )

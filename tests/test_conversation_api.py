@@ -112,6 +112,8 @@ def test_submit_message_persists_grounded_turn_and_bounded_context(
             f"/conversations/{conversation.conversation_id}/messages",
             json={
                 "content": "What changed in R24?",
+                "knowledge_mode": "combined",
+                "analysis_kind": "impact_analysis",
                 "limit": 3,
                 "release_label": "R24",
             },
@@ -129,6 +131,8 @@ def test_submit_message_persists_grounded_turn_and_bounded_context(
 
         request = captured["request"]
         assert request.query == "What changed in R24?"
+        assert request.knowledge_mode == "combined"
+        assert request.analysis_kind == "impact_analysis"
         assert request.limit == 3
         assert request.release_label == "R24"
         context = captured["context"]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -21,6 +22,8 @@ class CreateConversationRequest(BaseModel):
 
 class ConversationMessageRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=20_000)
+    knowledge_mode: Literal["fdd", "code", "combined"] = "fdd"
+    analysis_kind: Literal["explanation", "impact_analysis"] = "explanation"
     limit: int = Field(default=5, gt=0, le=50)
     document_family: str | None = None
     release_label: str | None = None

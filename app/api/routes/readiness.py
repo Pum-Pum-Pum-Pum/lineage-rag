@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -10,6 +11,7 @@ from app.core.logging import get_logger
 from app.retrieval.retrieval_config import build_retrieval_runtime_config
 from app.schemas.readiness_api import ReadinessCheck, ReadinessResponse
 from app.vectorstore.qdrant_schema import create_persistent_qdrant_client
+from app.code_indexing.contract import load_code_index_artifact
 
 
 router = APIRouter(tags=["readiness"])
@@ -21,7 +23,9 @@ logger = get_logger("readiness_api")
     response_model=ReadinessResponse,
     responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ReadinessResponse}},
 )
-def readiness_check() -> ReadinessResponse:
+def readiness_check(
+    knowledge_mode: Literal["fdd", "code", "combined"] = "fdd",
+) -> ReadinessResponse:
     """Return whether the backend dependencies are ready for the active mode.
 
     Unlike `/health`, this endpoint performs local dependency/artifact checks.
@@ -29,6 +33,9 @@ def readiness_check() -> ReadinessResponse:
     """
 
     settings = get_settings()
+
+    if knowledge_mode != "fdd":
+        return _extended_mode_readiness(settings, knowledge_mode)
 
     try:
         retrieval_config = build_retrieval_runtime_config(settings)
@@ -109,6 +116,96 @@ def readiness_check() -> ReadinessResponse:
             content=response.model_dump(),
         )
 
+    return response
+
+
+def _extended_mode_readiness(settings, knowledge_mode: str) -> ReadinessResponse:
+    checks = [_check_model_configuration(settings)]
+    enabled = bool(getattr(settings, "code_modes_enabled", False))
+    checks.append(
+        ReadinessCheck(
+            name="code_modes_activation",
+            required=True,
+            is_ready=enabled,
+            detail=(
+                "Code/combined modes are activated."
+                if enabled
+                else "Code/combined modes are disabled by configuration."
+            ),
+        )
+    )
+    try:
+        artifact = load_code_index_artifact(settings.code_index_artifact_path)
+        artifact_ready = artifact.status == "embedded" and artifact.dependency_review_status == "reviewed"
+    except Exception:
+        artifact_ready = False
+        artifact = None
+    checks.append(
+        ReadinessCheck(
+            name="code_artifact",
+            required=True,
+            is_ready=artifact_ready,
+            detail="Reviewed embedded code artifact is available." if artifact_ready else "Code artifact is missing or invalid.",
+        )
+    )
+    code_client = None
+    try:
+        code_client = create_persistent_qdrant_client(settings.code_qdrant_local_path)
+        exists = code_client.collection_exists(settings.code_qdrant_collection_name)
+        count_matches = bool(
+            exists
+            and artifact is not None
+            and code_client.get_collection(settings.code_qdrant_collection_name).points_count
+            == artifact.total_records
+        )
+        checks.append(
+            ReadinessCheck(
+                name="code_qdrant_generation",
+                required=True,
+                is_ready=count_matches,
+                detail="Code collection exists with the exact artifact count." if count_matches else "Code collection is missing or does not match the artifact count.",
+            )
+        )
+    except Exception:
+        checks.append(ReadinessCheck(name="code_qdrant_generation", required=True, is_ready=False, detail="Code collection readiness failed."))
+    finally:
+        if code_client is not None:
+            code_client.close()
+    if knowledge_mode == "combined":
+        checks.append(_check_retrieval_ready_artifacts(settings.processed_dir, required=True))
+        lineage_path = Path(settings.fdd_code_lineage_artifact_path)
+        checks.append(
+            ReadinessCheck(
+                name="reviewed_lineage_artifact",
+                required=True,
+                is_ready=lineage_path.is_file(),
+                detail="Reviewed lineage artifact exists." if lineage_path.is_file() else "Reviewed lineage artifact is missing.",
+            )
+        )
+        fdd_client = None
+        try:
+            fdd_client = create_persistent_qdrant_client(settings.qdrant_local_path)
+            exists = fdd_client.collection_exists(settings.qdrant_collection_name)
+            checks.append(ReadinessCheck(name="fdd_qdrant_generation", required=True, is_ready=exists, detail="FDD collection exists." if exists else "FDD collection is missing."))
+        except Exception:
+            checks.append(ReadinessCheck(name="fdd_qdrant_generation", required=True, is_ready=False, detail="FDD collection readiness failed."))
+        finally:
+            if fdd_client is not None:
+                fdd_client.close()
+    ready = all(check.is_ready for check in checks if check.required)
+    response = ReadinessResponse(
+        status="ready" if ready else "not_ready",
+        is_ready=ready,
+        app_name=settings.app_name,
+        environment=settings.environment,
+        retrieval_mode="hybrid",
+        qdrant_required_for_current_mode=True,
+        lexical_artifacts_required_for_current_mode=knowledge_mode == "combined",
+        checks=checks,
+        knowledge_mode=knowledge_mode,
+    )
+    if not ready:
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=response.model_dump())
     return response
 
 

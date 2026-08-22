@@ -105,15 +105,24 @@ RAG_API_BASE_URL=http://127.0.0.1:8000
 
 Use **New chat** to create a durable conversation, select active conversations
 from the sidebar, and use **Archive active chat** to make history read-only.
-Every submitted chat message performs a readiness check before
+Select **Functional documents**, **Visible custom code**, or **Documents +
+custom code** independently from the dense/lexical/hybrid retrieval technique.
+Code and combined requests also expose explanation or impact-analysis intent;
+impact locations remain candidates rather than proven root causes. Every
+submitted chat message performs a mode-specific readiness check before
 `POST /conversations/{conversation_id}/messages`; a failed readiness check
 blocks cost-bearing retrieval and generation.
 
 The UI renders durable user/assistant history, grounded answers or safe
 refusals, trace IDs, and optional evidence/debug details containing sufficiency,
+global requested-claim support, per-section combined support, separate FDD/code
 citations, token-budget state, model usage, and estimated cost. A user-only
 partial turn is rendered as retryable instead of being hidden. The local trace
 output path and raw backend error bodies are not exposed.
+
+`CODE_MODES_ENABLED=false` remains the safe default. Selecting code or combined
+mode before deliberate backend activation fails closed and directs the user back
+to functional-document mode; it does not silently fall back or spend model cost.
 
 ## Smoke test the API
 
@@ -574,7 +583,8 @@ The Streamlit interface is available in `app/ui/streamlit_app.py` and uses the
 typed client in `app/ui/api_client.py` for health/readiness and the conversation
 lifecycle/message endpoints. It provides new/select/archive controls,
 `st.chat_message` history, `st.chat_input` submission, readiness gating, partial
-turn warnings, and an optional evidence/debug panel.
+turn warnings, explicit knowledge/analysis selectors, lane-specific citations,
+per-section support states, and an optional evidence/debug panel.
 
 Network, timeout, `404`, `409`, `413`, `503`, generic HTTP, malformed JSON, and
 schema-validation failures map to safe presentation-layer errors without

@@ -153,6 +153,8 @@ def submit_message(
         answer = execute_query_request(
             QueryRequest(
                 query=request.content,
+                knowledge_mode=request.knowledge_mode,
+                analysis_kind=request.analysis_kind,
                 limit=request.limit,
                 document_family=request.document_family,
                 release_label=request.release_label,

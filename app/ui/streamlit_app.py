@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Sequence
+from typing import Any, Literal, Sequence
 
 from pydantic import ValidationError
 
@@ -21,6 +21,7 @@ DEFAULT_API_BASE_URL = os.getenv(
 )
 ACTIVE_CONVERSATION_KEY = "active_conversation_id"
 TURN_DEBUG_KEY = "conversation_turn_debug"
+KnowledgeMode = Literal["fdd", "code", "combined"]
 
 
 def main() -> None:
@@ -53,10 +54,15 @@ def main() -> None:
         "Show evidence and debug details",
         value=True,
     )
+    knowledge_options = _render_knowledge_controls(st)
 
     try:
         with RagApiClient(api_base_url, timeout=float(timeout)) as api:
-            _render_backend_check(st, api)
+            _render_backend_check(
+                st,
+                api,
+                knowledge_mode=knowledge_options["knowledge_mode"],
+            )
             conversations = api.list_conversations()
             active_id = _render_conversation_controls(
                 st,
@@ -91,15 +97,19 @@ def main() -> None:
                     f"version {detail.summary.version}."
                 )
 
-            request_options = _render_retrieval_controls(st)
+            request_options = _render_retrieval_controls(
+                st,
+                knowledge_mode=knowledge_options["knowledge_mode"],
+            )
             prompt = st.chat_input(
-                "Ask a grounded question about the functional specifications",
+                _chat_input_prompt(knowledge_options["knowledge_mode"]),
                 disabled=detail.conversation.is_archived,
             )
             if prompt:
                 try:
                     request = _build_message_request(
                         content=prompt,
+                        **knowledge_options,
                         **request_options,
                     )
                     with st.spinner(
@@ -126,12 +136,17 @@ def _initialize_session_state(state: Any) -> None:
         state[TURN_DEBUG_KEY] = {}
 
 
-def _render_backend_check(st: Any, api: RagApiClient) -> None:
+def _render_backend_check(
+    st: Any,
+    api: RagApiClient,
+    *,
+    knowledge_mode: KnowledgeMode,
+) -> None:
     if not st.sidebar.button("Check backend", use_container_width=True):
         return
     try:
         health = api.get_health()
-        readiness = api.get_readiness()
+        readiness = api.get_readiness(knowledge_mode=knowledge_mode)
     except (UiApiError, ValueError) as exc:
         _render_safe_error(st.sidebar, exc)
         return
@@ -214,7 +229,50 @@ def _render_conversation_controls(
     return selected_id
 
 
-def _render_retrieval_controls(st: Any) -> dict[str, object]:
+def _render_knowledge_controls(st: Any) -> dict[str, str]:
+    st.sidebar.divider()
+    st.sidebar.subheader("Knowledge mode")
+    knowledge_mode = st.sidebar.selectbox(
+        "Authoritative evidence",
+        options=["fdd", "code", "combined"],
+        format_func=lambda value: {
+            "fdd": "Functional documents",
+            "code": "Visible custom code",
+            "combined": "Documents + custom code",
+        }[value],
+        help=(
+            "Code and combined modes fail closed unless deliberately activated "
+            "by the backend operator."
+        ),
+    )
+    analysis_kind = st.sidebar.selectbox(
+        "Analysis type",
+        options=["explanation", "impact_analysis"],
+        format_func=lambda value: {
+            "explanation": "Explanation",
+            "impact_analysis": "Impact analysis",
+        }[value],
+        disabled=knowledge_mode == "fdd",
+        help="Impact locations are candidates, not proven root causes.",
+    )
+    if knowledge_mode != "fdd":
+        st.sidebar.caption(
+            "Only approved visible custom code is available. Hidden kernel, "
+            "runtime dynamic SQL, and external schema behavior may remain unknown."
+        )
+    return {
+        "knowledge_mode": knowledge_mode,
+        "analysis_kind": (
+            "explanation" if knowledge_mode == "fdd" else analysis_kind
+        ),
+    }
+
+
+def _render_retrieval_controls(
+    st: Any,
+    *,
+    knowledge_mode: KnowledgeMode,
+) -> dict[str, object]:
     with st.sidebar.expander("Retrieval controls"):
         limit = st.number_input(
             "Evidence limit",
@@ -223,20 +281,32 @@ def _render_retrieval_controls(st: Any) -> dict[str, object]:
             value=5,
             step=1,
         )
-        document_family = st.text_input("Document family (optional)")
-        release_label = st.text_input("Release label (optional)")
-        source_kind = st.selectbox(
-            "Source kind",
-            options=["Any", "paragraph", "table"],
-        )
-        use_min_top_score = st.checkbox("Override minimum top score")
-        min_top_score = st.number_input(
-            "Minimum top score",
-            min_value=0.0,
-            value=0.25,
-            step=0.05,
-            disabled=not use_min_top_score,
-        )
+        if knowledge_mode != "fdd":
+            document_family = ""
+            release_label = ""
+            source_kind = "Any"
+            use_min_top_score = False
+            min_top_score = 0.25
+            st.caption(
+                "FDD metadata and per-request score overrides currently apply "
+                "only to functional-document mode. Code lanes use their "
+                "approved runtime thresholds."
+            )
+        else:
+            document_family = st.text_input("Document family (optional)")
+            release_label = st.text_input("Release label (optional)")
+            source_kind = st.selectbox(
+                "FDD source kind",
+                options=["Any", "paragraph", "table"],
+            )
+            use_min_top_score = st.checkbox("Override minimum top score")
+            min_top_score = st.number_input(
+                "Minimum top score",
+                min_value=0.0,
+                value=0.25,
+                step=0.05,
+                disabled=not use_min_top_score,
+            )
     return {
         "limit": int(limit),
         "document_family": document_family,
@@ -289,7 +359,14 @@ def _render_turn_debug(st: Any, turn: ConversationTurnResponse) -> None:
         st.write(
             {
                 "outcome": status_text,
+                "knowledge_mode": response.knowledge_mode,
                 "retrieval_mode": response.retrieval_mode,
+                "requested_claim_supported": (
+                    response.requested_claim_supported
+                ),
+                "related_grounded_context_provided": (
+                    response.related_grounded_context_provided
+                ),
                 "evidence_results": response.sufficiency.result_count,
                 "top_score": response.sufficiency.top_score,
                 "trace_id": response.trace_id,
@@ -306,12 +383,26 @@ def _render_turn_debug(st: Any, turn: ConversationTurnResponse) -> None:
         if response.refusal_reason:
             st.warning(response.refusal_reason)
 
-        st.markdown("**Citations**")
+        if response.combined_sections:
+            st.markdown("**Section support**")
+            for name, section in response.combined_sections.items():
+                label = name.replace("_", " ").title()
+                marker = (
+                    "SUPPORTED" if section.status == "answered" else "REFUSED"
+                )
+                st.caption(f"{marker} · {label}")
+                if section.refusal_reason:
+                    st.caption(f"Reason: {section.refusal_reason}")
+
+        st.markdown("**FDD citations**")
         if not response.citations:
-            st.info("No citations were returned.")
+            st.info("No FDD citations were returned.")
         for index, citation in enumerate(response.citations, start=1):
+            citation_prefix = (
+                "F" if response.knowledge_mode == "combined" else "C"
+            )
             label = (
-                f"C{index} · "
+                f"{citation_prefix}{index} · "
                 f"{citation.document_family or 'unknown document'} · "
                 f"{citation.release_label or 'unknown release'} · "
                 f"score={citation.score:.4f}"
@@ -321,6 +412,21 @@ def _render_turn_debug(st: Any, turn: ConversationTurnResponse) -> None:
             st.caption(
                 f"unit={citation.unit_id} · "
                 f"source={citation.source_kind or 'unknown'}"
+            )
+
+        st.markdown("**Code citations**")
+        if not response.code_citations:
+            st.info("No code citations were returned.")
+        for index, citation in enumerate(response.code_citations, start=1):
+            st.markdown(
+                f"**C{index} · {citation.display_name} · {citation.source_path}:"
+                f"{citation.start_line}-{citation.end_line} · "
+                f"score={citation.score:.4f}**"
+            )
+            st.write(citation.text_preview)
+            st.caption(
+                f"unit={citation.unit_id} · snapshot={citation.snapshot_id} · "
+                f"source={citation.source_kind}"
             )
 
         if response.usage is not None:
@@ -344,6 +450,8 @@ def _render_turn_debug(st: Any, turn: ConversationTurnResponse) -> None:
 def _build_message_request(
     *,
     content: str,
+    knowledge_mode: KnowledgeMode,
+    analysis_kind: Literal["explanation", "impact_analysis"],
     limit: int,
     document_family: str,
     release_label: str,
@@ -353,6 +461,8 @@ def _build_message_request(
 ) -> ConversationMessageRequest:
     return ConversationMessageRequest(
         content=content,
+        knowledge_mode=knowledge_mode,
+        analysis_kind=analysis_kind,
         limit=limit,
         document_family=_optional_text(document_family),
         release_label=_optional_text(release_label),
@@ -366,7 +476,22 @@ def _run_ready_turn(
     conversation_id: str,
     request: ConversationMessageRequest,
 ) -> ConversationTurnResponse:
-    readiness = api.get_readiness()
+    try:
+        readiness = api.get_readiness(
+            knowledge_mode=request.knowledge_mode,
+        )
+    except UiApiError as exc:
+        if exc.code == "not_ready" and request.knowledge_mode != "fdd":
+            raise UiApiError(
+                code="knowledge_mode_unavailable",
+                message=(
+                    f"{request.knowledge_mode.title()} mode is not ready or "
+                    "has not been activated. Functional-document mode remains "
+                    "available when its readiness checks pass."
+                ),
+                status_code=exc.status_code,
+            ) from exc
+        raise
     if not readiness.is_ready:
         raise UiApiError(
             code="not_ready",
@@ -376,7 +501,21 @@ def _run_ready_turn(
             ),
             status_code=503,
         )
+    if readiness.knowledge_mode != request.knowledge_mode:
+        raise UiApiError(
+            code="readiness_mismatch",
+            message="Backend readiness did not match the selected knowledge mode.",
+            status_code=503,
+        )
     return api.submit_conversation_message(conversation_id, request)
+
+
+def _chat_input_prompt(knowledge_mode: KnowledgeMode) -> str:
+    return {
+        "fdd": "Ask a grounded question about documented functionality",
+        "code": "Ask about visible custom-code structure or behavior",
+        "combined": "Ask about documented functionality and visible implementation",
+    }[knowledge_mode]
 
 
 def _select_active_conversation_id(
@@ -429,6 +568,14 @@ def _render_safe_error(st: Any, error: Exception) -> None:
             ),
             "not_ready": (
                 "Run the readiness check and repair the failed dependency."
+            ),
+            "knowledge_mode_unavailable": (
+                "Use Functional documents, or ask an operator to complete "
+                "the deliberate code-mode activation procedure."
+            ),
+            "readiness_mismatch": (
+                "Do not submit the request; verify backend routing and restart "
+                "the services with the approved configuration."
             ),
             "not_found": (
                 "Refresh the page and select an existing conversation."

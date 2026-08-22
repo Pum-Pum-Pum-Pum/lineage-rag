@@ -1,0 +1,22 @@
+{
+  "answer_review_ledger": "data\\evaluations\\code_combined_answer_review_20260822.json",
+  "answer_review_ledger_sha256": "7f08da839c8388b5e32838531101bc1126497227ad2105a64c32c58d5f5c237d",
+  "corrections": [
+    {
+      "case_id": "combined-aml-offline-impact-004",
+      "change": "expected_code_symbol_policy=advisory",
+      "reason": "SME accepted multiple grounded candidate change locations without requiring one exact symbol."
+    },
+    {
+      "case_id": "combined-kernel-http-negative-005",
+      "change": "evaluate requested_claim_supported=false independently of related context",
+      "reason": "SME accepted separately cited visible-code help while the exact hidden-kernel claim remained refused."
+    }
+  ],
+  "ledger_identity_sha256": "b65725e182c02b0b10fa9651ecdc4bb02fb671e18c4d0dc4c397fffe5e2da156",
+  "output_manifest": "data\\evaluations\\combined_grounded_eval_v2_reviewed.jsonl",
+  "output_manifest_sha256": "902c22780af4fb870f7e50dcf8304704e3070335dc8463e34f7c4b93c9039edb",
+  "schema_version": "code_combined_eval_contract_promotion_v2",
+  "source_manifest": "data\\evaluations\\combined_grounded_eval_v1_reviewed.jsonl",
+  "source_manifest_sha256": "1f08adfa5976952a1a321a40b736421e37f22fc4b821b2e4271f4ce86b7479b4"
+}
