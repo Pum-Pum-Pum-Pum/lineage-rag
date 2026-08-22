@@ -61,6 +61,33 @@ class CombinedAnswerResponse(FrozenModel):
     patch_generation_allowed: Literal[False] = False
 
 
+def build_combined_contract_refusal(
+    *, retrieval: CombinedRetrievalResult,
+) -> CombinedAnswerResponse:
+    """Fail closed when generated combined output violates its JSON contract."""
+
+    refusal = CombinedSectionDraft(
+        status="refused",
+        text="The generated response did not satisfy the grounded-answer contract.",
+    )
+    return finalize_combined_answer(
+        retrieval=retrieval,
+        draft=CombinedAnswerDraft(
+            requested_claim_supported=False,
+            documented_functionality=refusal,
+            visible_custom_implementation=refusal,
+            impact_and_likely_change_locations=refusal,
+            unknown_or_unavailable_behavior=CombinedSectionDraft(
+                status="answered",
+                text=(
+                    "No functional claim is returned because the combined-answer "
+                    "contract could not be validated."
+                ),
+            ),
+        ),
+    )
+
+
 def finalize_combined_answer(
     *,
     retrieval: CombinedRetrievalResult,

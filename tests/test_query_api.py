@@ -8,6 +8,10 @@ from app.api.main import create_app
 from app.api.routes import query as query_route
 from app.llm.answer_contract import Citation, GroundedAnswerResponse
 from app.code_retrieval.answer_contract import CodeAnswerResponse, CodeCitation
+from app.fdd_code_lineage.combined_answer import (
+    CombinedAnswerResponse,
+    CombinedSectionResponse,
+)
 from app.retrieval.evidence_sufficiency import EvidenceSufficiencyDecision
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
 from app.services.answer_orchestration import AnswerOrchestrationResult
@@ -245,6 +249,59 @@ def test_enabled_code_mode_uses_explicit_runtime_contract(monkeypatch, tmp_path:
     assert payload["requested_claim_supported"] is True
     assert payload["code_citations"][0]["source_path"] == "pkg_custom.sql"
     assert payload["citations"] == []
+
+
+def test_combined_contract_refusal_returns_200_with_explicit_unsupported_state(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    settings = _settings(tmp_path)
+    settings.code_modes_enabled = True
+    refused = CombinedSectionResponse(
+        status="refused",
+        text="The generated response did not satisfy the grounded-answer contract.",
+    )
+    answer = CombinedAnswerResponse(
+        query="Explain the integration",
+        requested_claim_supported=False,
+        related_grounded_context_provided=False,
+        documented_functionality=refused,
+        visible_custom_implementation=refused,
+        impact_and_likely_change_locations=refused,
+        unknown_or_unavailable_behavior=CombinedSectionResponse(
+            status="answered",
+            text="No functional claim is returned because validation failed.",
+        ),
+    )
+    result = SimpleNamespace(
+        mode="combined",
+        answer=answer,
+        answer_call={
+            "model": "test-chat", "prompt_tokens": 10,
+            "completion_tokens": 3, "total_tokens": 13,
+        },
+        trace_id="combined-contract-refusal-trace",
+        trace_output_path=tmp_path / "combined-contract-refusal.json",
+    )
+    monkeypatch.setattr(query_route, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        query_route, "build_retrieval_runtime_config",
+        lambda loaded_settings: _retrieval_config("hybrid"),
+    )
+    monkeypatch.setattr(
+        query_route, "run_code_or_combined_query", lambda **kwargs: result,
+    )
+
+    response = TestClient(create_app()).post(
+        "/query",
+        json={"query": "Explain the integration", "knowledge_mode": "combined"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["requested_claim_supported"] is False
+    assert payload["is_answered"] is False
+    assert payload["refusal_reason"] == "requested_claim_unsupported"
+    assert payload["combined_sections"]["documented_functionality"]["status"] == "refused"
 
 
 def test_code_mode_feature_flag_supports_atomic_enable_and_rollback(

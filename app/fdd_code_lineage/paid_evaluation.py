@@ -15,6 +15,7 @@ from app.code_retrieval.models import CodeRetrievalResult
 from app.fdd_code_lineage.combined_answer import (
     CombinedAnswerDraft,
     CombinedAnswerResponse,
+    build_combined_contract_refusal,
     finalize_combined_answer,
 )
 from app.fdd_code_lineage.combined_retrieval import CombinedRetrievalResult
@@ -124,6 +125,8 @@ def generate_grounded_answer(
         completion_tokens=getattr(usage, "completion_tokens", None),
         total_tokens=getattr(usage, "total_tokens", None),
     )
+    contract_valid = True
+    contract_error: str | None = None
     if isinstance(retrieval, CodeRetrievalResult):
         unknowns = tuple(
             CodeUnknownBoundary(kind=kind, detail=_unknown_detail(kind))
@@ -137,12 +140,19 @@ def generate_grounded_answer(
             additional_unknowns=unknowns,
         )
     else:
-        answer = finalize_combined_answer(
-            retrieval=retrieval,
-            draft=CombinedAnswerDraft.model_validate(_parse_json_object(raw)),
-        )
+        try:
+            answer = finalize_combined_answer(
+                retrieval=retrieval,
+                draft=CombinedAnswerDraft.model_validate(_parse_json_object(raw)),
+            )
+        except ValueError as exc:
+            contract_valid = False
+            contract_error = type(exc).__name__
+            answer = build_combined_contract_refusal(retrieval=retrieval)
     return answer, {
         **asdict(call),
+        "contract_valid": contract_valid,
+        "contract_error": contract_error,
         "system_prompt": system_prompt,
         "user_prompt": user_prompt,
         "raw_response": raw.strip(),

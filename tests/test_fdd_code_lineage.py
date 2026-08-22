@@ -26,6 +26,8 @@ from app.fdd_code_lineage.models import (
     validate_lineage_artifact,
     write_lineage_artifact_no_overwrite,
 )
+from app.fdd_code_lineage.evaluation import CodeCombinedEvalCase
+from app.fdd_code_lineage.paid_evaluation import generate_grounded_answer
 
 
 FDD_ID = "FS_FCIS_14.7.0.0.0$ASNB_R22_Neo_AML_v1.2"
@@ -389,3 +391,60 @@ def test_combined_impact_rejects_patch_output(tmp_path: Path) -> None:
     answer = finalize_combined_answer(retrieval=retrieval, draft=draft)
     assert answer.impact_and_likely_change_locations.status == "refused"
     assert answer.impact_and_likely_change_locations.refusal_reason == "patch_generation_not_allowed"
+
+
+def test_malformed_combined_model_output_becomes_traceable_safe_refusal(
+    tmp_path: Path,
+) -> None:
+    code = _code_artifact()
+    reviewed = build_lineage_artifact(
+        fdd_generation="functional_specs_v5",
+        code_artifact=code,
+        mappings=[_mapping("reviewed")],
+        **REVIEW_BINDINGS,
+    )
+    retrieval = retrieve_combined_evidence(
+        query="Explain the AML integration",
+        fdd_results=[_fdd_result()],
+        fdd_generation="functional_specs_v5",
+        known_fdd_document_ids={FDD_ID},
+        code_artifact=code,
+        lineage_artifact=reviewed,
+        analysis_directory=_analysis_directory(tmp_path),
+        code_mode="lexical",
+    )
+    response = SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content="not valid json"))],
+        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=3, total_tokens=13),
+        _request_id="answer-malformed-1",
+    )
+    client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(create=lambda **kwargs: response)
+        )
+    )
+    case = CodeCombinedEvalCase(
+        case_id="combined-contract-failure-001",
+        mode="combined",
+        question="Explain the visible AML integration flow.",
+        expected_code_paths=("pkgaml_custom.sql",),
+        expected_fdd_document_ids=(FDD_ID,),
+        rationale="Tests fail-closed handling of malformed combined model output.",
+    )
+
+    answer, call = generate_grounded_answer(
+        client=client,
+        model="test-chat",
+        case=case,
+        retrieval=retrieval,
+    )
+
+    assert answer.requested_claim_supported is False
+    assert answer.documented_functionality.status == "refused"
+    assert answer.visible_custom_implementation.status == "refused"
+    assert not answer.fdd_citations
+    assert not answer.code_citations
+    assert call["contract_valid"] is False
+    assert call["contract_error"] == "JSONDecodeError"
+    assert call["request_id"] == "answer-malformed-1"
+    assert call["raw_response"] == "not valid json"

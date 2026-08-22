@@ -124,6 +124,33 @@ output path and raw backend error bodies are not exposed.
 mode before deliberate backend activation fails closed and directs the user back
 to functional-document mode; it does not silently fall back or spend model cost.
 
+Prepare an immutable, identity-bound activation request without changing `.env`:
+
+```bash
+uv run --locked python scripts/prepare_code_mode_activation.py \
+  --readiness-report data/exports/evaluations/code-combined-activation-readiness-v3-20260822.json \
+  --requested-by <operator> \
+  --request-output data/exports/activation/code-modes-request.json \
+  --preflight-output data/exports/activation/code-modes-preflight-pending.json
+```
+
+Before preparing the request, establish an explicit disabled baseline when the
+flag is absent. The command is dry-run unless `--apply` is provided and refuses
+to replace an enabled or ambiguous value:
+
+```bash
+uv run --locked python scripts/initialize_code_modes_disabled.py --env-file .env
+uv run --locked python scripts/initialize_code_modes_disabled.py --env-file .env --apply
+```
+
+The pending preflight must report `ready_to_apply=false` until a separate human
+approval is recorded. Paid-smoke and internal-evidence disclosure permissions
+are independent flags; activation approval alone does not grant either. The
+switch command is dry-run unless `--apply` is supplied, requires a matching
+approval and current preflight, changes only `CODE_MODES_ENABLED` through an
+atomic replace, and still requires an explicit service restart and post-restart
+readiness check.
+
 ## Smoke test the API
 
 Start with the health-only smoke test:
