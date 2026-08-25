@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.activation.code_modes import (
+    ACTIVATION_RUNTIME_FILES,
     build_activation_approval,
     build_activation_request,
     build_execution_evidence,
@@ -32,15 +33,7 @@ def _settings(tmp_path: Path, **overrides):
         "fdd_code_lineage_artifact_path": lineage,
     }
     values.update(overrides)
-    for relative in (
-        "app/activation/code_modes.py",
-        "app/api/routes/query.py",
-        "app/api/routes/readiness.py",
-        "app/api/routes/conversations.py",
-        "app/services/knowledge_mode_orchestration.py",
-        "app/schemas/query_api.py",
-        "app/schemas/conversation_api.py",
-    ):
+    for relative in ACTIVATION_RUNTIME_FILES:
         path = tmp_path / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(relative, encoding="utf-8")
@@ -70,6 +63,9 @@ def test_request_binds_explicit_runtime_and_evidence_identities(tmp_path: Path) 
     assert request.rollback_configuration["CODE_MODES_ENABLED"] == "false"
     assert request.target_configuration["CODE_QDRANT_COLLECTION_NAME"] == "code_custom_r1_v2"
     assert len(request.evidence_identities["runtime_contract_sha256"]) == 64
+    assert "app/fdd_code_lineage/paid_evaluation.py" in ACTIVATION_RUNTIME_FILES
+    assert "app/fdd_code_lineage/combined_answer.py" in ACTIVATION_RUNTIME_FILES
+    assert "scripts/run_code_modes_activation_smoke.py" in ACTIVATION_RUNTIME_FILES
     assert "OPENAI_API_KEY" not in request.model_dump_json()
 
 

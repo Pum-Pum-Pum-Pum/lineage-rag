@@ -6,6 +6,10 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.core.request_observability import get_request_id
 from app.retrieval.retrieval_config import build_retrieval_runtime_config
+from app.retrieval.knowledge_service import (
+    KnowledgeRetrievalService,
+    KnowledgeSearchResponse,
+)
 from app.schemas.query_api import (
     CitationResponse,
     CodeCitationResponse,
@@ -15,6 +19,7 @@ from app.schemas.query_api import (
     LLMUsageResponse,
     QueryRequest,
     QueryResponse,
+    SearchRequest,
 )
 from app.services.answer_orchestration import AnswerOrchestrationResult, run_grounded_answer_query
 from app.services.knowledge_mode_orchestration import run_code_or_combined_query
@@ -32,6 +37,39 @@ def query_answer(request: QueryRequest) -> QueryResponse:
     return execute_query_request(request)
 
 
+@router.post("/search", response_model=KnowledgeSearchResponse)
+def search_evidence(request: SearchRequest) -> KnowledgeSearchResponse:
+    """Return bounded retrieval evidence without invoking answer generation.
+
+    The route shares the exact retrieval implementation used by answer
+    orchestration and the MCP adapter.  It intentionally exposes no path,
+    point-ID, SQL, or retrieval-strategy input.
+    """
+
+    settings = get_settings()
+    retrieval_config = build_retrieval_runtime_config(settings)
+    try:
+        return build_knowledge_retrieval_service(
+            settings=settings,
+            retrieval_config=retrieval_config,
+        ).search(query=request.query, mode=request.mode, limit=5)
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Code and combined knowledge modes are not activated.",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Requested source is unavailable.") from exc
+    except Exception as exc:
+        logger.exception("Retrieval-only search processing failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Retrieval dependency check failed. Verify approved index availability.",
+        ) from exc
+
+
 def execute_query_request(
     request: QueryRequest,
     *,
@@ -41,13 +79,28 @@ def execute_query_request(
 
     settings = get_settings()
     retrieval_config = build_retrieval_runtime_config(settings)
-    if request.knowledge_mode != "fdd":
-        if not bool(getattr(settings, "code_modes_enabled", False)):
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Code and combined knowledge modes are not activated.",
-            )
-        try:
+    if request.knowledge_mode != "fdd" and not bool(getattr(settings, "code_modes_enabled", False)):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Code and combined knowledge modes are not activated.",
+        )
+
+    retrieval_complete = False
+    try:
+        retrieval = build_knowledge_retrieval_service(
+            settings=settings,
+            retrieval_config=retrieval_config,
+        ).retrieve(
+            query=request.query,
+            mode=request.knowledge_mode,
+            limit=request.limit,
+            document_family=request.document_family,
+            release_label=request.release_label,
+            source_kind=request.source_kind,
+            conversation_context=conversation_context,
+        )
+        retrieval_complete = True
+        if request.knowledge_mode != "fdd":
             result = run_code_or_combined_query(
                 mode=request.knowledge_mode,
                 query=request.query,
@@ -57,52 +110,28 @@ def execute_query_request(
                 limit=request.limit,
                 correlation_id=get_request_id(),
                 conversation_context=conversation_context,
+                retrieval_execution=retrieval,
             )
             return _build_extended_query_response(result)
-        except HTTPException:
-            raise
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-        except Exception as exc:
-            logger.exception("Code/combined query processing failed")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal code/combined query processing error.",
-            ) from exc
-    qdrant_required = _requires_qdrant_collection(retrieval_config.retrieval_mode)
-    min_top_score = (
-        request.min_top_score
-        if request.min_top_score is not None
-        else settings.retrieval_min_top_score
-    )
 
-    client = None
-    try:
-        if qdrant_required:
-            try:
-                client = create_persistent_qdrant_client(settings.qdrant_local_path)
-
-                if not client.collection_exists(settings.qdrant_collection_name):
-                    raise HTTPException(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        detail="Qdrant collection does not exist. Run indexing before querying.",
-                    )
-            except HTTPException:
-                raise
-            except Exception as exc:
-                logger.exception("Qdrant dependency check failed during query")
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Qdrant dependency check failed. Verify vector-store availability before querying.",
-                ) from exc
-
+        min_top_score = (
+            request.min_top_score
+            if request.min_top_score is not None
+            else settings.retrieval_min_top_score
+        )
+        if retrieval.fdd is None:
+            raise RuntimeError("FDD retrieval did not return planned evidence")
         orchestration_result = run_grounded_answer_query(
-            qdrant_client=client,
+            qdrant_client=None,
             collection_name=settings.qdrant_collection_name,
             query_text=request.query,
             embedding_model=settings.openai_embedding_model,
             retrieval_config=retrieval_config,
-            lexical_artifact_directory=settings.processed_dir,
+            lexical_artifact_directory=getattr(
+                settings,
+                "fdd_retrieval_artifact_dir",
+                settings.processed_dir,
+            ),
             trace_output_directory=settings.exports_dir / "answer_runs",
             limit=request.limit,
             min_results=1,
@@ -112,6 +141,7 @@ def execute_query_request(
             source_kind=request.source_kind,
             conversation_context=conversation_context,
             correlation_id=get_request_id(),
+            planned_retrieval=retrieval.fdd,
         )
         return _build_query_response(orchestration_result)
     except HTTPException:
@@ -121,15 +151,48 @@ def execute_query_request(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Code and combined knowledge modes are not activated.",
+        ) from exc
+    except RuntimeError as exc:
+        if retrieval_complete:
+            logger.exception("Answer orchestration failed after retrieval")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal query processing error.",
+            ) from exc
+        if "collection is unavailable" in str(exc):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Qdrant collection does not exist. Run indexing before querying.",
+            ) from exc
+        logger.exception("Unexpected retrieval dependency failure")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Qdrant dependency check failed. Verify vector-store availability before querying.",
+        ) from exc
     except Exception as exc:
         logger.exception("Unexpected query API failure")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal query processing error.",
         ) from exc
-    finally:
-        if client is not None:
-            client.close()
+
+
+def build_knowledge_retrieval_service(
+    *,
+    settings,
+    retrieval_config,
+) -> KnowledgeRetrievalService:
+    """Build the one shared retrieval service with the existing Qdrant factory."""
+
+    return KnowledgeRetrievalService(
+        settings=settings,
+        retrieval_config=retrieval_config,
+        qdrant_client_factory=create_persistent_qdrant_client,
+    )
 
 
 def _build_query_response(result: AnswerOrchestrationResult) -> QueryResponse:

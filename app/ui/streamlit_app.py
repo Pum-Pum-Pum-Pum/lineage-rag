@@ -12,6 +12,7 @@ from app.schemas.conversation_api import (
     ConversationTurnResponse,
     CreateConversationRequest,
 )
+from app.core.config import get_settings
 from app.ui.api_client import RagApiClient, UiApiError
 
 
@@ -25,6 +26,11 @@ KnowledgeMode = Literal["fdd", "code", "combined"]
 
 
 def main() -> None:
+    if get_settings().interface_mode == "mcp":
+        raise RuntimeError(
+            "Streamlit is disabled when INTERFACE_MODE=mcp. "
+            "Use INTERFACE_MODE=fastapi or both."
+        )
     import streamlit as st
 
     st.set_page_config(

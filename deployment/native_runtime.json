@@ -40,7 +40,34 @@
       "127.0.0.1",
       "--server.port",
       "8501"
+    ],
+    "mcp_stdio": [
+      "powershell",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "scripts/run_mcp_stdio.ps1"
     ]
+  },
+  "mcp_stdio": {
+    "process_owner": "tunnel-client",
+    "working_directory": ".",
+    "interface_mode": [
+      "mcp",
+      "both"
+    ],
+    "required_application_environment": [
+      "INTERFACE_MODE",
+      "MCP_EVIDENCE_DISCLOSURE_ENABLED",
+      "OPENAI_API_KEY"
+    ],
+    "control_plane_key": {
+      "name": "CONTROL_PLANE_API_KEY",
+      "owner": "tunnel-client parent process only",
+      "must_not_be_inherited_by_mcp_child": true
+    },
+    "startup_contract": "The child performs local configuration preflight before tools register; this manifest does not inject environment variables."
   },
   "mutable_state": {
     "bundled": false,

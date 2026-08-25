@@ -58,6 +58,7 @@ data/code_snapshots/
 data/staging/*
 data/indexes/*
 data/tmp/
+data/test_runtime/
 
 
 # Evaluation outputs
@@ -72,6 +73,5 @@ data/qdrant_local/
 *.db
 
 
-.env.example
 .clinerules
 Culling Blade Lineage- Gen AI RAG System_Prompt_for_GPT.txt

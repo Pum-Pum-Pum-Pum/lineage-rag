@@ -1191,3 +1191,29 @@ implemented. The versioned analysis policy is hash-bound to a new isolated
 parser generation. Code embeddings, lexical/Qdrant generations, retrieval,
 answering, and FDD/code lineage mappings remain unimplemented and gated by
 Steps 159 and later.
+
+### Phase 2 completion status after Step 237
+
+The approved initial PL/SQL scope is complete. The delivered local capability now
+includes immutable curated snapshots, resource-bounded parsing, overload-safe
+symbols, dependency and DDL analysis, deterministic code artifacts, isolated
+lexical/Qdrant generations, weighted-RRF code retrieval, source-line citations,
+reviewed FDD-to-code lineage, explicit code/combined modes, safe unknown handling,
+manual UAT, paid grounded-answer evaluation, and deliberate local activation with
+rollback evidence.
+
+The bounded deterministic tool extension has a reviewed manifest, safety cases,
+manual UAT, and an effective **10/10 SME-accepted paid answer set** after one
+authorized targeted replay. It remains offline and is not automatically routed or
+exposed through a new API/UI tool surface by this completion decision.
+
+Deferred work remains explicit rather than being treated as missing Phase 2 scope:
+
+- JavaScript parsing/indexing after the PL/SQL architecture is stable on a broader
+  curated corpus;
+- bounded-tool API/UI exposure and any automatic routing under a separate
+  activation contract;
+- larger-corpus dependency and retrieval evaluation;
+- concurrency, latency, sustained-provider, monitoring, disaster-recovery,
+  authentication, authorization, and production deployment evidence;
+- Phase 3 Oracle metadata and Text-to-SQL work.

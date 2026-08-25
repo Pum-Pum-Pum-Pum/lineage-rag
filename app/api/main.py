@@ -15,6 +15,11 @@ def create_app() -> FastAPI:
     """Create the FastAPI application for the local RAG backend."""
 
     settings = get_settings()
+    if settings.interface_mode == "mcp":
+        raise RuntimeError(
+            "FastAPI is disabled when INTERFACE_MODE=mcp. "
+            "Use INTERFACE_MODE=fastapi or both."
+        )
     app = FastAPI(title=settings.app_name)
     audit_sink = build_audit_sink(settings)
     install_request_observability(app, audit_sink)

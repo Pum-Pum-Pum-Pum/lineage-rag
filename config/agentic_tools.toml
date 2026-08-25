@@ -1,0 +1,14 @@
+schema_version = "bounded_agentic_tools_policy_v1"
+
+[budgets]
+max_calls = 3
+max_results_per_call = 8
+max_total_evidence_units = 16
+max_impact_nodes = 24
+max_impact_edges = 32
+
+[controls]
+automatic_routing = false
+fdd_tools = ["fdd_search"]
+code_tools = ["code_search"]
+combined_tools = ["fdd_search", "code_search", "impact_graph"]

@@ -1,0 +1,133 @@
+{
+  "decisions": [
+    {
+      "case_id": "uat-fdd-aml-flow-001",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-code-aml-batch-send-002",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-code-aml-unitholder-003",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-code-aml-api-online-004",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-code-aml-offline-impact-005",
+      "observed_structural_passed": false,
+      "packet_displayed_structural_result": "fail",
+      "rationale": "Needs changes, maybe reranking",
+      "rationale_source": "packet",
+      "required_follow_up": "\"citation_id\": \"C2\" has the answer but the answer is not grounded in the evidence. The answer should be corrected to indicate that spOfflineParallelUserEnd is a likely change location for offline AML user processing, as it is a visible custom routine that handles offline processing logic.",
+      "semantic_accepted": false,
+      "sme_verdict": "corrected"
+    },
+    {
+      "case_id": "uat-combined-aml-flow-006",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-combined-aml-batch-send-007",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-combined-aml-unitholder-008",
+      "observed_structural_passed": false,
+      "packet_displayed_structural_result": "fail",
+      "rationale": "impact_and_likely_change_locations answer is correct can be accepted",
+      "rationale_source": "packet",
+      "required_follow_up": "\"impact_and_likely_change_locations\": {",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-combined-aml-offline-impact-009",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    },
+    {
+      "case_id": "uat-combined-kernel-negative-010",
+      "observed_structural_passed": true,
+      "packet_displayed_structural_result": "pass",
+      "rationale": "Required follow-up:",
+      "rationale_source": "packet",
+      "required_follow_up": "",
+      "semantic_accepted": true,
+      "sme_verdict": "accepted"
+    }
+  ],
+  "ledger_identity_sha256": "7f642f1061f4711c1275f388849fbee82faee6cf48514a547daad8a565d3c31f",
+  "review_file": "data\\exports\\evaluations\\bounded-tool-paid-answer-v2-20260824\\sme-review.md",
+  "review_file_sha256": "db7b77ca80ffc6c140975f2eb302d1c69cbb5334485e29d906b430717d474d4c",
+  "reviewed_at": "2026-08-24T07:40:27.974920+00:00",
+  "reviewer": "AIAgentSmith",
+  "run_state": "data\\exports\\evaluations\\bounded-tool-paid-answer-v2-20260824\\run-state.json",
+  "run_state_sha256": "e449d7e8a07c91cae013882d3c868c595bc945952de20b377f3342bd346b5820",
+  "schema_version": "paid_bounded_tool_uat_review_ledger_v1",
+  "summary": {
+    "activation_authorized": false,
+    "additional_paid_requests_authorized": 0,
+    "observed_structural_passes": 8,
+    "semantic_acceptances": 9,
+    "semantic_corrections_required": 1,
+    "semantic_review_status": "remediation_required",
+    "total_cases": 10
+  },
+  "trace_sha256": {
+    "uat-code-aml-api-online-004": "009806b8ccc1a35438ddb60f9b84d1343c8ff1bd4d6ce5e1b97bf10e0f47bf6f",
+    "uat-code-aml-batch-send-002": "0fdb78b7afc0812f5769f4ca44322a06c3a99088c267f9f4f6e24886d6a938f0",
+    "uat-code-aml-offline-impact-005": "67468b72cef9961c4e2c6b9f33f31ab7c957a612164d6a1edce539df15a92d09",
+    "uat-code-aml-unitholder-003": "9fb75fd58da7d3a4f1c0f8789a4606c2bca711d09272c5fb77b2c64797d2aab1",
+    "uat-combined-aml-batch-send-007": "00a870f481c9f465b203c4bc2634fc6a04e1cdd5bdb312e79d8206fb0655487a",
+    "uat-combined-aml-flow-006": "0d867fd845789b39eb1944d504390044bdd79fed2867d4fde4e1c71693dcac9c",
+    "uat-combined-aml-offline-impact-009": "f4e7f1fecca4efd589a721d35bc867d692065ba5c496ffe3b986db05af512465",
+    "uat-combined-aml-unitholder-008": "09c4723c2c332000abd28eaab1a27c664a9934e066d7110cfea2f5d32c3b465b",
+    "uat-combined-kernel-negative-010": "9a7d6dfb6834a239251bfa2ed36c5c4dae7e2e2f326c40d8f6a6643c24508071",
+    "uat-fdd-aml-flow-001": "bbbc8ce9c46719d431d249a792357038cabdc3ec4604a846b8b6b99e4d6a6ff0"
+  }
+}

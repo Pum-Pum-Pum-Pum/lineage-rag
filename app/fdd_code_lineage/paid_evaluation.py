@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict, dataclass
 from typing import Any, Sequence
@@ -29,6 +30,8 @@ Do not infer unavailable Java/kernel behavior, runtime dynamic SQL targets, exte
 schema behavior, or a proven root cause. Do not generate a patch.
 Start with exactly DECISION: ANSWER or DECISION: REFUSE.
 Every material answered claim must cite one or more supplied [C#] identifiers.
+Every citation must use exact square-bracket syntax such as [C1] or [C2]. Never
+write a bare citation such as C1, "Evidence: C1", or "Evidence: C2".
 If the evidence does not directly support the request, refuse safely and explain
 what source would be needed. Impact locations are candidates, not proven causes."""
 
@@ -40,12 +43,11 @@ does; FDD evidence is authoritative for documented requirements and intent. Keep
 those claims in separate sections. Do not infer hidden Java/kernel behavior,
 runtime dynamic SQL targets, external schemas, or a proven root cause. Never
 generate a patch.
-Return one JSON object with exactly these keys:
-requested_claim_supported, documented_functionality, visible_custom_implementation,
-impact_and_likely_change_locations, unknown_or_unavailable_behavior.
-requested_claim_supported must be false when the user's exact requested fact
-cannot be established, even if separately labelled related context is useful.
-Each value must be an object with status (answered or refused) and text.
+The response is constrained by the supplied JSON schema.
+requested_claim_supported is one JSON boolean, never a section object. Set it to
+false when the user's exact requested fact cannot be established, even if
+separately labelled related context is useful. The other four fields are section
+objects with status (answered or refused) and text.
 Documented functionality may cite only [F#]. Implementation and impact may cite
 only [C#]. Every material answered claim needs a valid citation. Refuse each
 unsupported section independently. Impact locations are candidates, not proven
@@ -105,12 +107,21 @@ def generate_grounded_answer(
         retrieval=retrieval,
         conversation_context=conversation_context,
     )
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
+    request: dict[str, Any] = {
+        "model": model,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
+    }
+    response_format = None
+    response_schema_sha256 = None
+    if isinstance(retrieval, CombinedRetrievalResult):
+        response_format = combined_response_format()
+        request["response_format"] = response_format
+        response_schema_sha256 = _canonical_sha256(response_format)
+    response = client.chat.completions.create(
+        **request,
     )
     if len(response.choices) != 1:
         raise RuntimeError("Answer response did not contain exactly one choice")
@@ -153,6 +164,8 @@ def generate_grounded_answer(
         **asdict(call),
         "contract_valid": contract_valid,
         "contract_error": contract_error,
+        "response_format": "json_schema" if response_format else "text",
+        "response_schema_sha256": response_schema_sha256,
         "system_prompt": system_prompt,
         "user_prompt": user_prompt,
         "raw_response": raw.strip(),
@@ -295,6 +308,36 @@ def _parse_json_object(raw: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("Combined answer must be a JSON object")
     return value
+
+
+def combined_response_format() -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "combined_grounded_answer",
+            "strict": True,
+            "schema": CombinedAnswerDraft.model_json_schema(),
+        },
+    }
+
+
+def combined_response_contract_aligned() -> bool:
+    """Return whether the prompt and enforced schema agree on the support field."""
+    response_format = combined_response_format()
+    schema = response_format["json_schema"]["schema"]
+    support_schema = schema.get("properties", {}).get("requested_claim_supported", {})
+    return (
+        response_format["type"] == "json_schema"
+        and response_format["json_schema"]["strict"] is True
+        and support_schema.get("type") == "boolean"
+        and "requested_claim_supported is one JSON boolean" in COMBINED_SYSTEM_PROMPT
+        and "Each value must be an object" not in COMBINED_SYSTEM_PROMPT
+    )
+
+
+def _canonical_sha256(value: Any) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _unknown_detail(kind: str) -> str:

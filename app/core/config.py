@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,6 +22,14 @@ class Settings(BaseSettings):
     app_name: str = "Culling Blade Lineage GenAI RAG System"
     environment: str = "dev"
     log_level: str = "INFO"
+    interface_mode: Literal["fastapi", "mcp", "both"] = Field(
+        default="fastapi",
+        alias="INTERFACE_MODE",
+    )
+    mcp_evidence_disclosure_enabled: bool = Field(
+        default=False,
+        alias="MCP_EVIDENCE_DISCLOSURE_ENABLED",
+    )
 
     root_dir: Path = ROOT_DIR
     data_dir: Path = ROOT_DIR / "data"
@@ -107,7 +116,14 @@ class Settings(BaseSettings):
         default=ROOT_DIR / "data" / "docs_embedded",
         alias="EMBEDDED_DOCS_DIR",
     )
-    processed_dir: Path = ROOT_DIR / "data" / "processed"
+    processed_dir: Path = Field(
+        default=ROOT_DIR / "data" / "processed",
+        alias="PROCESSED_DIR",
+    )
+    retrieval_index_path: Path | None = Field(
+        default=None,
+        alias="RETRIEVAL_INDEX_PATH",
+    )
     ingestion_output_dir: Path = Field(
         default=ROOT_DIR / "data" / "processed",
         alias="INGESTION_OUTPUT_DIR",
@@ -183,6 +199,38 @@ class Settings(BaseSettings):
 
     llm_input_cost_per_1k_tokens: float = Field(default=0.0, alias="LLM_INPUT_COST_PER_1K_TOKENS")
     llm_output_cost_per_1k_tokens: float = Field(default=0.0, alias="LLM_OUTPUT_COST_PER_1K_TOKENS")
+
+    @model_validator(mode="after")
+    def validate_retrieval_index_alias(self) -> "Settings":
+        """Reject ambiguous FDD lexical-index configuration.
+
+        ``RETRIEVAL_INDEX_PATH`` is the documented Phase 1 compatibility alias
+        for the historic ``PROCESSED_DIR`` setting.  Keeping both values is
+        allowed only when they resolve to the same directory, so one process
+        cannot silently read a different lexical generation than another.
+        """
+
+        if self.retrieval_index_path is not None:
+            alias_path = _resolve_project_path(self.retrieval_index_path, self.root_dir)
+            processed_path = _resolve_project_path(self.processed_dir, self.root_dir)
+            if alias_path != processed_path:
+                raise ValueError(
+                    "RETRIEVAL_INDEX_PATH and PROCESSED_DIR must resolve to the same path"
+                )
+        return self
+
+    @property
+    def fdd_retrieval_artifact_dir(self) -> Path:
+        """Return the one approved lexical-artifact directory for FDD retrieval."""
+
+        selected = self.retrieval_index_path or self.processed_dir
+        return _resolve_project_path(selected, self.root_dir)
+
+
+def _resolve_project_path(value: Path, root_dir: Path) -> Path:
+    """Normalize relative settings without requiring the target to exist."""
+
+    return (value if value.is_absolute() else root_dir / value).resolve()
 
 
 def get_settings() -> Settings:

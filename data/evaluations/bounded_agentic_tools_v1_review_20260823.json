@@ -1,0 +1,57 @@
+{
+  "approval_note": "User confirmed all six SME expectations look good in chat on 2026-08-23; no expectation was corrected.",
+  "approval_source": "chat_confirmation",
+  "decisions": [
+    {
+      "case_id": "tool-fdd-aml-flow-001",
+      "rationale": "User confirmed all six SME expectations look good in chat on 2026-08-23; no expectation was corrected.",
+      "rationale_source": "chat_confirmation",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "tool-code-aml-batch-send-002",
+      "rationale": "User confirmed all six SME expectations look good in chat on 2026-08-23; no expectation was corrected.",
+      "rationale_source": "chat_confirmation",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "tool-code-aml-api-online-003",
+      "rationale": "User confirmed all six SME expectations look good in chat on 2026-08-23; no expectation was corrected.",
+      "rationale_source": "chat_confirmation",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "tool-combined-aml-batch-send-004",
+      "rationale": "User confirmed all six SME expectations look good in chat on 2026-08-23; no expectation was corrected.",
+      "rationale_source": "chat_confirmation",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "tool-combined-aml-offline-impact-005",
+      "rationale": "User confirmed all six SME expectations look good in chat on 2026-08-23; no expectation was corrected.",
+      "rationale_source": "chat_confirmation",
+      "verdict": "accepted"
+    },
+    {
+      "case_id": "tool-combined-aml-general-flow-006",
+      "rationale": "User confirmed all six SME expectations look good in chat on 2026-08-23; no expectation was corrected.",
+      "rationale_source": "chat_confirmation",
+      "verdict": "accepted"
+    }
+  ],
+  "draft_manifest": "data\\evaluations\\bounded_agentic_tools_v1_draft.jsonl",
+  "draft_manifest_sha256": "f38e19ec5942c8b24754fca304629b302a7c5378b5df2c68bf85e46949514aef",
+  "evaluated_report_identity_sha256": "a7ee4d4bf0a04c7a8d8b5dff8db8849da2fca5088dbfbd2480fd953f9c45758a",
+  "ledger_identity_sha256": "454cc7a316f4c11ca6a4cbbcb373a9dfdb939bc8c2b689f322eacfc361a29f41",
+  "review_packet": "data\\exports\\evaluations\\bounded-agentic-tools-v1-draft-sme-review-20260823.md",
+  "review_packet_sha256": "dc3d5d1bbcb1a22f11b29126720642e79f177f77df7fb77433d020a557560f43",
+  "reviewed_at": "2026-08-23T07:26:47.936086+00:00",
+  "reviewed_manifest": "data\\evaluations\\bounded_agentic_tools_v1_reviewed.jsonl",
+  "reviewed_manifest_sha256": "5f55f5ab9edd073370b835584b95479160bd11257e7cdcac435e3db7faba89a7",
+  "reviewer": "AIAgentSmith",
+  "schema_version": "bounded_tool_eval_review_ledger_v1",
+  "summary": {
+    "accepted_cases": 6,
+    "total_cases": 6
+  }
+}

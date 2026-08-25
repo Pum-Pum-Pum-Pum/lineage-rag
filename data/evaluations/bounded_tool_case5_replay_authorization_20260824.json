@@ -1,0 +1,22 @@
+{
+  "answer_model": "gpt-5-mini",
+  "approval_note": "User authorized exactly one paid replay of uat-code-aml-offline-impact-005, disclosure of its previously retrieved internal PL/SQL evidence to OpenAI, and zero automatic retries on 2026-08-24.",
+  "approval_source": "chat_confirmation",
+  "authorization_identity_sha256": "3ce3a5a8374a1de8439fd2bfdf594166c7925592d14c00fe1d16517b1e452eee",
+  "automatic_retries": 0,
+  "case_id": "uat-code-aml-offline-impact-005",
+  "code_system_prompt_sha256": "71418098832d40770024417de613ad693e2c0ab86e410ecf84e2890898fedbb6",
+  "internal_evidence_disclosure_authorized": true,
+  "local_uat_report": "data\\exports\\evaluations\\bounded-tool-uat-v1-kernel-qualified-v2-20260824\\uat-code-aml-offline-impact-005.json",
+  "local_uat_report_sha256": "74eba183df30e2df87b4439ca63da7de6dec7bd58a586ff69b1390e5de834afc",
+  "maximum_answer_requests": 1,
+  "maximum_query_embedding_requests": 0,
+  "paid_use_authorized": true,
+  "prior_review_ledger": "data\\evaluations\\bounded_tool_paid_answer_v1_review_20260824.json",
+  "prior_review_ledger_sha256": "076c945c5743832a83575fb5e4a106f0aace31c2f407e6a1dfb679ec5f8a7a39",
+  "prior_trace": "data\\exports\\evaluations\\bounded-tool-paid-answer-v2-20260824\\uat-code-aml-offline-impact-005.json",
+  "prior_trace_sha256": "67468b72cef9961c4e2c6b9f33f31ab7c957a612164d6a1edce539df15a92d09",
+  "reviewed_manifest": "data\\evaluations\\bounded_tool_manual_uat_v1_reviewed_v3.jsonl",
+  "reviewed_manifest_sha256": "7a02a0b4ded5dd72e536a19117025cb6e6b7764e0c16fb6f8828fb8d9de1b6c1",
+  "schema_version": "bounded_tool_case_replay_authorization_v1"
+}

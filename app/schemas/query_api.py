@@ -36,6 +36,26 @@ class QueryRequest(BaseModel):
         return cleaned
 
 
+class SearchRequest(BaseModel):
+    """Retrieval-only request used by the API and mirrored by the MCP adapter.
+
+    Search deliberately does not accept raw paths, point IDs, filters, or a
+    retrieval-strategy override.  The configured retrieval contract remains the
+    authority for those controls.
+    """
+
+    query: str = Field(..., min_length=1)
+    mode: Literal["fdd", "code", "combined"] = "fdd"
+
+    @field_validator("query")
+    @classmethod
+    def query_must_not_be_blank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("query must not be blank")
+        return cleaned
+
+
 class CitationResponse(BaseModel):
     unit_id: str
     document_family: str | None

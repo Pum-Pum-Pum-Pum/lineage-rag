@@ -1,0 +1,19 @@
+{
+  "approval_note": "User accepted the ten-case bounded-tool UAT packet and authorized sending the ten questions and retrieved internal FDD/PLSQL excerpts to OpenAI for grounded-answer evaluation on 2026-08-24.",
+  "approval_source": "chat_confirmation",
+  "automatic_retries": 0,
+  "batch_identity_sha256": "0ecd0b9856b920dc127d2d9c2d10eb878642e317298998646a0ececdd9482b61",
+  "batch_report_sha256": "e29e4bafbdeb2c124809f7d589789364b4d14ad6114b4337af4093a157ca087d",
+  "case_count": 10,
+  "draft_manifest_sha256": "e22abf0c05d82681e41a8e71d3ac573c8045de5e7af8b127e26f6f43cc71857d",
+  "internal_evidence_disclosure_authorized": true,
+  "ledger_identity_sha256": "03318ac527503eec0a262275d86815810f08553d78d152167c95aca99443ac2e",
+  "maximum_answer_requests": 10,
+  "maximum_query_embedding_requests": 0,
+  "paid_use_authorized": true,
+  "review_packet_sha256": "54b05372c886ff181446609e39d6aba45f010fbf80ed43241cfba1c78511a1fe",
+  "reviewed_at": "2026-08-24T06:16:04.525461+00:00",
+  "reviewed_manifest_sha256": "7a02a0b4ded5dd72e536a19117025cb6e6b7764e0c16fb6f8828fb8d9de1b6c1",
+  "reviewer": "AIAgentSmith",
+  "schema_version": "manual_bounded_tool_uat_review_ledger_v1"
+}

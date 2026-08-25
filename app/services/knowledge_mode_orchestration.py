@@ -21,6 +21,7 @@ from app.fdd_code_lineage.paid_evaluation import (
 )
 from app.llm.client import get_llm_client
 from app.retrieval.lexical_search import load_retrieval_ready_documents
+from app.retrieval.knowledge_service import KnowledgeRetrievalExecution
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
 from app.services.query_retrieval import retrieve_planned_query_evidence
 
@@ -47,11 +48,33 @@ def run_code_or_combined_query(
     correlation_id: str | None,
     conversation_context: str | None = None,
     openai_client=None,
+    retrieval_execution: KnowledgeRetrievalExecution | None = None,
 ) -> KnowledgeModeOrchestrationResult:
     """Run an explicit code/combined request behind the disabled-by-default gate."""
 
     if mode not in {"code", "combined"}:
         raise ValueError("Extended orchestration supports only code or combined mode")
+    if retrieval_execution is not None:
+        if retrieval_execution.mode != mode:
+            raise ValueError("Prepared retrieval belongs to a different knowledge mode")
+        retrieval = (
+            retrieval_execution.code
+            if mode == "code"
+            else retrieval_execution.combined
+        )
+        if retrieval is None:
+            raise ValueError("Prepared retrieval did not contain the requested evidence lane")
+        return _generate_and_trace(
+            mode=mode,
+            query=query,
+            analysis_kind=analysis_kind,
+            settings=settings,
+            retrieval=retrieval,
+            embedding_call=retrieval_execution.embedding_call or {},
+            correlation_id=correlation_id,
+            conversation_context=conversation_context,
+            openai_client=openai_client,
+        )
     artifact = load_code_index_artifact(settings.code_index_artifact_path)
     client = openai_client or get_llm_client()
     retrieval_query = query
@@ -141,6 +164,64 @@ def run_code_or_combined_query(
         if fdd_qdrant is not None:
             fdd_qdrant.close()
 
+    trace_id = correlation_id or str(uuid.uuid4())
+    trace_path = Path(settings.exports_dir) / "answer_runs" / f"{trace_id}.json"
+    trace = {
+        "schema_version": "knowledge_mode_answer_trace_v1",
+        "trace_id": trace_id,
+        "knowledge_mode": mode,
+        "query": query,
+        "conversation_context_used": bool(
+            conversation_context and conversation_context.strip()
+        ),
+        "embedding_call": embedding_call,
+        "retrieval": retrieval.model_dump(mode="json"),
+        "answer_call": answer_call,
+        "answer": answer.model_dump(mode="json"),
+    }
+    trace_path.parent.mkdir(parents=True, exist_ok=True)
+    if trace_path.exists():
+        raise FileExistsError(f"Refusing to overwrite answer trace: {trace_path}")
+    trace_path.write_text(json.dumps(trace, indent=2, ensure_ascii=False), encoding="utf-8")
+    return KnowledgeModeOrchestrationResult(
+        mode=mode,
+        answer=answer,
+        retrieval=retrieval,
+        embedding_call=embedding_call,
+        answer_call=answer_call,
+        trace_id=trace_id,
+        trace_output_path=trace_path,
+    )
+
+
+def _generate_and_trace(
+    *,
+    mode: Literal["code", "combined"],
+    query: str,
+    analysis_kind: Literal["explanation", "impact_analysis"],
+    settings,
+    retrieval,
+    embedding_call: dict,
+    correlation_id: str | None,
+    conversation_context: str | None,
+    openai_client=None,
+) -> KnowledgeModeOrchestrationResult:
+    """Generate and trace from already retrieved evidence without re-retrieving."""
+
+    client = openai_client or get_llm_client()
+    case = SimpleNamespace(
+        mode=mode,
+        question=query,
+        analysis_kind=analysis_kind,
+        expected_unknown_kinds=(),
+    )
+    answer, answer_call = generate_grounded_answer(
+        client=client,
+        model=settings.openai_chat_model,
+        case=case,
+        retrieval=retrieval,
+        conversation_context=conversation_context,
+    )
     trace_id = correlation_id or str(uuid.uuid4())
     trace_path = Path(settings.exports_dir) / "answer_runs" / f"{trace_id}.json"
     trace = {

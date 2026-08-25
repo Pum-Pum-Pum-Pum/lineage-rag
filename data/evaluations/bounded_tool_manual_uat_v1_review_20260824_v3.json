@@ -1,0 +1,19 @@
+{
+  "approval_note": "User accepted the ten-case bounded-tool UAT packet and authorized the ten questions and retrieved internal FDD/PLSQL excerpts for OpenAI grounded-answer evaluation on 2026-08-24. V3 binds deterministic LF serialization; questions and evidence are unchanged.",
+  "approval_source": "chat_confirmation",
+  "automatic_retries": 0,
+  "batch_identity_sha256": "b5137e83db33f20118389ac4a2c02810d63303a59c001663320796ae2f6e9575",
+  "batch_report_sha256": "bda233c28b9a2cd61f6319ba165322e3a609e3c1e7be1468b4d64777cdba8699",
+  "case_count": 10,
+  "draft_manifest_sha256": "e22abf0c05d82681e41a8e71d3ac573c8045de5e7af8b127e26f6f43cc71857d",
+  "internal_evidence_disclosure_authorized": true,
+  "ledger_identity_sha256": "49d5911a4ff8370216fc9c42e59a4571ce6f8d4d54249e740e73f5be6a46138f",
+  "maximum_answer_requests": 10,
+  "maximum_query_embedding_requests": 0,
+  "paid_use_authorized": true,
+  "review_packet_sha256": "823566f05af23703548d8431db7176ba849b155987ffc03b3a0e748d630ed48e",
+  "reviewed_at": "2026-08-24T06:21:14.702441+00:00",
+  "reviewed_manifest_sha256": "7a02a0b4ded5dd72e536a19117025cb6e6b7764e0c16fb6f8828fb8d9de1b6c1",
+  "reviewer": "AIAgentSmith",
+  "schema_version": "manual_bounded_tool_uat_review_ledger_v1"
+}

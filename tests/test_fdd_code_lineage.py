@@ -27,7 +27,12 @@ from app.fdd_code_lineage.models import (
     write_lineage_artifact_no_overwrite,
 )
 from app.fdd_code_lineage.evaluation import CodeCombinedEvalCase
-from app.fdd_code_lineage.paid_evaluation import generate_grounded_answer
+from app.fdd_code_lineage.paid_evaluation import (
+    CODE_SYSTEM_PROMPT,
+    COMBINED_SYSTEM_PROMPT,
+    combined_response_contract_aligned,
+    generate_grounded_answer,
+)
 
 
 FDD_ID = "FS_FCIS_14.7.0.0.0$ASNB_R22_Neo_AML_v1.2"
@@ -393,8 +398,36 @@ def test_combined_impact_rejects_patch_output(tmp_path: Path) -> None:
     assert answer.impact_and_likely_change_locations.refusal_reason == "patch_generation_not_allowed"
 
 
+@pytest.mark.parametrize(
+    ("raw_response", "expected_error"),
+    [
+        ("not valid json", "JSONDecodeError"),
+        (
+            json.dumps(
+                {
+                    "requested_claim_supported": {
+                        "status": "answered",
+                        "text": "Incorrect historical response shape.",
+                    },
+                    "documented_functionality": {"status": "refused", "text": "None."},
+                    "visible_custom_implementation": {"status": "refused", "text": "None."},
+                    "impact_and_likely_change_locations": {
+                        "status": "refused",
+                        "text": "None.",
+                    },
+                    "unknown_or_unavailable_behavior": {
+                        "status": "answered",
+                        "text": "The response contract is invalid.",
+                    },
+                }
+            ),
+            "ValidationError",
+        ),
+    ],
+    ids=("invalid-json", "claim-support-object"),
+)
 def test_malformed_combined_model_output_becomes_traceable_safe_refusal(
-    tmp_path: Path,
+    tmp_path: Path, raw_response: str, expected_error: str
 ) -> None:
     code = _code_artifact()
     reviewed = build_lineage_artifact(
@@ -414,13 +447,19 @@ def test_malformed_combined_model_output_becomes_traceable_safe_refusal(
         code_mode="lexical",
     )
     response = SimpleNamespace(
-        choices=[SimpleNamespace(message=SimpleNamespace(content="not valid json"))],
+        choices=[SimpleNamespace(message=SimpleNamespace(content=raw_response))],
         usage=SimpleNamespace(prompt_tokens=10, completion_tokens=3, total_tokens=13),
         _request_id="answer-malformed-1",
     )
+    captured: dict = {}
+
+    def create(**kwargs):
+        captured.update(kwargs)
+        return response
+
     client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(create=lambda **kwargs: response)
+            completions=SimpleNamespace(create=create)
         )
     )
     case = CodeCombinedEvalCase(
@@ -445,6 +484,26 @@ def test_malformed_combined_model_output_becomes_traceable_safe_refusal(
     assert not answer.fdd_citations
     assert not answer.code_citations
     assert call["contract_valid"] is False
-    assert call["contract_error"] == "JSONDecodeError"
+    assert call["contract_error"] == expected_error
     assert call["request_id"] == "answer-malformed-1"
-    assert call["raw_response"] == "not valid json"
+    assert call["raw_response"] == raw_response
+    assert call["response_format"] == "json_schema"
+    assert len(call["response_schema_sha256"]) == 64
+    response_format = captured["response_format"]
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    schema = response_format["json_schema"]["schema"]
+    assert schema["properties"]["requested_claim_supported"]["type"] == "boolean"
+    assert schema["additionalProperties"] is False
+
+
+def test_combined_structured_output_contract_is_unambiguous() -> None:
+    assert combined_response_contract_aligned() is True
+    assert "requested_claim_supported is one JSON boolean" in COMBINED_SYSTEM_PROMPT
+    assert "Each value must be an object" not in COMBINED_SYSTEM_PROMPT
+
+
+def test_code_prompt_requires_exact_bracketed_citation_syntax() -> None:
+    assert "exact square-bracket syntax" in CODE_SYSTEM_PROMPT
+    assert "Never\nwrite a bare citation" in CODE_SYSTEM_PROMPT
+    assert '"Evidence: C2"' in CODE_SYSTEM_PROMPT

@@ -32,6 +32,7 @@ class AnswerOrchestrationResult:
     answer_response: GroundedAnswerResponse
     trace: AnswerTrace
     trace_output_path: Path
+    planned_retrieval: PlannedRetrievalResult | None = None
 
 
 def run_grounded_answer_query(
@@ -54,6 +55,7 @@ def run_grounded_answer_query(
     request_id: str | None = None,
     conversation_context: str | None = None,
     correlation_id: str | None = None,
+    planned_retrieval: PlannedRetrievalResult | None = None,
 ) -> AnswerOrchestrationResult:
     """Run the reusable retrieval -> sufficiency -> answer -> trace flow.
 
@@ -64,21 +66,24 @@ def run_grounded_answer_query(
     one tested answer path.
     """
 
-    planned_retrieval = retrieve_planned_query_evidence(
-        qdrant_client=qdrant_client,
-        collection_name=collection_name,
-        query_text=query_text,
-        embedding_model=embedding_model,
-        embedding_client=embedding_client,
-        retrieval_config=retrieval_config,
-        lexical_artifact_directory=lexical_artifact_directory,
-        limit=limit,
-        document_family=document_family,
-        release_label=release_label,
-        source_kind=source_kind,
-        conversation_context=conversation_context,
-        retrieval_callable=retrieve_query_evidence,
-    )
+    if planned_retrieval is None:
+        planned_retrieval = retrieve_planned_query_evidence(
+            qdrant_client=qdrant_client,
+            collection_name=collection_name,
+            query_text=query_text,
+            embedding_model=embedding_model,
+            embedding_client=embedding_client,
+            retrieval_config=retrieval_config,
+            lexical_artifact_directory=lexical_artifact_directory,
+            limit=limit,
+            document_family=document_family,
+            release_label=release_label,
+            source_kind=source_kind,
+            conversation_context=conversation_context,
+            retrieval_callable=retrieve_query_evidence,
+        )
+    elif planned_retrieval.temporal_plan.original_query != query_text:
+        raise ValueError("Prepared retrieval belongs to a different query")
     routed = planned_retrieval.routed
     retrieval_results = planned_retrieval.results
     temporal_plan = planned_retrieval.temporal_plan
@@ -153,6 +158,7 @@ def run_grounded_answer_query(
         answer_response=answer_response,
         trace=trace,
         trace_output_path=trace_output_path,
+        planned_retrieval=planned_retrieval,
     )
 
 

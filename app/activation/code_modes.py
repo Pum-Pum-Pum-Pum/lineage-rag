@@ -11,6 +11,20 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+ACTIVATION_RUNTIME_FILES = (
+    "app/activation/code_modes.py",
+    "app/api/routes/query.py",
+    "app/api/routes/readiness.py",
+    "app/api/routes/conversations.py",
+    "app/services/knowledge_mode_orchestration.py",
+    "app/schemas/query_api.py",
+    "app/schemas/conversation_api.py",
+    "app/fdd_code_lineage/paid_evaluation.py",
+    "app/fdd_code_lineage/combined_answer.py",
+    "scripts/run_code_modes_activation_smoke.py",
+)
+
+
 class FrozenModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -97,15 +111,6 @@ def build_activation_request(*, settings, readiness_report_path: Path, requested
     artifact = _read_json(artifact_path)
     lineage = _read_json(lineage_path)
     root_dir = Path(settings.root_dir)
-    runtime_files = (
-        "app/activation/code_modes.py",
-        "app/api/routes/query.py",
-        "app/api/routes/readiness.py",
-        "app/api/routes/conversations.py",
-        "app/services/knowledge_mode_orchestration.py",
-        "app/schemas/query_api.py",
-        "app/schemas/conversation_api.py",
-    )
     payload = {
         "schema_version": "code_modes_activation_request_v1",
         "created_at_utc": datetime.now(UTC),
@@ -121,7 +126,10 @@ def build_activation_request(*, settings, readiness_report_path: Path, requested
             "lineage_artifact_sha256": _file_sha256(lineage_path),
             "lineage_artifact_identity": str(lineage["artifact_identity_sha256"]),
             "runtime_contract_sha256": _canonical_sha256(
-                {name: _file_sha256(root_dir / name) for name in runtime_files}
+                {
+                    name: _file_sha256(root_dir / name)
+                    for name in ACTIVATION_RUNTIME_FILES
+                }
             ),
         },
         "status": "pending_approval",

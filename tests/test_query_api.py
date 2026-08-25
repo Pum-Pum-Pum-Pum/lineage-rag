@@ -60,6 +60,32 @@ class FailingCollectionCheckQdrantClient(FakeQdrantClient):
         raise RuntimeError("secret-qdrant-check-detail")
 
 
+class FakeKnowledgeRetrievalService:
+    """Route-level retrieval fake; service behavior is tested independently."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def retrieve(self, **kwargs):
+        self.calls.append(kwargs)
+        return SimpleNamespace(
+            mode=kwargs["mode"],
+            fdd=SimpleNamespace(),
+            code=SimpleNamespace(),
+            combined=SimpleNamespace(),
+        )
+
+
+def _install_fake_retrieval_service(monkeypatch) -> FakeKnowledgeRetrievalService:
+    service = FakeKnowledgeRetrievalService()
+    monkeypatch.setattr(
+        query_route,
+        "build_knowledge_retrieval_service",
+        lambda **kwargs: service,
+    )
+    return service
+
+
 def _orchestration_result(tmp_path: Path, retrieval_mode: str = "hybrid") -> AnswerOrchestrationResult:
     retrieved_result = QdrantSearchResult(
         point_id="point-1",
@@ -116,7 +142,6 @@ def _orchestration_result(tmp_path: Path, retrieval_mode: str = "hybrid") -> Ans
 def test_query_endpoint_calls_orchestration_and_formats_response(monkeypatch, tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     retrieval_config = _retrieval_config("hybrid")
-    fake_client = FakeQdrantClient(collection_exists=True)
     captured: dict[str, object] = {}
 
     def fake_run_grounded_answer_query(**kwargs):
@@ -125,7 +150,7 @@ def test_query_endpoint_calls_orchestration_and_formats_response(monkeypatch, tm
 
     monkeypatch.setattr(query_route, "get_settings", lambda: settings)
     monkeypatch.setattr(query_route, "build_retrieval_runtime_config", lambda loaded_settings: retrieval_config)
-    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", lambda path: fake_client)
+    retrieval_service = _install_fake_retrieval_service(monkeypatch)
     monkeypatch.setattr(query_route, "run_grounded_answer_query", fake_run_grounded_answer_query)
 
     response = TestClient(create_app()).post(
@@ -153,7 +178,7 @@ def test_query_endpoint_calls_orchestration_and_formats_response(monkeypatch, tm
     assert payload["retrieval_metadata"]["limit"] == 3
 
     orchestration_kwargs = captured["orchestration_kwargs"]
-    assert orchestration_kwargs["qdrant_client"] is fake_client
+    assert orchestration_kwargs["qdrant_client"] is None
     assert orchestration_kwargs["collection_name"] == "lineage_chunks"
     assert orchestration_kwargs["query_text"] == "What changed in branch reports?"
     assert orchestration_kwargs["embedding_model"] == "test-embedding-model"
@@ -170,8 +195,8 @@ def test_query_endpoint_calls_orchestration_and_formats_response(monkeypatch, tm
         == "query-correlation-123"
     )
     assert response.headers["X-Request-ID"] == "query-correlation-123"
-    assert fake_client.collection_exists_calls == ["lineage_chunks"]
-    assert fake_client.closed is True
+    assert orchestration_kwargs["planned_retrieval"] is not None
+    assert retrieval_service.calls[0]["query"] == "What changed in branch reports?"
 
 
 def test_query_endpoint_rejects_blank_query() -> None:
@@ -237,6 +262,7 @@ def test_enabled_code_mode_uses_explicit_runtime_contract(monkeypatch, tmp_path:
         "build_retrieval_runtime_config",
         lambda loaded_settings: _retrieval_config("hybrid"),
     )
+    retrieval_service = _install_fake_retrieval_service(monkeypatch)
     monkeypatch.setattr(query_route, "run_code_or_combined_query", lambda **kwargs: result)
 
     response = TestClient(create_app()).post(
@@ -249,6 +275,7 @@ def test_enabled_code_mode_uses_explicit_runtime_contract(monkeypatch, tmp_path:
     assert payload["requested_claim_supported"] is True
     assert payload["code_citations"][0]["source_path"] == "pkg_custom.sql"
     assert payload["citations"] == []
+    assert retrieval_service.calls[0]["mode"] == "code"
 
 
 def test_combined_contract_refusal_returns_200_with_explicit_unsupported_state(
@@ -287,6 +314,7 @@ def test_combined_contract_refusal_returns_200_with_explicit_unsupported_state(
         query_route, "build_retrieval_runtime_config",
         lambda loaded_settings: _retrieval_config("hybrid"),
     )
+    retrieval_service = _install_fake_retrieval_service(monkeypatch)
     monkeypatch.setattr(
         query_route, "run_code_or_combined_query", lambda **kwargs: result,
     )
@@ -302,6 +330,7 @@ def test_combined_contract_refusal_returns_200_with_explicit_unsupported_state(
     assert payload["is_answered"] is False
     assert payload["refusal_reason"] == "requested_claim_unsupported"
     assert payload["combined_sections"]["documented_functionality"]["status"] == "refused"
+    assert retrieval_service.calls[0]["mode"] == "combined"
 
 
 def test_code_mode_feature_flag_supports_atomic_enable_and_rollback(
@@ -353,6 +382,7 @@ def test_code_mode_feature_flag_supports_atomic_enable_and_rollback(
         lambda loaded_settings: _retrieval_config("hybrid"),
     )
     monkeypatch.setattr(query_route, "run_code_or_combined_query", fake_runtime)
+    retrieval_service = _install_fake_retrieval_service(monkeypatch)
     client = TestClient(create_app())
     body = {"query": "Explain the routine", "knowledge_mode": "code"}
 
@@ -362,6 +392,7 @@ def test_code_mode_feature_flag_supports_atomic_enable_and_rollback(
     settings.code_modes_enabled = False
     assert client.post("/query", json=body).status_code == 503
     assert calls["runtime"] == 1
+    assert len(retrieval_service.calls) == 1
 
 
 def test_query_endpoint_skips_qdrant_collection_check_for_lexical(monkeypatch, tmp_path: Path) -> None:
@@ -369,16 +400,13 @@ def test_query_endpoint_skips_qdrant_collection_check_for_lexical(monkeypatch, t
     retrieval_config = _retrieval_config("lexical")
     captured: dict[str, object] = {}
 
-    def fail_if_qdrant_created(path):
-        raise AssertionError("Lexical query should not create a Qdrant client")
-
     def fake_run_grounded_answer_query(**kwargs):
         captured["orchestration_kwargs"] = kwargs
         return _orchestration_result(tmp_path, retrieval_mode="lexical")
 
     monkeypatch.setattr(query_route, "get_settings", lambda: settings)
     monkeypatch.setattr(query_route, "build_retrieval_runtime_config", lambda loaded_settings: retrieval_config)
-    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", fail_if_qdrant_created)
+    retrieval_service = _install_fake_retrieval_service(monkeypatch)
     monkeypatch.setattr(query_route, "run_grounded_answer_query", fake_run_grounded_answer_query)
 
     response = TestClient(create_app()).post("/query", json={"query": "exact branch report"})
@@ -388,6 +416,7 @@ def test_query_endpoint_skips_qdrant_collection_check_for_lexical(monkeypatch, t
     orchestration_kwargs = captured["orchestration_kwargs"]
     assert orchestration_kwargs["qdrant_client"] is None
     assert orchestration_kwargs["collection_name"] == "lineage_chunks"
+    assert retrieval_service.calls[0]["mode"] == "fdd"
 
 
 @pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
@@ -395,7 +424,9 @@ def test_query_endpoint_returns_service_unavailable_when_required_qdrant_collect
     monkeypatch, tmp_path: Path, retrieval_mode: str
 ) -> None:
     settings = _settings(tmp_path)
-    fake_client = FakeQdrantClient(collection_exists=False)
+    class MissingCollectionService:
+        def retrieve(self, **kwargs):
+            raise RuntimeError("Configured FDD collection is unavailable")
 
     monkeypatch.setattr(query_route, "get_settings", lambda: settings)
     monkeypatch.setattr(
@@ -403,14 +434,12 @@ def test_query_endpoint_returns_service_unavailable_when_required_qdrant_collect
         "build_retrieval_runtime_config",
         lambda loaded_settings: _retrieval_config(retrieval_mode),
     )
-    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", lambda path: fake_client)
+    monkeypatch.setattr(query_route, "build_knowledge_retrieval_service", lambda **kwargs: MissingCollectionService())
 
     response = TestClient(create_app()).post("/query", json={"query": "branch report"})
 
     assert response.status_code == 503
     assert "Qdrant collection does not exist" in response.json()["detail"]
-    assert fake_client.collection_exists_calls == ["lineage_chunks"]
-    assert fake_client.closed is True
 
 
 @pytest.mark.parametrize("retrieval_mode", ["dense", "hybrid"])
@@ -419,8 +448,9 @@ def test_query_endpoint_returns_safe_503_when_required_qdrant_client_creation_fa
 ) -> None:
     settings = _settings(tmp_path)
 
-    def fail_client_creation(path):
-        raise RuntimeError("secret-qdrant-client-path")
+    class FailingRetrievalService:
+        def retrieve(self, **kwargs):
+            raise RuntimeError("secret-qdrant-client-path")
 
     def fail_if_orchestration_runs(**kwargs):
         raise AssertionError("Query orchestration should not run when Qdrant dependency check fails")
@@ -431,7 +461,7 @@ def test_query_endpoint_returns_safe_503_when_required_qdrant_client_creation_fa
         "build_retrieval_runtime_config",
         lambda loaded_settings: _retrieval_config(retrieval_mode),
     )
-    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", fail_client_creation)
+    monkeypatch.setattr(query_route, "build_knowledge_retrieval_service", lambda **kwargs: FailingRetrievalService())
     monkeypatch.setattr(query_route, "run_grounded_answer_query", fail_if_orchestration_runs)
 
     response = TestClient(create_app()).post("/query", json={"query": "branch report"})
@@ -446,7 +476,9 @@ def test_query_endpoint_returns_safe_503_when_required_qdrant_collection_check_f
     monkeypatch, tmp_path: Path, retrieval_mode: str
 ) -> None:
     settings = _settings(tmp_path)
-    fake_client = FailingCollectionCheckQdrantClient(collection_exists=True)
+    class FailingRetrievalService:
+        def retrieve(self, **kwargs):
+            raise RuntimeError("secret-qdrant-check-detail")
 
     def fail_if_orchestration_runs(**kwargs):
         raise AssertionError("Query orchestration should not run when Qdrant dependency check fails")
@@ -457,7 +489,7 @@ def test_query_endpoint_returns_safe_503_when_required_qdrant_collection_check_f
         "build_retrieval_runtime_config",
         lambda loaded_settings: _retrieval_config(retrieval_mode),
     )
-    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", lambda path: fake_client)
+    monkeypatch.setattr(query_route, "build_knowledge_retrieval_service", lambda **kwargs: FailingRetrievalService())
     monkeypatch.setattr(query_route, "run_grounded_answer_query", fail_if_orchestration_runs)
 
     response = TestClient(create_app()).post("/query", json={"query": "branch report"})
@@ -465,20 +497,17 @@ def test_query_endpoint_returns_safe_503_when_required_qdrant_collection_check_f
     assert response.status_code == 503
     assert response.json()["detail"] == "Qdrant dependency check failed. Verify vector-store availability before querying."
     assert "secret-qdrant-check-detail" not in response.text
-    assert fake_client.collection_exists_calls == ["lineage_chunks"]
-    assert fake_client.closed is True
 
 
 def test_query_endpoint_returns_safe_error_for_unexpected_failure(monkeypatch, tmp_path: Path) -> None:
     settings = _settings(tmp_path)
-    fake_client = FakeQdrantClient(collection_exists=True)
 
     def failing_orchestration(**kwargs):
         raise RuntimeError("secret-token-should-not-leak")
 
     monkeypatch.setattr(query_route, "get_settings", lambda: settings)
     monkeypatch.setattr(query_route, "build_retrieval_runtime_config", lambda loaded_settings: _retrieval_config("hybrid"))
-    monkeypatch.setattr(query_route, "create_persistent_qdrant_client", lambda path: fake_client)
+    _install_fake_retrieval_service(monkeypatch)
     monkeypatch.setattr(query_route, "run_grounded_answer_query", failing_orchestration)
 
     response = TestClient(create_app()).post("/query", json={"query": "branch report"})
@@ -486,4 +515,3 @@ def test_query_endpoint_returns_safe_error_for_unexpected_failure(monkeypatch, t
     assert response.status_code == 500
     assert response.json()["detail"] == "Internal query processing error."
     assert "secret-token" not in response.text
-    assert fake_client.closed is True

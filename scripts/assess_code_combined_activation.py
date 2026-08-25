@@ -16,6 +16,7 @@ if str(ROOT_DIR) not in sys.path:
 from qdrant_client import QdrantClient
 
 from app.core.config import Settings
+from app.fdd_code_lineage.paid_evaluation import combined_response_contract_aligned
 from app.schemas.query_api import QueryRequest
 from app.api.routes.readiness import readiness_check
 from app.services.knowledge_mode_orchestration import run_code_or_combined_query
@@ -53,6 +54,8 @@ def main() -> int:
                "Readiness accepts an explicit knowledge mode and validates its dependencies."),
         _check("runtime_combined_orchestration", callable(run_code_or_combined_query),
                "Code/combined runtime orchestration is callable behind the feature gate."),
+        _check("combined_structured_output_contract", combined_response_contract_aligned(),
+               "The combined prompt and strict JSON schema agree on boolean claim support."),
         _check("rollback_rehearsal", args.rollback_rehearsed,
                "The API feature gate was enabled and disabled in a deterministic rollback test."),
     ]

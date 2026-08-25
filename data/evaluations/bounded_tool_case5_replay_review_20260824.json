@@ -1,0 +1,38 @@
+{
+  "authorization": "data\\evaluations\\bounded_tool_case5_replay_authorization_20260824.json",
+  "authorization_identity_sha256": "3ce3a5a8374a1de8439fd2bfdf594166c7925592d14c00fe1d16517b1e452eee",
+  "authorization_sha256": "a151d6866df360afb0db01de2d96bb81d0b78abecdd6a5b8ff974f3836bd54a4",
+  "case_id": "uat-code-aml-offline-impact-005",
+  "decision": {
+    "prior_sme_verdict": "corrected",
+    "prior_structural_passed": false,
+    "rationale": "User confirmed that the one-case replay SME review packet was reviewed and accepted on 2026-08-24.",
+    "rationale_source": "global_acceptance_note",
+    "replay_sme_verdict": "accepted",
+    "replay_structural_passed": true,
+    "required_follow_up": "",
+    "semantic_accepted": true
+  },
+  "ledger_identity_sha256": "d3d1ab100a1c44e0dd1ecd49c5ad86082cd9629ca75bf970c59e7b81eec63e82",
+  "prior_review_ledger": "data\\evaluations\\bounded_tool_paid_answer_v1_review_20260824.json",
+  "prior_review_ledger_identity_sha256": "7f642f1061f4711c1275f388849fbee82faee6cf48514a547daad8a565d3c31f",
+  "prior_review_ledger_sha256": "076c945c5743832a83575fb5e4a106f0aace31c2f407e6a1dfb679ec5f8a7a39",
+  "replay_trace": "data\\exports\\evaluations\\bounded-tool-case5-replay-20260824\\uat-code-aml-offline-impact-005.json",
+  "replay_trace_sha256": "0327f0431838a886e9d581f556f451b5ef1b82e0bb94f858cd84740ee163490b",
+  "review_file": "data\\exports\\evaluations\\bounded-tool-case5-replay-20260824\\sme-review.md",
+  "review_file_sha256": "629570c99b18092059d1e90c42479453bd947980a365f4c4db7425beb8a405b6",
+  "reviewed_at": "2026-08-24T09:13:01.149419+00:00",
+  "reviewer": "AIAgentSmith",
+  "run_state": "data\\exports\\evaluations\\bounded-tool-case5-replay-20260824\\run-state.json",
+  "run_state_sha256": "708d8a66fe7835d7e2edc59223f7de0e189b93408c8c3f9b03e28155bd9e45ae",
+  "schema_version": "paid_bounded_tool_case_replay_review_ledger_v1",
+  "summary": {
+    "activation_authorized": false,
+    "additional_paid_requests_authorized": 0,
+    "case_remediation_closed": true,
+    "effective_semantic_acceptances_after_replay": 10,
+    "original_suite_prior_semantic_acceptances": 9,
+    "original_suite_total_cases": 10,
+    "semantic_review_status": "accepted_after_targeted_replay"
+  }
+}

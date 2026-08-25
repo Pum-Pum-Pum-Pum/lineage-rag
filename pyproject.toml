@@ -8,6 +8,7 @@ dependencies = [
     "antlr4-python3-runtime==4.13.2",
     "fastapi>=0.140,<1",
     "httpx>=0.28,<1",
+    "mcp>=2,<3",
     "openai>=2.48,<3",
     "pydantic>=2.13,<3",
     "pydantic-settings>=2.14,<3",
