@@ -1206,3 +1206,44 @@ stderr/stdout separation, and the need for actual child-process frame validation
 
 Gate status: **awaiting learner answers for Steps 244-246.** No tunnel was
 created, no external API request occurred, and no internal evidence was disclosed.
+
+### Learner answers and mentor evaluation
+
+**Accepted, 9/9.** The learner demonstrated a strong operational understanding of
+wire-level testing, stdout hygiene, bounded configuration checks, process
+ownership, key isolation, and the difference between local proof and an actual
+ChatGPT/tunnel exercise.
+
+## Steps 247-249 — Runbook and final verification
+
+### Step 247 — Operator runbook
+
+1. Why must the runbook require an explicit operator change to
+   `MCP_EVIDENCE_DISCLOSURE_ENABLED=true` before ChatGPT retrieval testing,
+   instead of enabling it automatically when `INTERFACE_MODE=mcp`?
+2. Why should an index rebuild create a complete new generation rather than add
+   points directly to the active FDD or code collection before MCP testing?
+3. Why is direct MCP Inspector startup useful for local protocol diagnosis but
+   not the operating model for a Secure MCP Tunnel session?
+
+### Step 248 — Operational boundaries
+
+4. Why are `INTERFACE_MODE`, `MCP_EVIDENCE_DISCLOSURE_ENABLED`, and
+   `CODE_MODES_ENABLED` three independent controls rather than one “enable MCP”
+   flag?
+5. Why must a tunnel-client command launch the supplied key-stripping wrapper,
+   rather than directly running `python -m app.mcp.server` in Terminal 3?
+6. Why does a `tunnel-client doctor` success remain insufficient evidence that
+   MCP answers are grounded, useful, or safe for the intended business question?
+
+### Step 249 — Release-quality evidence
+
+7. Why was defaulting an absent legacy test-double `interface_mode` to `fastapi`
+   safer than changing all old test doubles to an implicitly enabled MCP mode?
+8. Why did configuring logging in `create_mcp_server()` break unrelated audit
+   tests, and why is `main()` the correct scope for the MCP stdio logging setup?
+9. What does the final 637-test offline pass prove, and what manual evidence is
+   still required before relying on a live ChatGPT Secure MCP Tunnel session?
+
+Gate status: **awaiting learner answers for Steps 247-249.** No automated test
+made a live OpenAI call, created a tunnel, or disclosed internal evidence.

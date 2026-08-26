@@ -19,6 +19,61 @@ The project currently exposes a local FastAPI backend with:
 
 The API calls the shared `run_grounded_answer_query(...)` orchestration service. The API layer should validate requests and format responses; it should not duplicate retrieval, sufficiency, generation, or trace-writing logic.
 
+## ChatGPT Secure MCP Tunnel — Phase 1
+
+The project can expose the same approved retrieval logic to ChatGPT through a
+private stdio MCP child owned by `tunnel-client`:
+
+```text
+FastAPI /query ─┐
+FastAPI /search ├─> KnowledgeRetrievalService ─> approved FDD/code indexes
+MCP search/fetch┘
+```
+
+`INTERFACE_MODE=fastapi` is the safe default. Use `mcp` for tunnel-only operation
+or `both` for the API/UI and tunnel together. The MCP surface is read-only:
+`search(query, mode)` and `fetch(id)`. It never calls FastAPI over HTTP, accepts
+no raw paths/SQL/commands, and keeps FDD/code/combined as distinct knowledge lanes.
+
+`MCP_EVIDENCE_DISCLOSURE_ENABLED=false` is an MCP-only emergency egress kill
+switch. When disabled, both tools return only `Evidence disclosure is disabled.`
+without retrieval, catalog access, Qdrant access, query embedding, ID resolution,
+or source metadata. It does not change normal FastAPI/Streamlit behavior.
+
+The tunnel control-plane key belongs only to the `tunnel-client` parent terminal;
+never put it in `.env`. `OPENAI_API_KEY` remains the separate application key for
+dense/hybrid query embeddings or existing answer generation. See the complete
+[ChatGPT Secure MCP Tunnel Phase 1 runbook](docs/ChatGPT_Secure_MCP_Tunnel_Phase1.md)
+for index verification, Inspector testing, tunnel-client initialization/doctor/run,
+Developer Mode connection, the three-terminal `both` layout, cost warning,
+stdout troubleshooting, and rollback.
+
+For the approved operator, the command sequence is:
+
+```powershell
+# Inspect/build indexes only through their existing versioned workflows.
+uv run --locked python scripts/master_ingestion_embedding_docs.py --dry-run
+uv run --locked python scripts/prepare_code_index_artifacts.py --help
+uv run --locked python scripts/verify_code_qdrant.py --help
+
+# FastAPI + Streamlit when INTERFACE_MODE=fastapi or both.
+uv run --locked uvicorn app.api.main:app --host 127.0.0.1 --port 8000 --reload
+uv run --locked streamlit run app/ui/streamlit_app.py --server.address 127.0.0.1 --server.port 8501
+
+# Inspector only: configure it to start .venv\Scripts\python.exe -m app.mcp.server
+# with INTERFACE_MODE=mcp and MCP_EVIDENCE_DISCLOSURE_ENABLED=true.
+
+# Tunnel client owns the MCP child; use no separate MCP-server terminal.
+tunnel-client init --sample sample_mcp_stdio_local --profile culling-blade-local --tunnel-id <OPENAI_TUNNEL_ID> --mcp-command "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_mcp_stdio.ps1"
+tunnel-client doctor --profile culling-blade-local
+tunnel-client run --profile culling-blade-local
+```
+
+Before Inspector/tunnel retrieval testing, an approved operator must explicitly
+set `MCP_EVIDENCE_DISCLOSURE_ENABLED=true`; dense/hybrid questions can create
+query-embedding cost. In `both` mode use exactly three terminals: FastAPI,
+Streamlit, and `tunnel-client run`, which launches the MCP stdio child.
+
 ## Conversation-memory foundation
 
 The project now has conversation-scoped domain records and a local durable

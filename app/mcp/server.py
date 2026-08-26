@@ -57,7 +57,6 @@ def create_mcp_server(
         raise RuntimeError(
             "MCP is disabled when INTERFACE_MODE=fastapi. Use INTERFACE_MODE=mcp or both."
         )
-    configure_mcp_stdio_logging(effective_settings.log_level)
     require_mcp_startup_preflight(effective_settings)
     # The adapter reloads effective application settings for each tool call.  The
     # startup check prevents an invalid interface mode from registering tools;

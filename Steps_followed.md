@@ -1667,3 +1667,100 @@ pre-existing Windows line-ending advisories were emitted).
 
 Gate status: **awaiting learner answers for Steps 244-246.** No tunnel was
 created, no external API request occurred, and no internal evidence was disclosed.
+
+### Learner evaluation — Steps 244-246
+
+**Accepted, 9/9.** The learner clearly separated in-process logic testing from
+wire-level protocol proof, explained whole-stream validation and independent
+diagnostic paths, justified bounded local preflight, described credential
+presence-only isolation, fail-closed tool registration, tunnel lifecycle
+ownership, least-privilege key removal, and the limits of local tests versus live
+ChatGPT/tunnel evidence. No remediation was needed.
+
+## Step 247 — Publish the Phase 1 operator runbook
+
+Created `docs/ChatGPT_Secure_MCP_Tunnel_Phase1.md` and added a concise command
+section to `README.md`. The runbook covers generation verification, FastAPI/UI
+startup, direct MCP Inspector testing, explicit disclosure enablement,
+tunnel-client profile initialization/doctor/run, ChatGPT Developer Mode
+connection, three-terminal `both` operation, costs, safe rollback, and concrete
+troubleshooting.
+
+```python
+# The documented child process is the actual application entry point.
+def main() -> None:
+    settings = get_settings()
+    configure_mcp_stdio_logging(settings.log_level)
+    create_mcp_server(settings=settings).run(transport="stdio")
+```
+
+Production interpretation: documentation makes operational authority visible.
+The approved operator must set `MCP_EVIDENCE_DISCLOSURE_ENABLED=true` before MCP
+retrieval testing; this is deliberate data egress, not a hidden convenience
+setting. Dense/hybrid queries can also incur query-embedding cost.
+
+Failure-mode testing: the troubleshooting table provides fail-closed actions for
+disclosure-disabled, missing environment/artifacts/Qdrant, embedding, tunnel,
+stdout-corruption, and unexpected tool-metadata failures. It explicitly rejects a
+fourth manually started MCP terminal in tunnel mode.
+
+## Step 248 — Document process ownership, interface selection, and key boundary
+
+The runbook and README now make the selected runtime topology executable:
+
+```text
+Terminal 1: FastAPI          (only fastapi/both)
+Terminal 2: Streamlit        (only fastapi/both)
+Terminal 3: tunnel-client run → owns MCP stdio child (mcp/both)
+```
+
+`scripts/run_mcp_stdio.ps1` is the documented tunnel command. It removes the
+parent-only `CONTROL_PLANE_API_KEY` before virtual-environment Python starts;
+the application validates only its absence, never its value. The real key is
+injected only into Terminal 3 by the approved secret mechanism and is not stored
+in `.env`, emitted in documentation examples, logs, traces, or tool output.
+
+Production interpretation: interface mode and disclosure state are separate.
+`INTERFACE_MODE` controls which local processes may start; disclosure controls
+whether the already-authorized MCP transport may return internal evidence.
+Neither flag enables code/combined retrieval without the established
+`CODE_MODES_ENABLED` activation control.
+
+Failure-mode testing: metadata/launcher tests verify parent-only key handling and
+tunnel-client ownership. The startup preflight blocks a child with incompatible
+configuration before it can advertise tools.
+
+## Step 249 — Final offline verification
+
+Added/updated MCP adapter, protocol, preflight, runtime-metadata, API, and
+documentation coverage. A first full suite revealed two regressions: legacy API
+test doubles did not define the new `interface_mode` field, and test-time MCP
+factory construction globally reset logging before unrelated audit assertions.
+Both were corrected: an absent legacy field defaults safely to `fastapi`, and
+stderr logging is configured only in the actual MCP `main()` entry point.
+
+```python
+if getattr(settings, "interface_mode", "fastapi") == "mcp":
+    raise RuntimeError("FastAPI is disabled when INTERFACE_MODE=mcp.")
+```
+
+Production interpretation: Phase 1 preserves existing FastAPI/Streamlit behavior
+while adding a private, read-only MCP transport. The full suite validates code
+compatibility and fail-closed behavior; it does not create a tunnel, disclose
+source evidence, call OpenAI, or prove an external ChatGPT session.
+
+Failure-mode testing and final checks:
+
+```powershell
+uv lock --check
+uv run --locked pytest
+git diff --check
+```
+
+The final clean suite passed **637 tests in 127.46 seconds**. `uv lock --check`
+passed and `git diff --check` reported no whitespace errors (only pre-existing
+Windows line-ending advisories). The temporary test-output files used to capture
+the long suite were removed from `data/tmp` after verification.
+
+Gate status: **awaiting learner answers for Steps 247-249.** No automated test
+made a live OpenAI call, created a tunnel, or disclosed internal evidence.

@@ -15,7 +15,7 @@ def create_app() -> FastAPI:
     """Create the FastAPI application for the local RAG backend."""
 
     settings = get_settings()
-    if settings.interface_mode == "mcp":
+    if getattr(settings, "interface_mode", "fastapi") == "mcp":
         raise RuntimeError(
             "FastAPI is disabled when INTERFACE_MODE=mcp. "
             "Use INTERFACE_MODE=fastapi or both."
