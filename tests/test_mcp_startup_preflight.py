@@ -68,3 +68,30 @@ def test_mcp_startup_preflight_rejects_missing_or_invalid_effective_configuratio
         "retrieval_configuration",
         "fdd_lexical_artifact_directory",
     }
+
+
+def test_mcp_startup_preflight_checks_code_artifacts_when_code_modes_are_enabled(tmp_path: Path) -> None:
+    code_index_artifact = tmp_path / "code-index.json"
+    code_index_artifact.write_text("{}", encoding="utf-8")
+    code_analysis_directory = tmp_path / "code-analysis"
+    code_analysis_directory.mkdir()
+    reviewed_lineage_artifact = tmp_path / "reviewed-lineage.json"
+    reviewed_lineage_artifact.write_text("{}", encoding="utf-8")
+
+    report = run_mcp_startup_preflight(
+        _settings(
+            tmp_path,
+            code_modes_enabled=True,
+            code_index_artifact_path=code_index_artifact,
+            code_analysis_directory=code_analysis_directory,
+            fdd_code_lineage_artifact_path=reviewed_lineage_artifact,
+        ),
+        environment={},
+    )
+
+    assert report.passed is True
+    assert {check.name for check in report.checks} >= {
+        "code_index_artifact",
+        "code_analysis_directory",
+        "reviewed_lineage_artifact",
+    }

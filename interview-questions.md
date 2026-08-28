@@ -1247,3 +1247,57 @@ ChatGPT/tunnel exercise.
 
 Gate status: **awaiting learner answers for Steps 247-249.** No automated test
 made a live OpenAI call, created a tunnel, or disclosed internal evidence.
+
+### Learner answers and mentor evaluation
+
+**Accepted, 9/9.** The learner correctly distinguished the three independent
+controls, immutable generation activation, Inspector versus tunnel-client
+ownership, the parent-only control-plane key, transport health versus retrieval
+quality, safe default interface behavior, logging scope, and the limits of the
+637-test offline result. Phase 1 implementation is complete; the next work is
+the documented manual tunnel setup and evidence-grounding validation.
+
+## Step 250 — Controlled dense retrieval probe
+
+1. Why was `POST /search` safer than `POST /query` for the first paid dense
+   probe?
+2. What did the `HTTP 200`, dense mode, and five-result outcome prove, and what
+   did they still not prove about answer quality?
+3. Why can two local processes using embedded Qdrant conflict even when they use
+   the same collection and files?
+4. Why does a caller-controlled environment variable not provide an enforceable
+   disclosure boundary when that caller can launch local processes and read the
+   repository?
+
+Gate status: **dense retrieval mechanically verified once.** Hybrid retrieval,
+semantic evaluation, and any future evidence disclosure require separate,
+explicit authorization and controls.
+
+## Steps 251-253 — Local MCP/Qdrant runtime hardening
+
+### Step 251 — Safe lock handling
+
+1. Why is it safer to return a generic local-Qdrant-lock error than the original
+   storage exception to an MCP client?
+2. What does safe lock-error handling improve, and what does it *not* change
+   about embedded Qdrant concurrency?
+3. Why must the lock-error test include an internal path in the original mocked
+   exception?
+
+### Step 252 — Launcher mutex
+
+4. What specific race does the Windows mutex prevent?
+5. Why does an MCP-only mutex not make FastAPI plus MCP dense/hybrid safe on the
+   same embedded store?
+6. Why must the mutex failure happen before the Python MCP server starts?
+
+### Step 253 — Operator topology and cost
+
+7. Why is lexical MCP retrieval normally free of application embedding API cost,
+   while dense/hybrid is not?
+8. What must be selected and validated before intentionally serving concurrent
+   FastAPI and MCP dense/hybrid traffic?
+9. Why should a personal direct-stdio Chat client test be described as a local
+   interface test rather than a Secure MCP Tunnel or production-security proof?
+
+Gate status: **local runtime hardening complete; learner review pending.**

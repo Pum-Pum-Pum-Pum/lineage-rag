@@ -1762,5 +1762,130 @@ passed and `git diff --check` reported no whitespace errors (only pre-existing
 Windows line-ending advisories). The temporary test-output files used to capture
 the long suite were removed from `data/tmp` after verification.
 
-Gate status: **awaiting learner answers for Steps 247-249.** No automated test
-made a live OpenAI call, created a tunnel, or disclosed internal evidence.
+Gate status: **offline implementation accepted.** No automated test made a live
+OpenAI call, created a tunnel, or disclosed internal evidence. Live Secure MCP
+Tunnel and ChatGPT validation remains a separate, operator-authorized exercise.
+
+### Learner answers and mentor evaluation
+
+**Accepted, 9/9.** The learner correctly distinguished the three independent
+controls, immutable generation activation, Inspector versus tunnel-client
+ownership, the parent-only control-plane key, transport health versus retrieval
+quality, safe default interface behavior, logging scope, and the limits of the
+637-test offline result. Phase 1 implementation is complete; the next work is
+the documented manual tunnel setup and evidence-grounding validation.
+
+## Step 250 — Controlled FastAPI dense retrieval probe
+
+After the local Codex experiment showed that a shell-enabled client can launch a
+separate child with caller-supplied environment variables, dense retrieval was
+tested through the established FastAPI path rather than through Codex.
+
+```http
+POST /search
+Content-Type: application/json
+
+{"query":"What is the AML batch processing behavior?","mode":"fdd"}
+```
+
+The temporary localhost FastAPI process used `RETRIEVAL_MODE=dense`, FDD mode,
+and code mode disabled. The operator explicitly authorized one paid query
+embedding. The result was `HTTP 200`, `retrieval_mode=dense`, five FDD results,
+and no answer-generation call. Only aggregate outcome metadata was recorded;
+no source excerpt was copied into this progress log. The temporary process was
+stopped after the request.
+
+Production interpretation: dense/hybrid retrieval should be exercised through a
+single controlled retrieval runtime. A local embedded Qdrant store is not a
+multi-process service: competing MCP/FastAPI children can conflict on its lock.
+An environment-variable disclosure switch is a useful gate for the intended MCP
+child, but is not an enforceable egress boundary against a client that has local
+shell and filesystem access to the repository.
+
+Failure-mode testing: two stale MCP children were identified by command line and
+terminated only after operator approval. The dense probe then completed without
+a Qdrant lock. No hybrid probe was run or authorized.
+
+## Steps 251-253 — Local MCP/Qdrant runtime hardening
+
+### Step 251 — Safe embedded-Qdrant lock errors
+
+`app/vectorstore/qdrant_schema.py` now recognizes the local embedded-Qdrant
+storage-lock failure and raises a safe application error instead of passing a
+filesystem path through the retrieval stack:
+
+```python
+try:
+    return QdrantClient(path=str(storage_path))
+except RuntimeError as exc:
+    if _looks_like_local_storage_lock(exc):
+        raise LocalQdrantLockError(
+            "Local Qdrant storage is in use by another process."
+        ) from exc
+    raise
+```
+
+Explanation: the underlying client can report the local storage location in a
+lock exception. That detail is useful locally but should not be returned to an
+MCP/Chat client.
+
+Production interpretation: this is failure containment, not multi-process
+support. Embedded Qdrant remains an exclusive local-store runtime.
+
+Failure-mode test: a mocked Qdrant lock with an internal path raises only the
+generic `LocalQdrantLockError`; `tests/test_qdrant_schema.py` proves the path is
+not exposed.
+
+### Step 252 — Single MCP-child launcher guard
+
+`scripts/run_mcp_stdio.ps1` now acquires a Windows named mutex before launching
+the stdio server:
+
+```powershell
+$mutex = New-Object System.Threading.Mutex($false, "Local\CullingBladeLineageMcpStdio")
+if (-not $mutex.WaitOne(0, $false)) {
+    $mutex.Dispose()
+    throw "Culling Blade MCP server is already running. Stop the existing MCP child before starting another."
+}
+```
+
+Explanation: this blocks a duplicate local MCP child before both processes try
+to open the same embedded Qdrant files. The existing parent-only control-plane
+key removal remains in the launcher.
+
+Production interpretation: the mutex protects duplicate **MCP** children only.
+It does not permit simultaneous FastAPI and MCP dense/hybrid access to embedded
+Qdrant. That topology requires a separately selected shared Qdrant server.
+
+Failure-mode test: `tests/test_mcp_stdio_launcher.py` verifies key stripping,
+the mutex, non-blocking acquisition, the safe duplicate message, and the
+expected MCP module command. PowerShell parsing was also checked without
+starting a server.
+
+### Step 253 — Explicit local-runtime boundary
+
+`docs/ChatGPT_Secure_MCP_Tunnel_Phase1.md` now documents the actual laptop
+contract:
+
+```text
+lexical MCP search: no application embedding API call
+dense/hybrid MCP search: application query embedding; API usage/cost possible
+embedded Qdrant: one process at a time for a given local store
+```
+
+Explanation: ChatGPT can generate the final answer from MCP evidence, but that
+does not remove the application embedding cost when dense or hybrid retrieval
+is configured. The local direct-stdio test is valid for one client process; it
+is not the server topology for concurrent interfaces.
+
+Production interpretation: for the current personal laptop testing path, run
+one local MCP child and select lexical retrieval when zero application embedding
+cost is required. Before concurrent FastAPI + MCP dense/hybrid use, choose and
+validate a shared Qdrant server deployment, credentials, health checks, and
+rollback plan.
+
+Verification: focused hardening tests passed **9/9**. `uv lock --check` passed.
+The complete suite was executed with the new tests collected (640 total); no
+test failure was reported by the runner. `git diff --check` reported no
+whitespace failure. No OpenAI call, tunnel, or evidence disclosure occurred in
+these hardening steps.

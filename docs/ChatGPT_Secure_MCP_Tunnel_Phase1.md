@@ -88,6 +88,19 @@ load the catalog, open Qdrant, perform lexical retrieval, embed a query, resolve
 an opaque ID, or return evidence metadata. FastAPI and Streamlit behavior is not
 disabled by this flag.
 
+### Local embedded-Qdrant boundary
+
+The default local Qdrant path is embedded, single-process storage. Do not run
+two MCP children, or FastAPI and MCP dense/hybrid retrieval, against the same
+`data/qdrant_local` path. The MCP launcher mutex prevents a duplicate MCP child
+only; it does not make embedded Qdrant multi-process.
+
+For laptop testing, lexical MCP search does not call the application embedding
+API. Dense or hybrid MCP search creates a query embedding through the configured
+application embedding provider and can incur API cost. Concurrent FastAPI and
+MCP dense/hybrid serving requires an approved shared Qdrant server deployment
+before enabling that topology.
+
 `OPENAI_API_KEY` remains the application key. Dense/hybrid retrieval can use it
 to embed a query. `CONTROL_PLANE_API_KEY` authenticates tunnel-client to the
 OpenAI control plane and must never be available to the MCP Python child.

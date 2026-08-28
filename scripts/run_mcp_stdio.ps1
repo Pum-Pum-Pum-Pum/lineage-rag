@@ -10,6 +10,20 @@ if (-not (Test-Path -LiteralPath $pythonPath -PathType Leaf)) {
     throw "Project virtual-environment Python is required for MCP stdio."
 }
 
-Set-Location -LiteralPath $projectRoot
-& $pythonPath -m app.mcp.server
-exit $LASTEXITCODE
+# Embedded local Qdrant is single-process storage. This mutex prevents a second
+# MCP child from racing the first one and surfacing a storage-lock failure.
+$mutex = New-Object System.Threading.Mutex($false, "Local\CullingBladeLineageMcpStdio")
+if (-not $mutex.WaitOne(0, $false)) {
+    $mutex.Dispose()
+    throw "Culling Blade MCP server is already running. Stop the existing MCP child before starting another."
+}
+
+try {
+    Set-Location -LiteralPath $projectRoot
+    & $pythonPath -m app.mcp.server
+    exit $LASTEXITCODE
+}
+finally {
+    $mutex.ReleaseMutex()
+    $mutex.Dispose()
+}

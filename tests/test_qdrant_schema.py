@@ -1,6 +1,8 @@
+import pytest
 from qdrant_client.models import Distance
 
 from app.vectorstore.qdrant_schema import (
+    LocalQdrantLockError,
     QdrantCollectionConfig,
     create_local_qdrant_client,
     create_persistent_qdrant_client,
@@ -52,3 +54,18 @@ def test_persistent_qdrant_collection_survives_client_reopen(tmp_path) -> None:
     second_client = create_persistent_qdrant_client(storage_path)
     assert second_client.collection_exists(config.collection_name) is True
     second_client.close()
+
+
+def test_persistent_client_sanitizes_local_storage_lock(monkeypatch, tmp_path) -> None:
+    def locked_client(*args, **kwargs):
+        raise RuntimeError(
+            "Storage folder C:\\internal\\data\\qdrant_local is already accessed by another instance of Qdrant client."
+        )
+
+    monkeypatch.setattr("app.vectorstore.qdrant_schema.QdrantClient", locked_client)
+
+    with pytest.raises(LocalQdrantLockError) as exc_info:
+        create_persistent_qdrant_client(tmp_path / "qdrant")
+
+    assert str(exc_info.value) == "Local Qdrant storage is in use by another process."
+    assert "internal" not in str(exc_info.value)

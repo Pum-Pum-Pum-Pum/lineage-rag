@@ -90,9 +90,14 @@ def run_mcp_startup_preflight(settings: Any, *, environment: dict[str, str] | No
     )
     if bool(getattr(settings, "code_modes_enabled", False)):
         checks.extend(
-            _existing_file_check("code_index_artifact", getattr(settings, "code_index_artifact_path", None)),
-            _existing_directory_check("code_analysis_directory", getattr(settings, "code_analysis_directory", None)),
-            _existing_file_check("reviewed_lineage_artifact", getattr(settings, "fdd_code_lineage_artifact_path", None)),
+            (
+                _existing_file_check("code_index_artifact", getattr(settings, "code_index_artifact_path", None)),
+                _existing_directory_check("code_analysis_directory", getattr(settings, "code_analysis_directory", None)),
+                _existing_file_check(
+                    "reviewed_lineage_artifact",
+                    getattr(settings, "fdd_code_lineage_artifact_path", None),
+                ),
+            )
         )
     return MCPStartupPreflightReport(
         passed=all(check.passed for check in checks),
