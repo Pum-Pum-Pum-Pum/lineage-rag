@@ -1889,3 +1889,13 @@ The complete suite was executed with the new tests collected (640 total); no
 test failure was reported by the runner. `git diff --check` reported no
 whitespace failure. No OpenAI call, tunnel, or evidence disclosure occurred in
 these hardening steps.
+
+### Learner answers and mentor evaluation
+
+**Accepted, 9/9.** The learner correctly distinguished information containment
+from concurrency support, identified the pre-start race prevented by the mutex,
+explained the lexical versus dense/hybrid cost boundary, and described the
+shared-Qdrant server, access-control, network, lifecycle, and monitoring work
+required before concurrent interface serving. They also correctly stated that
+direct stdio testing is not proof of tunnel, hostile-client, or service-isolated
+security behavior.
