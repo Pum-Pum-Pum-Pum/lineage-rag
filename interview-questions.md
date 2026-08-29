@@ -1308,3 +1308,33 @@ Gate status: **local runtime hardening complete; learner review pending.**
 containment, embedded-store exclusivity, launcher-level race prevention,
 retrieval-cost boundaries, and the difference between local functional testing
 and an enforceable production security boundary.
+
+## Steps 254-256 — Guided generation launchers
+
+### Step 254 — FDD generation
+
+1. Why must `embed-index` require an explicit acknowledgement even though the
+   launcher only calls existing ingestion scripts?
+2. Why does a complete next FDD generation rebuild all archived documents rather
+   than index only the new documents into the active collection?
+3. Why is an `activate` stage that only prints a checklist safer than one that
+   silently edits `.env` and restarts services?
+
+### Step 255 — Code generation
+
+4. Why must a later custom-code snapshot contain the complete selected module
+   set instead of only changed package files?
+5. Why does `Resolve-SnapshotId` fail when it finds zero or multiple matching
+   content-addressed snapshot directories?
+6. Why must the code embedding stage create a new `code_custom_*` collection
+   rather than upsert into the existing active code collection?
+
+### Step 256 — Operations and testing
+
+7. Why can the code evaluation launcher not safely guess the lineage artifact,
+   reviewed manifest, and dense query vectors?
+8. What does the three-test launcher suite prove, and what does it not prove
+   about an actual paid embedding/indexing run?
+9. Why is PowerShell `-ExecutionPolicy Bypass` appropriate for an explicitly
+   invoked project launcher but not a substitute for provenance, review, or
+   activation controls?

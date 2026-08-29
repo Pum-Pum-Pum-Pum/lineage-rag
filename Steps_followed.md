@@ -1899,3 +1899,91 @@ shared-Qdrant server, access-control, network, lifecycle, and monitoring work
 required before concurrent interface serving. They also correctly stated that
 direct stdio testing is not proof of tunnel, hostile-client, or service-isolated
 security behavior.
+
+## Steps 254-256 — Guarded next-generation launchers
+
+### Step 254 — Add an FDD generation launcher
+
+Added `scripts/run_fdd_generation.ps1`, a stage-based PowerShell wrapper around
+the existing FDD Python scripts. It accepts `prepare`, `embed-index`,
+`evaluate`, and `activate` for a versioned name such as `functional_specs_v6`.
+`prepare` invokes existing scripts only in dry-run mode. `embed-index` requires
+the explicit `-AuthorizePaidEmbedding` switch before it may send reviewed FDD
+text to OpenAI; it creates an isolated intake target and then a complete staged
+generation. `evaluate` requires its own retrieval-evaluation acknowledgement
+because dense/hybrid evaluation can create query embeddings.
+
+```powershell
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v6 -Stage prepare
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v6 -Stage embed-index `
+  -AuthorizePaidEmbedding
+```
+
+The `activate` stage intentionally performs no writes: it does not copy staged
+files, edit `.env`, restart services, or switch a collection. Production
+activation remains the existing separate approval/readiness/rollback process.
+
+### Step 255 — Add a code snapshot generation launcher
+
+Added `scripts/run_code_generation.ps1` for `intake-parse`, `prepare-index`,
+`embed-index`, and `evaluate`. It calls the existing immutable snapshot,
+parser, pre-index gate, reviewed index preparation, verification, embedding,
+new-collection indexing, and exact Qdrant verification scripts. It resolves a
+snapshot only when the request prefix maps to exactly one content-addressed
+archive, rather than picking a directory by order.
+
+```powershell
+.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage intake-parse
+.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage prepare-index `
+  -DependencyReviewLedger data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
+```
+
+The embedding stage requires both `-AuthorizePaidEmbedding` and a new
+`code_custom_*` collection name. The wrapper then supplies the already-existing
+code disclosure token to the existing embed script. The evaluation stage runs
+the existing reviewed code-only lexical retrieval gate. Dense/hybrid evaluation
+requires operator-supplied precomputed query vectors and the exact new
+collection; combined evaluation remains explicit because it must not guess the
+FDD generation or reviewed lineage artifact.
+
+### Step 256 — Publish operator runbooks and test boundaries
+
+Added `docs/FDD_Generation_Launcher_Runbook.md` and
+`docs/Code_Generation_Launcher_Runbook.md`. They document exact commands,
+immutable-generation rules, paid disclosure boundaries, manual evaluation
+requirements, and deliberate activation. Focused static tests verify launcher
+stage names, existing Python-script use, explicit paid-operation boundaries,
+no implicit activation, and the documented commands.
+
+```powershell
+& .\.venv\Scripts\python.exe -m pytest tests\test_generation_launchers.py -q
+git diff --check
+```
+
+Result: **3 passed**. The test run emitted one non-failing pytest-cache access
+warning because the local `.pytest_cache` directory is not writable. PowerShell
+syntax and help invocation were also checked using `-ExecutionPolicy Bypass`;
+the project policy otherwise blocks direct local `.ps1` execution.
+
+Production interpretation: the launchers reduce operator error without
+replacing release gates. A stage can construct and verify a candidate, but it
+cannot silently turn it into the serving FDD/code generation.
+
+## Step 257 — Simplify the guided commands and align activation stages
+
+Both launchers now expose the same deliberate `activate` checklist stage. This
+does not mean either launcher activates a runtime generation: both refuse to
+edit `.env`, restart processes, or switch a collection. The FDD and code
+runbooks were shortened to the source location followed by the commands to run
+one by one.
+
+```powershell
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v6 -Stage prepare
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v6 -Stage embed-index
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v6 -Stage evaluate
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v6 -Stage activate
+```
+
+To preserve the authorization boundary without lengthening each command,
+embedding/indexing and FDD evaluation now prompt the operator to type
+`APPROVE`. An unapproved response stops before the external operation starts.
