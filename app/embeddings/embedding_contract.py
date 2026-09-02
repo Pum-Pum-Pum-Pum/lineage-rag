@@ -5,6 +5,7 @@ import hashlib
 import json
 
 from app.core.config import get_settings
+from app.ingestion.embedding_input_limits import MAX_EMBEDDING_INPUT_BYTES, utf8_byte_length
 from app.ingestion.retrieval_ready_artifact import RetrievalReadyArtifact, RetrievalReadyUnit
 
 
@@ -25,6 +26,13 @@ class EmbeddingRecord:
     document_id: str = ""
     source_text: str = ""
     parent_unit_id: str | None = None
+    document_lineage_key: str = ""
+    document_revision: str | None = None
+    attachment_path: str | None = None
+    attachment_sha256: str | None = None
+    sheet_name: str | None = None
+    sheet_role: str | None = None
+    source_range: str | None = None
 
 
 @dataclass(frozen=True)
@@ -107,6 +115,13 @@ def build_embedding_batch_contract(
                 document_id=unit.document_id or artifact.document_name.rsplit(".", 1)[0],
                 source_text=unit.text,
                 parent_unit_id=unit.parent_unit_id,
+                document_lineage_key=unit.document_lineage_key,
+                document_revision=unit.document_revision,
+                attachment_path=unit.attachment_path,
+                attachment_sha256=unit.attachment_sha256,
+                sheet_name=unit.sheet_name,
+                sheet_role=unit.sheet_role,
+                source_range=unit.source_range,
             )
         )
 
@@ -115,3 +130,25 @@ def build_embedding_batch_contract(
         total_records=len(records),
         records=records,
     )
+
+
+def validate_embedding_batch_inputs(batch: EmbeddingBatch) -> None:
+    """Fail before a provider call when any exact embedding input is oversized."""
+
+    oversized = [
+        record
+        for record in batch.records
+        if utf8_byte_length(record.text) > MAX_EMBEDDING_INPUT_BYTES
+    ]
+    if oversized:
+        samples = ", ".join(
+            (
+                f"{record.unit_id}"
+                f" (source_kind={record.source_kind}, bytes={utf8_byte_length(record.text)})"
+            )
+            for record in oversized[:5]
+        )
+        raise ValueError(
+            "Embedding input preflight failed: each unit must be at most "
+            f"{MAX_EMBEDDING_INPUT_BYTES} UTF-8 bytes. Oversized units: {samples}"
+        )

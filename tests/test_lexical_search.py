@@ -113,6 +113,66 @@ def test_search_lexical_documents_uses_parent_context_without_changing_citation_
     assert "CIF data correction" in table.payload["retrieval_text"]
 
 
+def test_validation_sheet_with_explicit_identifier_is_not_crowded_out_by_generic_results() -> None:
+    documents = [
+        _document(
+            "generic-transaction-table",
+            "Validation added for transaction inquiry service. " * 12,
+            source_kind="table",
+            unit_index=0,
+        ),
+        LexicalSearchDocument(
+            document_name="rest-api.docx",
+            unit_id="rest-api::workbook_1::validation",
+            unit_index=1,
+            source_kind="embedded_workbook",
+            document_family="FS_ASNB",
+            release_label="R4",
+            text=(
+                "Validation: Re-Query REST API service rejects a transaction "
+                "older than 30 calendar days."
+            ),
+            retrieval_text=(
+                "Sheet: Validation\n"
+                "Validation: Re-Query REST API service rejects a transaction "
+                "older than 30 calendar days."
+            ),
+            sheet_name="Validation",
+            sheet_role="validation",
+            source_range="Validation!1:3",
+        ),
+    ]
+
+    results = search_lexical_documents(
+        documents,
+        "What validations are added for Re-Query Transaction Inquiry Service?",
+        limit=2,
+    )
+
+    assert results[0].payload["unit_id"] == "rest-api::workbook_1::validation"
+    assert results[0].payload["validation_sheet_identifier_affinity_terms"] == ["re-query"]
+    assert results[0].payload["validation_sheet_identifier_affinity_bonus"] == 40.0
+
+
+def test_validation_sheet_affinity_does_not_apply_without_a_validation_question() -> None:
+    document = LexicalSearchDocument(
+        document_name="rest-api.docx",
+        unit_id="rest-api::workbook_1::validation",
+        unit_index=0,
+        source_kind="embedded_workbook",
+        document_family="FS_ASNB",
+        release_label="R4",
+        text="Re-Query REST API service rejects a transaction older than 30 calendar days.",
+        sheet_name="Validation",
+        sheet_role="validation",
+    )
+
+    result = search_lexical_documents([document], "What does Re-Query do?", limit=1)[0]
+
+    assert result.payload["validation_sheet_identifier_affinity_terms"] == []
+    assert result.payload["validation_sheet_identifier_affinity_bonus"] == 0.0
+
+
 def test_search_lexical_documents_respects_metadata_filters() -> None:
     documents = [
         _document(

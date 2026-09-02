@@ -1,0 +1,9 @@
+schema_version = "fdd_document_lineage_policy_v1"
+
+# A listed document is a complete updated document: the highest approved
+# filename revision is the only current-state source for that logical document.
+# Older revisions remain in the archive for audit and explicit history work.
+[full_replacement]
+document_lineage_keys = [
+  "FS_FCIS_14.4.0.0.0$ASNB_R4_REST API Services",
+]

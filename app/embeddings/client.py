@@ -8,7 +8,7 @@ from openai import OpenAI
 
 from app.embeddings.embedding_cache import load_embedding_cache
 from app.core.config import get_settings
-from app.embeddings.embedding_contract import EmbeddingBatch, EmbeddingRecord
+from app.embeddings.embedding_contract import EmbeddingBatch, EmbeddingRecord, validate_embedding_batch_inputs
 
 
 def get_embedding_client() -> OpenAI:
@@ -35,6 +35,8 @@ def embed_batch(
 
     if request_batch_size is not None and request_batch_size <= 0:
         raise ValueError("request_batch_size must be greater than 0 when provided")
+
+    validate_embedding_batch_inputs(batch)
 
     if not batch.records:
         return EmbeddingBatch(

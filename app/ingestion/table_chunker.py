@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.ingestion.embedding_input_limits import MAX_SOURCE_UNIT_BYTES, split_text_by_utf8_bytes
 from app.ingestion.normalized_artifact import NormalizedDocxArtifact
 
 
@@ -13,6 +14,8 @@ class TableChunk:
     row_count: int
     column_count: int
     text: str
+    row_start: int | None
+    row_end: int | None
     preceding_paragraph_index: int | None
     preceding_paragraph_text: str | None
 
@@ -35,23 +38,31 @@ def chunk_tables_from_artifact(artifact: NormalizedDocxArtifact) -> ChunkedTable
 
     table_chunks: list[TableChunk] = []
 
-    for chunk_index, table in enumerate(artifact.raw_artifact.extracted_tables.tables):
+    for table in artifact.raw_artifact.extracted_tables.tables:
         if not table.text_representation.strip():
             continue
 
-        chunk_id = f"{artifact.raw_artifact.document_name}::table_chunk_{chunk_index}"
-        table_chunks.append(
-            TableChunk(
-                chunk_id=chunk_id,
-                chunk_index=chunk_index,
-                table_index=table.table_index,
-                row_count=table.row_count,
-                column_count=table.column_count,
-                text=table.text_representation,
-                preceding_paragraph_index=table.preceding_paragraph_index,
-                preceding_paragraph_text=table.preceding_paragraph_text,
+        for part_index, part_text in enumerate(
+            split_text_by_utf8_bytes(table.text_representation, MAX_SOURCE_UNIT_BYTES)
+        ):
+            chunk_index = len(table_chunks)
+            table_chunks.append(
+                TableChunk(
+                    chunk_id=(
+                        f"{artifact.raw_artifact.document_name}::table_{table.table_index}"
+                        f"::part_{part_index}"
+                    ),
+                    chunk_index=chunk_index,
+                    table_index=table.table_index,
+                    row_count=table.row_count,
+                    column_count=table.column_count,
+                    text=part_text,
+                    row_start=None,
+                    row_end=None,
+                    preceding_paragraph_index=table.preceding_paragraph_index,
+                    preceding_paragraph_text=table.preceding_paragraph_text,
+                )
             )
-        )
 
     return ChunkedTableDocument(
         document_name=artifact.raw_artifact.document_name,

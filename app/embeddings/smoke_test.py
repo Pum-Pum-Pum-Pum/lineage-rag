@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.embeddings.embedding_contract import EmbeddingBatch
 
 
-SUPPORTED_SOURCE_KINDS = {"paragraph", "table"}
+SUPPORTED_SOURCE_KINDS = {"paragraph", "table", "embedded_workbook"}
 
 
 def limit_embedding_batch(batch: EmbeddingBatch, limit: int) -> EmbeddingBatch:

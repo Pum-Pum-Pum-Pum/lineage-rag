@@ -12,11 +12,15 @@ Run the stages one at a time from the repository root:
 
 ```powershell
 .\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage intake-parse
+
 .\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage prepare-index `
   -DependencyReviewLedger data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
+
 .\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage embed-index `
   -CollectionName code_custom_r2_v1
+
 .\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage evaluate
+
 .\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage activate
 ```
 

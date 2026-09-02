@@ -58,6 +58,13 @@ def embedding_record_to_qdrant_point(record: EmbeddingRecord) -> PointStruct:
         "text": record.source_text or record.text,
         "retrieval_text": record.text,
         "parent_unit_id": record.parent_unit_id,
+        "document_lineage_key": record.document_lineage_key,
+        "document_revision": record.document_revision,
+        "attachment_path": record.attachment_path,
+        "attachment_sha256": record.attachment_sha256,
+        "sheet_name": record.sheet_name,
+        "sheet_role": record.sheet_role,
+        "source_range": record.source_range,
     }
 
     return PointStruct(

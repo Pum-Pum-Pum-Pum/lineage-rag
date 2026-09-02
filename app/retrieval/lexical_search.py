@@ -37,6 +37,12 @@ LEXICAL_STOPWORDS = {
 }
 
 
+# This applies only to an embedded Validation sheet where the user's question
+# explicitly asks about validation and includes a stable identifier such as
+# ``Re-Query`` or ``B-01``. It is deliberately not a corpus-wide weight change.
+VALIDATION_SHEET_IDENTIFIER_AFFINITY_BONUS = 40.0
+
+
 @dataclass(frozen=True)
 class LexicalSearchDocument:
     document_name: str
@@ -49,6 +55,13 @@ class LexicalSearchDocument:
     document_id: str = ""
     retrieval_text: str = ""
     parent_unit_id: str | None = None
+    document_lineage_key: str = ""
+    document_revision: str | None = None
+    attachment_path: str | None = None
+    attachment_sha256: str | None = None
+    sheet_name: str | None = None
+    sheet_role: str | None = None
+    source_range: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +124,13 @@ def load_retrieval_ready_documents(
                     document_id=str(unit.get("document_id") or fallback_document_id),
                     retrieval_text=str(unit.get("retrieval_text") or unit.get("text", "")),
                     parent_unit_id=unit.get("parent_unit_id"),
+                    document_lineage_key=str(unit.get("document_lineage_key", "")),
+                    document_revision=unit.get("document_revision"),
+                    attachment_path=unit.get("attachment_path"),
+                    attachment_sha256=unit.get("attachment_sha256"),
+                    sheet_name=unit.get("sheet_name"),
+                    sheet_role=unit.get("sheet_role"),
+                    source_range=unit.get("source_range"),
                 )
             )
 
@@ -151,6 +171,12 @@ def search_lexical_documents(
             document_tokens=document_tokens,
             idf_by_term=idf_by_term,
         )
+        affinity_bonus, affinity_terms = _validation_sheet_identifier_affinity(
+            query_terms=query_terms,
+            document_tokens=document_tokens,
+            document=document,
+        )
+        score += affinity_bonus
         if score <= 0:
             continue
 
@@ -169,8 +195,17 @@ def search_lexical_documents(
                     "text": document.text,
                     "retrieval_text": retrieval_text,
                     "parent_unit_id": document.parent_unit_id,
+                    "document_lineage_key": document.document_lineage_key,
+                    "document_revision": document.document_revision,
+                    "attachment_path": document.attachment_path,
+                    "attachment_sha256": document.attachment_sha256,
+                    "sheet_name": document.sheet_name,
+                    "sheet_role": document.sheet_role,
+                    "source_range": document.source_range,
                     "retrieval_method": "lexical",
                     "matched_query_terms": matched_terms,
+                    "validation_sheet_identifier_affinity_terms": affinity_terms,
+                    "validation_sheet_identifier_affinity_bonus": affinity_bonus,
                 },
             )
         )
@@ -258,3 +293,37 @@ def _score_document(
     coverage_multiplier = 1.0 + (len(matched_terms) / len(unique_query_terms))
 
     return (idf_score + term_frequency_bonus) * coverage_multiplier, matched_terms
+
+
+def _validation_sheet_identifier_affinity(
+    *,
+    query_terms: list[str],
+    document_tokens: list[str],
+    document: LexicalSearchDocument,
+) -> tuple[float, list[str]]:
+    """Return a bounded validation-sheet boost for explicit query identifiers.
+
+    Generic words such as ``validation`` and ``service`` occur widely in FDDs.
+    This narrow signal lets an exact enterprise identifier in a validation-focused
+    query keep its matching workbook row inside the normal candidate/evidence
+    budget. It never applies to paragraphs, tables, request/response sheets, or
+    queries that lack a stable identifier.
+    """
+
+    if document.source_kind != "embedded_workbook":
+        return 0.0, []
+    if (document.sheet_role or "").casefold() != "validation":
+        return 0.0, []
+    if not any(term.rstrip("s") == "validation" for term in query_terms):
+        return 0.0, []
+
+    document_token_set = set(document_tokens)
+    identifier_terms = [
+        term
+        for term in query_terms
+        if ("-" in term or "_" in term or any(character.isdigit() for character in term))
+        and term in document_token_set
+    ]
+    if not identifier_terms:
+        return 0.0, []
+    return VALIDATION_SHEET_IDENTIFIER_AFFINITY_BONUS, sorted(set(identifier_terms))

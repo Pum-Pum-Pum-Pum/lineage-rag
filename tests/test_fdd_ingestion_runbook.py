@@ -21,4 +21,4 @@ def test_runbook_requires_paired_activation_and_evaluation() -> None:
     assert "PROCESSED_DIR=data/indexes/functional_specs_v6/processed" in text
     assert "run_fdd_retrieval_gate.py" in text
     assert "explicit authorization" in text
-    assert "retain v5 for rollback" in text
+    assert "retain v5 for rollback" in text.lower()

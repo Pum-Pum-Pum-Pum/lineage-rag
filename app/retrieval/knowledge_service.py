@@ -8,7 +8,8 @@ retrieval, lineage, source-identity, or Qdrant lifecycle logic.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Literal
 
@@ -23,9 +24,15 @@ from app.embeddings.client import get_embedding_client
 from app.fdd_code_lineage.combined_retrieval import CombinedRetrievalResult, retrieve_combined_evidence
 from app.fdd_code_lineage.models import FddCodeLineageArtifact, validate_lineage_artifact
 from app.fdd_code_lineage.paid_evaluation import embed_one_query
-from app.retrieval.lexical_search import LexicalSearchDocument, load_retrieval_ready_documents
+from app.retrieval.lexical_search import (
+    LexicalSearchDocument,
+    build_query_terms,
+    load_retrieval_ready_documents,
+    tokenize,
+)
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig, build_retrieval_runtime_config
 from app.services.query_retrieval import PlannedRetrievalResult, retrieve_planned_query_evidence
+from app.vectorstore.qdrant_search import QdrantSearchResult
 
 
 KnowledgeMode = Literal["fdd", "code", "combined"]
@@ -122,6 +129,9 @@ class SourceCatalog:
                     "source_kind": document.source_kind,
                     "unit_index": document.unit_index,
                     "fdd_generation": fdd_generation,
+                    "sheet_name": document.sheet_name,
+                    "sheet_role": document.sheet_role,
+                    "source_range": document.source_range,
                 },
                 source_reference=(
                     f"document:{document.document_id or document.document_name}"
@@ -340,6 +350,12 @@ class KnowledgeRetrievalService:
                 source_kind=source_kind,
                 conversation_context=conversation_context,
             )
+            planned = _add_request_workbook_companions(
+                planned=planned,
+                documents=self._fdd_document_loader(self._fdd_artifact_directory()),
+                query=query,
+                limit=limit,
+            )
         finally:
             if client is not None:
                 client.close()
@@ -426,6 +442,12 @@ class KnowledgeRetrievalService:
                 lexical_artifact_directory=self._fdd_artifact_directory(),
                 limit=limit,
             )
+            planned = _add_request_workbook_companions(
+                planned=planned,
+                documents=documents,
+                query=query,
+                limit=limit,
+            )
             combined = retrieve_combined_evidence(
                 query=retrieval_query,
                 fdd_results=planned.results,
@@ -492,7 +514,7 @@ def _to_search_hits(results: list[Any], catalog: dict[str, _CatalogSource], *, l
     hits: list[KnowledgeSearchHit] = []
     for result in results[:limit]:
         source = _catalog_source(catalog, str(result.payload.get("unit_id", "")))
-        hits.append(_search_hit(source, float(result.score)))
+        hits.append(_search_hit(source, float(result.score), result.payload))
     return hits
 
 
@@ -515,14 +537,21 @@ def _catalog_source(catalog: dict[str, _CatalogSource], internal_unit_id: str) -
     return source
 
 
-def _search_hit(source: _CatalogSource, score: float) -> KnowledgeSearchHit:
+def _search_hit(
+    source: _CatalogSource,
+    score: float,
+    retrieval_payload: dict[str, Any] | None = None,
+) -> KnowledgeSearchHit:
+    metadata = dict(source.metadata)
+    if retrieval_payload and retrieval_payload.get("retrieval_relation"):
+        metadata["retrieval_relation"] = str(retrieval_payload["retrieval_relation"])
     return KnowledgeSearchHit(
         id=source.public_id,
         title=source.title,
         source_type=source.source_type,
         short_excerpt=" ".join(source.text.split())[:240],
         score=score,
-        metadata=source.metadata,
+        metadata=metadata,
         source_reference=source.source_reference,
     )
 
@@ -575,4 +604,127 @@ def _is_public_id(value: str) -> bool:
     prefix_length = 4 if value.startswith("fdd_") else 5
     return len(value) == prefix_length + 64 and all(
         character in "0123456789abcdef" for character in value[prefix_length:]
+    )
+
+
+_REQUEST_QUERY_TERMS = {"json", "request", "postman", "payload", "format", "field", "fields"}
+
+
+def _add_request_workbook_companions(
+    *,
+    planned: PlannedRetrievalResult,
+    documents: list[LexicalSearchDocument],
+    query: str,
+    limit: int,
+) -> PlannedRetrievalResult:
+    """Retain bounded Request-sheet evidence for a service-specific JSON query.
+
+    A Version or Validation row can establish the requested service while the
+    sibling Request sheet contains the complete field contract. The relationship
+    is accepted only within one approved DOCX attachment; no filename, path, or
+    semantic name similarity is used as a substitute for that evidence.
+    """
+
+    if not _is_json_request_query(query) or limit < 2:
+        return planned
+    documents_by_id = {document.unit_id: document for document in documents}
+    anchors = [
+        documents_by_id.get(str(result.payload.get("unit_id", "")))
+        for result in planned.results
+    ]
+    relations = {
+        _workbook_relation(document)
+        for document in anchors
+        if document is not None and _is_service_anchor(document, query)
+    }
+    relations.discard(None)
+    if not relations:
+        return planned
+
+    companion_documents = [
+        document
+        for document in documents
+        if _workbook_relation(document) in relations
+        and document.source_kind == "embedded_workbook"
+        and (document.sheet_role or "").casefold() == "request"
+        and _has_request_field_content(document.text)
+    ]
+    if not companion_documents:
+        return planned
+
+    existing_ids = {str(result.payload.get("unit_id", "")) for result in planned.results}
+    companions = [
+        _request_companion_result(document)
+        for document in sorted(companion_documents, key=lambda item: item.unit_index)
+        if document.unit_id not in existing_ids
+    ][: limit - 1]
+    if not companions:
+        return planned
+    merged = companions + planned.results
+    deduplicated: list[QdrantSearchResult] = []
+    seen: set[str] = set()
+    for result in merged:
+        unit_id = str(result.payload.get("unit_id", ""))
+        if not unit_id or unit_id in seen:
+            continue
+        seen.add(unit_id)
+        deduplicated.append(result)
+        if len(deduplicated) == limit:
+            break
+    return replace(planned, results=deduplicated)
+
+
+def _is_json_request_query(query: str) -> bool:
+    terms = set(build_query_terms(query))
+    return "json" in terms and bool(terms & {"request", "postman", "payload"})
+
+
+def _is_service_anchor(document: LexicalSearchDocument, query: str) -> bool:
+    if document.source_kind != "embedded_workbook":
+        return False
+    if (document.sheet_role or "").casefold() not in {"version", "validation"}:
+        return False
+    query_terms = [term for term in build_query_terms(query) if term not in _REQUEST_QUERY_TERMS]
+    document_terms = set(tokenize(document.text))
+    matching_terms = [term for term in query_terms if term in document_terms]
+    has_identifier = any("-" in term or "_" in term or any(char.isdigit() for char in term) for term in matching_terms)
+    meaningful_matches = [term for term in matching_terms if len(term) >= 5 and term != "service"]
+    return has_identifier or len(set(meaningful_matches)) >= 2
+
+
+def _workbook_relation(document: LexicalSearchDocument) -> tuple[str, str, str] | None:
+    if not document.attachment_path or not document.attachment_sha256:
+        return None
+    return document.document_id, document.attachment_path, document.attachment_sha256
+
+
+def _has_request_field_content(text: str) -> bool:
+    return bool(re.search(r"\bB\d+=[^\s|]", text))
+
+
+def _request_companion_result(document: LexicalSearchDocument) -> QdrantSearchResult:
+    return QdrantSearchResult(
+        point_id=document.unit_id,
+        score=1.0,
+        payload={
+            "document_name": document.document_name,
+            "document_id": document.document_id,
+            "unit_id": document.unit_id,
+            "unit_index": document.unit_index,
+            "source_kind": document.source_kind,
+            "document_family": document.document_family,
+            "release_label": document.release_label,
+            "text": document.text,
+            "retrieval_text": document.retrieval_text or document.text,
+            "parent_unit_id": document.parent_unit_id,
+            "document_lineage_key": document.document_lineage_key,
+            "document_revision": document.document_revision,
+            "attachment_path": document.attachment_path,
+            "attachment_sha256": document.attachment_sha256,
+            "sheet_name": document.sheet_name,
+            "sheet_role": document.sheet_role,
+            "source_range": document.source_range,
+            "retrieval_method": "workbook_request_companion",
+            "retrieval_relation": "same_workbook_request_companion",
+        },
     )

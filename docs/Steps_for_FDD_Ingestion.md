@@ -40,6 +40,43 @@ Requirements:
   citeable `document_id`; the release label alone is not a unique source ID.
 - `docs/` contains documentation only. Source documents belong under `data/`.
 
+### Revisioned FDDs and embedded Excel workbooks
+
+For a reviewed document stream that is a full current-state replacement, retain
+every archived DOCX for audit but index only its newest approved document
+revision in the next generation. The policy is explicit in
+`config/fdd_document_lineage.toml`; it never infers replacement semantics from
+a version suffix alone. The REST API stream uses this policy, so
+`...REST API Services_v2.31.docx` replaces `v2.30`, `v2.29`, and earlier
+versions as current-state evidence when all are in the archive.
+
+The latest document can still contain all earlier REST APIs plus additions. It
+is therefore embedded as a complete document, not as a line-level delta. The
+previous revisions remain immutable archive sources and are listed as
+superseded in the staged manifest; they are not deleted or overwritten.
+
+DOCX files may contain direct embedded `.xlsx` workbooks. Each workbook is
+extracted in memory and creates bounded, citeable evidence units by workbook,
+sheet, and source-row range. `Version`, `Request`, `Response`, and
+`Validation` sheets receive explicit sheet-role metadata and inherit nearby
+Word context when the DOCX relationship supplies an anchor. The original cell
+text remains the citation source; derived parent/sheet context is used only for
+retrieval. Legacy OLE spreadsheet objects and workbooks with external links
+are not silently indexed: they remain explicit ingestion diagnostics until a
+safe extractor is added.
+
+Before embedding a new document stream, review and add its exact logical
+filename prefix to `full_replacement.document_lineage_keys` only if the new
+revision really supersedes the prior document as current-state evidence.
+Otherwise all revisions remain independent evidence by default.
+
+All paragraph, table, and workbook inputs are conservatively bounded to at
+most 6,000 UTF-8 bytes before an embeddings request. The embedding client
+performs the same exact-input preflight before constructing a provider client,
+so an oversized unit fails locally before any paid request. A large workbook
+row or cell is split deterministically while retaining its parent workbook,
+sheet, and source-row range.
+
 ## 2. Preview an isolated intake run
 
 Prepare the locked environment once:
@@ -75,7 +112,8 @@ uv run --locked python scripts/master_ingestion_embedding_docs.py
 The master command calls the existing Python stages in order:
 
 1. Extract, normalize, and chunk every DOCX in `data/raw_specs/`.
-2. Build paragraph and parent-linked table retrieval artifacts.
+2. Build paragraph, parent-linked table, and embedded-workbook retrieval
+   artifacts where the DOCX contains direct `.xlsx` attachments.
 3. Embed all unique uncached retrieval units with the configured OpenAI
    embedding model, using at most 64 units per request.
 4. Index the embedding artifacts into the isolated intake collection.
@@ -153,19 +191,22 @@ Do not activate the generation unless all required checks pass:
 
 ## 6. Promote and activate the pair
 
-After approval, copy the verified lexical artifacts to a stable runtime path,
-verify file counts and SHA-256 hashes against the stage, and update both values
-in `.env` together:
+After approval, run the launcher `activate` stage. It copies the verified
+lexical artifacts to a stable runtime path, verifies their SHA-256 directory
+identity against the stage, and atomically updates both values in `.env`
+together:
 
 ```text
 QDRANT_COLLECTION_NAME=functional_specs_v6
 PROCESSED_DIR=data/indexes/functional_specs_v6/processed
 ```
 
-Restart FastAPI and Streamlit, verify their effective configuration and
-readiness, run a known grounded query with citations, and retain v5 for rollback.
-Changing only one of these settings creates a mixed vector/lexical generation
-and is a release-blocking error.
+The launcher requires exact typed confirmation (`ACTIVATE <generation>`) and
+writes immutable activation evidence. It does not restart processes. Restart
+FastAPI and Streamlit, and toggle the Desktop MCP server off/on before its next
+search, then verify effective configuration and readiness with a known grounded
+query and citations. Retain v5 for rollback. Changing only one of these settings
+creates a mixed vector/lexical generation and is a release-blocking error.
 
 ## Artifact locations
 
@@ -187,6 +228,13 @@ decision provide the audit trail.
 
 - If extraction, embedding, indexing, or exact verification fails, the affected
   DOCX remains in `data/raw_specs/`. Fix the cause and rerun.
+- If an embedded workbook is over the configured size/cell boundary, contains
+  external links, or is a legacy OLE object, it must be diagnosed and reviewed;
+  do not claim its sheet values were indexed.
+- If exact embedding-input preflight reports an oversized unit, do not retry
+  the paid command. Correct the bounded-chunking contract and rerun local
+  preflight first; a retry requires fresh approval because earlier provider
+  requests may already have incurred cost.
 - If one filename exists in both `data/raw_specs/` and `data/docs_embedded/`, the
   master command fails before child stages—even during `--dry-run`.
 - If a stage directory or target collection exists, choose a new versioned name.

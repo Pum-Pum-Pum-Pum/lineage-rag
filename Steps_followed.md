@@ -1987,3 +1987,134 @@ one by one.
 To preserve the authorization boundary without lengthening each command,
 embedding/indexing and FDD evaluation now prompt the operator to type
 `APPROVE`. An unapproved response stops before the external operation starts.
+
+## Steps 258-260 — Revision-aware FDD and embedded-workbook foundation
+
+### Step 258 — Preserve document revision semantics explicitly
+
+Added `document_lineage_key`, numeric `document_revision`, and deterministic
+revision sort metadata to FDD filename parsing. A new reviewed policy artifact,
+`config/fdd_document_lineage.toml`, declares which document streams are full
+current-state replacements. The REST API Services stream is configured so a
+future complete build selects `v2.31` as current evidence while retaining
+earlier DOCX files as immutable, explicitly superseded archive sources.
+
+The policy is deliberately opt-in: a filename ending in `_vX.Y` alone does not
+silently suppress a prior document. This prevents accidental loss of separate
+FDD evidence that happens to use versioned filenames.
+
+### Step 259 — Extract embedded Excel as linked source evidence
+
+Added safe in-memory extraction of direct OOXML `.xlsx` attachments from a
+DOCX. Workbooks are bounded by size and cell count; external links fail closed.
+Each non-empty sheet is divided into bounded workbook/sheet/row units, with
+explicit `version`, `request`, `response`, and `validation` sheet roles. The
+source cells remain citeable text; derived retrieval context records the
+workbook identity, sheet role, row range, and Word paragraph anchor where the
+DOCX supplies one.
+
+Legacy OLE spreadsheet objects are reported as unsupported diagnostics rather
+than silently indexed. The supplied REST API v2.31 document was read locally
+only: it contains 52 direct XLSX workbooks, 241 sheets, 22 unsupported OLE
+objects, and yields 349 bounded workbook units. Of those, 146 have a direct
+nearby Word-context relationship; the others retain precise workbook/sheet/row
+provenance without inventing a parent context.
+
+### Step 260 — Carry provenance through staging and verify locally
+
+Workbook and revision fields now flow through retrieval-ready artifacts,
+embedding records, lexical artifacts, Qdrant payload preparation, and the
+staged rebuild manifest. The complete-generation rebuild selects current
+sources under the reviewed policy and records superseded source names and the
+policy hash. No active collection, archive file, environment setting, OpenAI
+operation, Qdrant index, or generation was changed.
+
+Focused verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest --basetemp .pytest-fdd-embedded-20260829-b `
+  tests\test_filename_parser.py tests\test_fdd_document_lineage.py `
+  tests\test_embedded_workbook_ingestion.py tests\test_docx_ingestion_artifact.py `
+  tests\test_retrieval_ready_artifact.py tests\test_embedding_contract.py `
+  tests\test_stage_archived_fdd_rebuild.py -q
+```
+
+Result: **19 passed**. This establishes deterministic extraction, provenance,
+revision selection, and staging metadata. It does not yet prove cross-sheet API
+identity linking, retrieval relevance, citations in answers, paid embedding,
+indexing, evaluation, or activation.
+
+## Step 261 — Fail closed on oversized FDD embedding inputs
+
+The first v6 `embed-index` attempt reached the OpenAI embeddings API and was
+rejected on one embedded-workbook Request unit above the provider's 8,192-token
+per-input limit. Eleven earlier requests succeeded, but the batch never reached
+its artifact writer, indexer, archive move, or activation step.
+
+Added conservative UTF-8-byte bounds before embedding: source text is limited
+to 4,500 bytes, derived context to 1,000 bytes, and every exact provider input
+to 6,000 bytes. Paragraphs, tables, workbook row groups, and a single oversized
+workbook cell are split losslessly and deterministically. `embed_batch` now
+validates the full input contract before creating a provider client, so every
+caller fails before a paid request if a future source bypasses chunking.
+
+The same supplied DOCX now produces 1,057 bounded records: 594 paragraph, 90
+table, and 373 embedded-workbook units. The largest exact embedding input is
+4,754 UTF-8 bytes; local preflight passed for every record.
+
+Focused tests passed **23/23**, including a no-provider-call oversized-input
+test. No retry, indexing, archive move, or activation was performed after this
+fix. A retry will repeat paid work and therefore requires fresh authorization.
+
+## Step 262 — Guarded FDD generation activation
+
+The FDD launcher `activate` stage now performs a no-write preflight and then
+requires the exact confirmation `ACTIVATE <generation>`. On confirmation, it
+promotes the verified lexical artifacts, verifies their directory SHA-256,
+atomically switches the paired FDD `.env` settings, and writes immutable
+activation evidence. It does not restart FastAPI, Streamlit, or the
+Desktop-owned MCP child; reload those processes after a successful activation.
+
+Focused activation tests passed **10/10**. A read-only real v7 preflight is
+`ready_to_apply`; live `.env` stayed on v5 until the operator confirmed activation.
+
+## Step 263 — Retrieve service-specific Validation-sheet evidence reliably
+
+The REST API v2.31 workbook already contained the exact Re-Query Transaction
+Inquiry validation rows under `Validation!1:3`, but generic table and workbook
+matches caused it to rank twentieth for the natural user question. The wrong
+R22 AML answer was therefore a retrieval/evidence-selection failure, not an
+extraction or “training” gap.
+
+Lexical retrieval now adds a bounded score only when all of these conditions
+hold: the evidence is an embedded workbook, its canonical sheet role is
+`validation`, the question is validation-focused, and an explicit enterprise
+identifier such as `Re-Query` is present in the source row. The rule does not
+change dense scoring, weighted-RRF weights, result limits, or non-workbook
+retrieval. Future `Validations` sheet names canonicalize to the same
+`validation` role.
+
+The exact v7 natural-language query now ranks the workbook unit
+`Validation!1:3` first in lexical retrieval. Focused lexical, hybrid-retention,
+and workbook-ingestion checks passed **19/19**. A live dense/hybrid MCP query
+still requires a deliberate user test because it creates a query embedding and
+uses the currently running local Qdrant process.
+
+## Step 264 — Follow same-workbook Request evidence for JSON payload questions
+
+For a JSON/Postman request question, a Version or Validation unit may identify
+the correct REST service while the sibling Request sheet holds the field-level
+contract. Shared document ID, embedded-workbook path, and attachment SHA-256
+now form the only permitted relationship: the service retains non-empty Request
+units from that same workbook in the normal bounded FDD result set. It never
+links spreadsheets by similar filename or guessed service name.
+
+The Request result is marked as `same_workbook_request_companion` and exposes
+logical sheet metadata (`request`, `Request!1:25`) without exposing a raw local
+path. MCP tool instructions now require the client to fetch every returned
+Request-sheet result before drafting JSON and to avoid inventing omitted fields.
+
+The real v7 Re-Query request query now returns `Request!1:25` first, followed
+by its Version and Validation evidence. Focused retrieval-service, lexical,
+hybrid, MCP-adapter, and protocol checks passed **34/34**, with no OpenAI call,
+Qdrant write, or generation rebuild.

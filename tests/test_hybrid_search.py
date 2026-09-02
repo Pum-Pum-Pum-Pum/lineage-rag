@@ -82,6 +82,38 @@ def test_rrf_keeps_r24_teller_and_branch_tables_in_final_top_five() -> None:
     assert "raw_rrf_score" in results[0].payload
 
 
+def test_rrf_retains_identifier_matched_validation_sheet_with_unrelated_dense_evidence() -> None:
+    dense_results = [
+        _result(f"dense-generic-{index}", 0.9 - (index * 0.01))
+        for index in range(5)
+    ]
+    validation_sheet = _result(
+        "rest-api::workbook_1::validation",
+        59.0,
+        "Re-Query REST API validation: reject transactions older than 30 days.",
+    )
+    validation_sheet.payload.update(
+        {
+            "source_kind": "embedded_workbook",
+            "sheet_name": "Validation",
+            "sheet_role": "validation",
+            "validation_sheet_identifier_affinity_terms": ["re-query"],
+            "validation_sheet_identifier_affinity_bonus": 40.0,
+        }
+    )
+
+    results = fuse_dense_and_lexical_results(
+        dense_results=dense_results,
+        lexical_results=[validation_sheet],
+        limit=5,
+        dense_weight=0.6,
+        lexical_weight=0.4,
+    )
+
+    result_ids = [result.payload["unit_id"] for result in results]
+    assert "rest-api::workbook_1::validation" in result_ids
+
+
 def test_fuse_dense_and_lexical_results_rejects_invalid_inputs() -> None:
     try:
         fuse_dense_and_lexical_results([], [], limit=0)

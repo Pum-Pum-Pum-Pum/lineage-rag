@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.ingestion.embedding_input_limits import MAX_SOURCE_UNIT_BYTES, split_text_by_utf8_bytes
 from app.ingestion.normalized_artifact import NormalizedDocxArtifact
 
 
@@ -43,24 +44,24 @@ def chunk_normalized_artifact(
     original_indexes = artifact.normalized_text.cleaned_paragraph_original_indexes
     chunks: list[TextChunk] = []
 
-    for chunk_index, start in enumerate(range(0, len(paragraphs), max_paragraphs_per_chunk)):
+    for start in range(0, len(paragraphs), max_paragraphs_per_chunk):
         end = min(start + max_paragraphs_per_chunk, len(paragraphs))
         chunk_paragraphs = paragraphs[start:end]
         chunk_text = "\n".join(chunk_paragraphs)
-        chunk_id = f"{artifact.raw_artifact.document_name}::chunk_{chunk_index}"
-
-        chunks.append(
-            TextChunk(
-                chunk_id=chunk_id,
-                chunk_index=chunk_index,
-                paragraph_start_index=start,
-                paragraph_end_index=end - 1,
-                paragraph_count=len(chunk_paragraphs),
-                text=chunk_text,
-                original_paragraph_start_index=original_indexes[start],
-                original_paragraph_end_index=original_indexes[end - 1],
+        for part_text in split_text_by_utf8_bytes(chunk_text, MAX_SOURCE_UNIT_BYTES):
+            chunk_index = len(chunks)
+            chunks.append(
+                TextChunk(
+                    chunk_id=f"{artifact.raw_artifact.document_name}::chunk_{chunk_index}",
+                    chunk_index=chunk_index,
+                    paragraph_start_index=start,
+                    paragraph_end_index=end - 1,
+                    paragraph_count=len(chunk_paragraphs),
+                    text=part_text,
+                    original_paragraph_start_index=original_indexes[start],
+                    original_paragraph_end_index=original_indexes[end - 1],
+                )
             )
-        )
 
     return ChunkedDocument(
         document_name=artifact.raw_artifact.document_name,

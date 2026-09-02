@@ -10,7 +10,9 @@ from app.retrieval.knowledge_service import (
     KnowledgeRetrievalExecution,
     KnowledgeRetrievalService,
     SourceCatalog,
+    _add_request_workbook_companions,
 )
+from app.services.query_retrieval import PlannedRetrievalResult
 from app.retrieval.lexical_search import LexicalSearchDocument
 from app.retrieval.retrieval_config import RetrievalRuntimeConfig
 from app.vectorstore.qdrant_search import QdrantSearchResult
@@ -112,6 +114,110 @@ def test_search_formats_results_from_active_catalog_without_exposing_internal_id
     assert response.results[0].id.startswith("fdd_")
     assert document.unit_id not in response.model_dump_json()
     assert response.results[0].short_excerpt == "Evidence text"
+
+
+def test_request_json_query_retains_same_workbook_request_sheet_and_exposes_sheet_metadata() -> None:
+    version = LexicalSearchDocument(
+        document_name="rest-api.docx",
+        document_id="REST_API_V2_31",
+        unit_id="rest::workbook_1::version",
+        unit_index=1,
+        source_kind="embedded_workbook",
+        document_family="ASNB",
+        release_label="R4",
+        text="Re-Query Transaction Inquiry Service changed in version 1.11.",
+        attachment_path="word/embeddings/workbook_23.xlsx",
+        attachment_sha256="a" * 64,
+        sheet_name="Version",
+        sheet_role="version",
+        source_range="Version!1:4",
+    )
+    request = LexicalSearchDocument(
+        document_name="rest-api.docx",
+        document_id="REST_API_V2_31",
+        unit_id="rest::workbook_1::request",
+        unit_index=2,
+        source_kind="embedded_workbook",
+        document_family="ASNB",
+        release_label="R4",
+        text="row 1: B1=Field Name\nrow 2: B2=upload_requery_txn\nrow 3: B3=channeltype",
+        attachment_path="word/embeddings/workbook_23.xlsx",
+        attachment_sha256="a" * 64,
+        sheet_name="Request",
+        sheet_role="request",
+        source_range="Request!1:25",
+    )
+    unrelated_request = LexicalSearchDocument(
+        document_name="rest-api.docx",
+        document_id="REST_API_V2_31",
+        unit_id="rest::workbook_2::request",
+        unit_index=3,
+        source_kind="embedded_workbook",
+        document_family="ASNB",
+        release_label="R4",
+        text="row 1: B1=Field Name\nrow 2: B2=unrelated_service",
+        attachment_path="word/embeddings/workbook_24.xlsx",
+        attachment_sha256="b" * 64,
+        sheet_name="Request",
+        sheet_role="request",
+        source_range="Request!1:10",
+    )
+    original = QdrantSearchResult(point_id="p1", score=0.9, payload={"unit_id": version.unit_id})
+    planned = PlannedRetrievalResult(
+        routed=SimpleNamespace(),
+        results=[original],
+        temporal_plan=SimpleNamespace(),
+        retrieval_candidate_limit=5,
+    )
+
+    enriched = _add_request_workbook_companions(
+        planned=planned,
+        documents=[version, request, unrelated_request],
+        query="What will the JSON request look like for Re-Query Transaction Inquiry Service?",
+        limit=5,
+    )
+
+    assert [item.payload["unit_id"] for item in enriched.results] == [
+        request.unit_id,
+        version.unit_id,
+    ]
+    assert enriched.results[0].payload["retrieval_relation"] == "same_workbook_request_companion"
+    catalog = SourceCatalog.build(
+        fdd_documents=[version, request], code_artifact=None, fdd_generation="functional_specs_v7"
+    )
+    request_source = catalog.fdd_by_internal_id[request.unit_id]
+    assert request_source.metadata["sheet_role"] == "request"
+    assert request_source.metadata["source_range"] == "Request!1:25"
+
+
+def test_request_companion_requires_json_request_intent_and_service_affinity() -> None:
+    version = LexicalSearchDocument(
+        document_name="rest-api.docx",
+        document_id="REST_API_V2_31",
+        unit_id="rest::workbook_1::version",
+        unit_index=1,
+        source_kind="embedded_workbook",
+        document_family="ASNB",
+        release_label="R4",
+        text="Re-Query Transaction Inquiry Service changed in version 1.11.",
+        attachment_path="word/embeddings/workbook_23.xlsx",
+        attachment_sha256="a" * 64,
+        sheet_name="Version",
+        sheet_role="version",
+    )
+    planned = PlannedRetrievalResult(
+        routed=SimpleNamespace(),
+        results=[QdrantSearchResult(point_id="p1", score=0.9, payload={"unit_id": version.unit_id})],
+        temporal_plan=SimpleNamespace(),
+        retrieval_candidate_limit=5,
+    )
+
+    assert _add_request_workbook_companions(
+        planned=planned,
+        documents=[version],
+        query="What validations are added for Re-Query Transaction Inquiry Service?",
+        limit=5,
+    ) is planned
 
 
 class _FakeQdrant:

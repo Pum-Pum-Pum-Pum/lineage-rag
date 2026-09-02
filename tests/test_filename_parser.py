@@ -42,3 +42,11 @@ def test_parse_document_filename_invalid_case() -> None:
         assert "expected release-aware pattern" in str(exc)
     else:
         raise AssertionError("Expected ValueError for invalid filename pattern")
+
+
+def test_parse_filename_extracts_document_revision_and_lineage_key() -> None:
+    parsed = parse_document_filename("FS_FCIS_14.4.0.0.0$ASNB_R4_REST API Services_v2.31.docx")
+
+    assert parsed.document_lineage_key == "FS_FCIS_14.4.0.0.0$ASNB_R4_REST API Services"
+    assert parsed.document_revision == "2.31"
+    assert parsed.document_revision_sort_key == (2, 31)

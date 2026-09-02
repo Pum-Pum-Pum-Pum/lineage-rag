@@ -82,7 +82,11 @@ def create_mcp_server(
 
     @server.tool(
         name="search",
-        description="Search approved FDD, code, or both knowledge lanes and return bounded ranked evidence.",
+        description=(
+            "Search approved FDD, code, or both knowledge lanes and return bounded ranked evidence. "
+            "For a JSON/Postman request question, fetch every returned FDD result whose "
+            "metadata has sheet_role=request before drafting a payload; do not invent omitted fields."
+        ),
         annotations=annotations,
         structured_output=True,
     )

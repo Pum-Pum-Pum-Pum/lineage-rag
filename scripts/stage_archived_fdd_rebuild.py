@@ -23,6 +23,7 @@ from app.ingestion.chunked_artifact_writer import write_chunked_document_to_json
 from app.ingestion.chunker import chunk_normalized_artifact
 from app.ingestion.docx_ingestion_artifact import ingest_docx_file
 from app.ingestion.docx_loader import DiscoveredDocxFile, discover_docx_files
+from app.ingestion.fdd_document_lineage import select_current_document_sources
 from app.ingestion.normalized_artifact import build_normalized_artifact
 from app.ingestion.processed_artifact_writer import write_ingested_artifact_to_json
 from app.ingestion.retrieval_ready_artifact import build_retrieval_ready_artifact
@@ -102,9 +103,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     configure_logging(settings.log_level)
     logger = get_logger("stage_archived_fdd_rebuild")
 
-    sources = discover_docx_files(args.source_directory)
-    if not sources:
+    archived_sources = discover_docx_files(args.source_directory)
+    if not archived_sources:
         raise RuntimeError(f"No archived FDD DOCX files found in {args.source_directory}.")
+
+    selection = select_current_document_sources(archived_sources)
+    sources = list(selection.current_sources)
 
     source_manifest = build_source_manifest(sources)
     validate_stage_targets(
@@ -114,9 +118,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         qdrant_local_path=settings.qdrant_local_path,
     )
     logger.info(
-        "Archived FDD staging plan | sources=%s | stage=%s | index_generation=%s | "
+        "Archived FDD staging plan | current_sources=%s | superseded_sources=%s | stage=%s | index_generation=%s | "
         "embedding_input_version=%s | target_collection=%s | cache_seed=%s",
         len(sources),
+        len(selection.superseded_sources),
         args.stage_directory,
         args.index_generation,
         args.embedding_input_version,
@@ -133,6 +138,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     run_staged_rebuild(
         sources=sources,
         source_manifest=source_manifest,
+        superseded_source_names=tuple(item.file_name for item in selection.superseded_sources),
+        lineage_policy_sha256=selection.policy_sha256,
         stage_directory=args.stage_directory,
         collection_name=args.collection_name,
         embedding_input_version=args.embedding_input_version,
@@ -201,6 +208,8 @@ def run_staged_rebuild(
     seed_cache_directory: Path,
     qdrant_local_path: Path,
     request_batch_size: int,
+    superseded_source_names: Sequence[str] = (),
+    lineage_policy_sha256: str | None = None,
 ) -> None:
     """Create one isolated generation and prove every staged point exists exactly.
 
@@ -221,6 +230,8 @@ def run_staged_rebuild(
         embedding_input_version=embedding_input_version,
         index_generation=index_generation,
         embedding_model=embedding_model,
+        superseded_source_names=superseded_source_names,
+        lineage_policy_sha256=lineage_policy_sha256,
     )
 
     staged_embedding_paths: list[Path] = []
@@ -292,6 +303,8 @@ def run_staged_rebuild(
             embedding_input_version=embedding_input_version,
             index_generation=index_generation,
             embedding_model=embedding_model,
+            superseded_source_names=superseded_source_names,
+            lineage_policy_sha256=lineage_policy_sha256,
             totals=totals,
             qdrant={
                 "attempted_records": index_summary.attempted_records,
@@ -309,6 +322,8 @@ def run_staged_rebuild(
             embedding_input_version=embedding_input_version,
             index_generation=index_generation,
             embedding_model=embedding_model,
+            superseded_source_names=superseded_source_names,
+            lineage_policy_sha256=lineage_policy_sha256,
             totals=totals,
             failure_type=type(exc).__name__,
             failure_message=str(exc),
@@ -342,6 +357,8 @@ def _write_manifest(
     qdrant: dict[str, int] | None = None,
     failure_type: str | None = None,
     failure_message: str | None = None,
+    superseded_source_names: Sequence[str] = (),
+    lineage_policy_sha256: str | None = None,
 ) -> None:
     payload = {
         "schema_version": "staged_fdd_rebuild_v1",
@@ -354,6 +371,8 @@ def _write_manifest(
         "embedding_record_artifact_version": embedding_input_version,
         "embedding_model": embedding_model,
         "sources": [asdict(source) for source in sources],
+        "superseded_source_names": list(superseded_source_names),
+        "fdd_document_lineage_policy_sha256": lineage_policy_sha256,
         "totals": totals or {},
         "qdrant": qdrant or {},
         "failure_type": failure_type,

@@ -6,6 +6,7 @@ from pathlib import Path
 from app.core.ingestion_policy import IngestionSourcePolicy, load_ingestion_source_policy
 from app.ingestion.docx_table_extractor import ExtractedDocxTables, extract_docx_tables
 from app.ingestion.docx_text_extractor import ExtractedDocxText, extract_docx_text
+from app.ingestion.embedded_workbook_extractor import ExtractedEmbeddedWorkbooks, extract_embedded_workbooks
 from app.ingestion.filename_parser import ParsedDocumentName, parse_document_filename
 
 
@@ -15,6 +16,7 @@ class IngestedDocxArtifact:
     parsed_name: ParsedDocumentName
     extracted_text: ExtractedDocxText
     extracted_tables: ExtractedDocxTables
+    embedded_workbooks: ExtractedEmbeddedWorkbooks
 
 
 def ingest_docx_file(
@@ -33,10 +35,12 @@ def ingest_docx_file(
     parsed_name = parse_document_filename(path)
     extracted_text = extract_docx_text(path, source_policy=policy)
     extracted_tables = extract_docx_tables(path, source_policy=policy)
+    embedded_workbooks = extract_embedded_workbooks(path)
 
     return IngestedDocxArtifact(
         document_name=path.name,
         parsed_name=parsed_name,
         extracted_text=extracted_text,
         extracted_tables=extracted_tables,
+        embedded_workbooks=embedded_workbooks,
     )

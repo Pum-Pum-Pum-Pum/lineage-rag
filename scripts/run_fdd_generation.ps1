@@ -41,6 +41,15 @@ function Confirm-ExternalOperation {
     }
 }
 
+function Confirm-Activation {
+    param([Parameter(Mandatory)][string]$TargetGeneration)
+    $expected = "ACTIVATE $TargetGeneration"
+    $response = Read-Host "Activation will promote verified lexical artifacts and atomically update .env to $TargetGeneration. Type '$expected' to continue"
+    if ($response -cne $expected) {
+        throw "Activation was not confirmed. No artifacts or configuration were changed."
+    }
+}
+
 function Invoke-StagedRebuild {
     param([switch]$DryRun)
     $arguments = @(
@@ -99,8 +108,22 @@ try {
             if (-not (Test-Path -LiteralPath (Join-Path $StageDirectory 'stage_manifest.json') -PathType Leaf)) {
                 throw "Verified stage manifest is missing: $StageDirectory\stage_manifest.json"
             }
-            Write-Output "NO ACTIVATION PERFORMED. This launcher intentionally does not copy artifacts, edit .env, restart services, or switch $Generation live."
-            Write-Output 'Follow docs/FDD_Generation_Launcher_Runbook.md after retrieval, citation, answer, SME, readiness, and rollback gates are approved.'
+            # This dry preflight validates the verified stage, current .env pair, and
+            # target namespace before the operator confirms the state change.
+            Invoke-ProjectPython -Arguments @(
+                'scripts/activate_fdd_generation.py',
+                '--generation', $Generation,
+                '--stage-directory', ("data/staging/$Generation")
+            )
+            Confirm-Activation -TargetGeneration $Generation
+            Invoke-ProjectPython -Arguments @(
+                'scripts/activate_fdd_generation.py',
+                '--generation', $Generation,
+                '--stage-directory', ("data/staging/$Generation"),
+                '--apply'
+            )
+            Write-Output "ACTIVATED CONFIGURATION: $Generation is now the configured FDD vector and lexical generation."
+            Write-Output 'Restart FastAPI and Streamlit if they are running. Toggle the Desktop-owned MCP server off and on so its child process reloads .env.'
         }
     }
 }

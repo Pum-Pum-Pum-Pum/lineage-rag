@@ -1338,3 +1338,27 @@ and an enforceable production security boundary.
 9. Why is PowerShell `-ExecutionPolicy Bypass` appropriate for an explicitly
    invoked project launcher but not a substitute for provenance, review, or
    activation controls?
+
+## Steps 258-260 — Revision-aware FDD and embedded Excel foundation
+
+1. Why must a `_v2.31` suffix alone not automatically make older FDD versions
+   ineligible for retrieval?
+2. Why does a complete current-state REST API document still require a complete
+   next-generation build rather than line-level embedding of only its additions?
+3. What should the stage manifest record about earlier approved revisions when
+   the current version is selected under the full-replacement policy?
+4. Why must original workbook cell text remain separate from derived Word and
+   sheet retrieval context?
+5. What provenance fields make an embedded Excel citation precise enough to
+   review without exposing a filesystem path as the citation identity?
+6. Why should a workbook with external links fail closed instead of being
+   embedded as ordinary static FDD evidence?
+7. Why are legacy OLE objects reported as unsupported diagnostics rather than
+   treated as empty or silently ignored?
+8. What does the real-document count of 52 workbooks, 241 sheets, and 349
+   workbook units prove, and what retrieval properties does it not prove?
+9. Why must a sheet without a direct Word relationship anchor remain
+   unlinked rather than receiving a guessed parent paragraph?
+
+Gate status: **awaiting learner answers for Steps 258-260.** No paid embedding,
+indexing, archive move, evaluation, or activation has occurred.
