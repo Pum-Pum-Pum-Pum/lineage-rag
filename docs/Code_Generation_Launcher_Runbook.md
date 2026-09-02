@@ -3,7 +3,7 @@
 Put one complete custom-code snapshot here; do not supply only changed files:
 
 ```text
-data/raw_code/fci-custom-r2/
+data/raw_code/fci-custom-r3/
 |-- snapshot_request.json
 `-- source/
 ```
@@ -11,17 +11,17 @@ data/raw_code/fci-custom-r2/
 Run the stages one at a time from the repository root:
 
 ```powershell
-.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage intake-parse
+.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r3 -Stage intake-parse
 
-.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage prepare-index `
+.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r3 -Stage prepare-index `
   -DependencyReviewLedger data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
 
-.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage embed-index `
+.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r3 -Stage embed-index `
   -CollectionName code_custom_r2_v1
 
-.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage evaluate
+.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r3 -Stage evaluate
 
-.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r2 -Stage activate
+.\scripts\run_code_generation.ps1 -SnapshotRequest fci-custom-r3 -Stage activate
 ```
 
 `embed-index` asks the operator to type `APPROVE` before it can send prepared

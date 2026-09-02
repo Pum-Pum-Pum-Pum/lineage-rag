@@ -22,19 +22,19 @@ Run these stages one at a time from the repository root. Use a new generation
 name; never reuse an existing stage directory or Qdrant collection.
 
 ```powershell
-.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v7 -Stage prepare
-.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v7 -Stage embed-index
-.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v7 -Stage evaluate
-.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v7 -Stage activate
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v9 -Stage prepare
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v9 -Stage embed-index
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v9 -Stage evaluate
+.\scripts\run_fdd_generation.ps1 -Generation functional_specs_v9 -Stage activate
 ```
 
 `embed-index` and `evaluate` ask the operator to type `APPROVE` before any
 operation that might send internal evidence to OpenAI or incur embedding cost.
 `activate` first performs a no-write preflight, then requires the exact typed
-confirmation `ACTIVATE functional_specs_v7`. On confirmation it:
+confirmation `ACTIVATE functional_specs_v9`. On confirmation it:
 
 - validates the verified stage manifest and its exact Qdrant verification;
-- copies the matching lexical artifacts to `data/indexes/functional_specs_v7/`;
+- copies the matching lexical artifacts to `data/indexes/functional_specs_v9/`;
 - verifies their SHA-256 directory identity;
 - atomically updates `QDRANT_COLLECTION_NAME`, `PROCESSED_DIR`, and
   `FDD_GENERATION` in `.env` (and `RETRIEVAL_INDEX_PATH` when present); and
@@ -47,7 +47,7 @@ remains retained for rollback.
 
 After a successful ingestion, source documents are archived in
 `data/docs_embedded/`. The candidate remains under
-`data/staging/functional_specs_v7/` until the existing evaluation, SME,
+`data/staging/functional_specs_v9/` until the existing evaluation, SME,
 readiness, promotion, and rollback gates are complete.
 
 For the full artifact contract and manual promotion procedure, see
