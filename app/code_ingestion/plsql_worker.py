@@ -15,6 +15,7 @@ from app.code_ingestion.plsql_models import (
 )
 from app.code_ingestion.plsql_parser_core import (
     parse_plsql_segments_only,
+    parse_plsql_structural_only,
     parse_plsql_source,
 )
 
@@ -36,11 +37,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         if hashlib.sha256(raw_bytes).hexdigest() != request.source_sha256:
             raise RuntimeError("source_hash_mismatch")
         source_text = raw_bytes.decode(request.encoding)
-        parser_function = (
-            parse_plsql_segments_only
-            if request.parse_mode == "segmented"
-            else parse_plsql_source
-        )
+        parser_function = {
+            "full": parse_plsql_source,
+            "segmented": parse_plsql_segments_only,
+            "structural": parse_plsql_structural_only,
+        }[request.parse_mode]
         artifact = parser_function(
             source_text,
             snapshot_id=request.snapshot_id,

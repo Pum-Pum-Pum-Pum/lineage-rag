@@ -56,6 +56,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         (stage / "parse_stage_manifest.json").read_text(encoding="utf-8")
     )
     failures: list[str] = []
+    if manifest.status == "failed":
+        failures.append("Parse stage has fatal static-analysis diagnostics")
     file_results = []
     all_symbol_sets = []
     for entry, parse_relative, retrieval_relative, analysis_relative in zip(

@@ -7,20 +7,20 @@ from app.code_ingestion.plsql_models import PlSqlFileParseArtifact
 
 
 class ProgramUnitPolicyError(ValueError):
-    """Raised when an uploaded PL/SQL file violates the custom-source contract."""
+    """Raised when an uploaded PL/SQL file lacks a safe declaration identity."""
 
 
-def validate_custom_program_unit(
+def validate_program_unit(
     parse_artifact: PlSqlFileParseArtifact,
     *,
     source_handler: str,
-    allowed_suffixes: tuple[str, ...],
 ) -> str | None:
     """Return the canonical top-level owner, or ``None`` for DDL sources.
 
     Package members inherit their package owner. Standalone procedures and
-    functions are validated directly. The declaration is authoritative and
-    the filename stem is a required intake assertion.
+    functions are validated directly. Every uploaded PL/SQL package name is
+    eligible; the declaration is authoritative and the filename stem is a
+    required identity assertion.
     """
     if source_handler == "ddl":
         return None
@@ -47,10 +47,6 @@ def validate_custom_program_unit(
             f"Expected exactly one top-level program unit in {parse_artifact.source_path}; found {sorted(owners)}"
         )
     owner = next(iter(owners))
-    if not any(owner.endswith(suffix) for suffix in allowed_suffixes):
-        raise ProgramUnitPolicyError(
-            f"Top-level program unit {owner!r} must end with one of {allowed_suffixes}"
-        )
     filename_stem = oracle_identifier(Path(parse_artifact.source_path).stem).canonical_name
     if filename_stem != owner:
         raise ProgramUnitPolicyError(

@@ -41,7 +41,18 @@ def analyze_snapshot_sources(
         for symbol in symbols_by_path[path]
     )
     symbol_lookup = build_symbol_lookup(all_symbols)
-    symbol_diagnostics = diagnose_symbol_groups(all_symbols)
+    source_sha256_by_path = {
+        item.parse_artifact.source_path: item.parse_artifact.source_sha256
+        for item in inputs
+    }
+    source_sha256_by_occurrence = {
+        symbol.occurrence_id: source_sha256_by_path[symbol.source_path]
+        for symbol in all_symbols
+    }
+    symbol_diagnostics = diagnose_symbol_groups(
+        all_symbols,
+        source_sha256_by_occurrence=source_sha256_by_occurrence,
+    )
 
     ddl_by_path = {}
     all_objects = []

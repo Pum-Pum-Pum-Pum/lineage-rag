@@ -13,13 +13,19 @@ from app.code_ingestion.code_analysis_models import CodeStaticAnalysisArtifact
 from app.code_ingestion.plsql_models import CodeRetrievalArtifact, PlSqlFileParseArtifact
 from app.code_ingestion.plsql_models import CodeParseStageManifest
 from app.code_ingestion.snapshot_builder import build_code_snapshot
+from app.core.ingestion_policy import IngestionSourcePolicy, load_ingestion_source_policy
 
 
 def _build_snapshot(tmp_path: Path, source_text: str):
     return _build_snapshot_files(tmp_path, {"pkg_customer_custom.sql": source_text})
 
 
-def _build_snapshot_files(tmp_path: Path, files: dict[str, str]):
+def _build_snapshot_files(
+    tmp_path: Path,
+    files: dict[str, str],
+    *,
+    source_policy: IngestionSourcePolicy | None = None,
+):
     intake = tmp_path / "intake"
     source = intake / "source"
     source.mkdir(parents=True)
@@ -39,7 +45,7 @@ def _build_snapshot_files(tmp_path: Path, files: dict[str, str]):
         encoding="utf-8",
     )
     snapshot_root = tmp_path / "snapshots"
-    manifest = build_code_snapshot(intake, snapshot_root)
+    manifest = build_code_snapshot(intake, snapshot_root, source_policy=source_policy)
     return snapshot_root / manifest.snapshot_id, manifest
 
 
@@ -81,9 +87,17 @@ END pkg_customer_custom;
 
 
 def test_invalid_source_degrades_explicitly_instead_of_disappearing(tmp_path: Path) -> None:
+    policy_path = tmp_path / "legacy-ddl-policy.toml"
+    policy_path.write_text(
+        'schema_version = "ingestion_source_policy_v1"\n\n'
+        '[fdd.extensions]\n".docx" = "docx"\n\n'
+        '[code.extensions]\n".sql" = "plsql"\n".ddl" = "ddl"\n',
+        encoding="utf-8",
+    )
     snapshot_directory, snapshot = _build_snapshot_files(
         tmp_path,
         {"invalid.ddl": "not valid PL/SQL\n" * 250},
+        source_policy=load_ingestion_source_policy(policy_path),
     )
 
     manifest = parse_code_snapshot(snapshot_directory, tmp_path / "staging")
@@ -122,7 +136,7 @@ def test_invalid_resource_boundaries_do_not_write(tmp_path: Path) -> None:
     assert not (staging_root / snapshot.snapshot_id).exists()
 
 
-def test_symbol_collision_publishes_diagnostics_but_fails_stage_gate(tmp_path: Path) -> None:
+def test_exact_duplicate_source_copies_publish_warning_without_failing_stage(tmp_path: Path) -> None:
     duplicate = "CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER) IS BEGIN NULL; END; /\n"
     snapshot_directory, snapshot = _build_snapshot_files(
         tmp_path,
@@ -135,7 +149,7 @@ def test_symbol_collision_publishes_diagnostics_but_fails_stage_gate(tmp_path: P
 
     manifest = parse_code_snapshot(snapshot_directory, staging_root)
 
-    assert manifest.status == "failed"
+    assert manifest.status == "complete"
     target = staging_root / snapshot.snapshot_id / PARSER_GENERATION_DIRECTORY
     analyses = [
         CodeStaticAnalysisArtifact.model_validate_json(
@@ -144,9 +158,33 @@ def test_symbol_collision_publishes_diagnostics_but_fails_stage_gate(tmp_path: P
         for relative_path in manifest.analysis_artifacts
     ]
     assert all(
-        any(item.code == "overload_symbol_collision" for item in artifact.diagnostics)
+        any(
+            item.code == "duplicate_identical_symbol_occurrence"
+            and item.severity == "warning"
+            for item in artifact.diagnostics
+        )
         for artifact in analyses
     )
+
+
+def test_different_duplicate_definitions_remain_fatal(tmp_path: Path) -> None:
+    snapshot_directory, snapshot = _build_snapshot_files(
+        tmp_path,
+        {
+            "a/duplicate_proc_custom.prc": (
+                "CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER) "
+                "IS BEGIN NULL; END; /\n"
+            ),
+            "b/duplicate_proc_custom.prc": (
+                "CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER) "
+                "IS BEGIN DBMS_OUTPUT.PUT_LINE('different'); END; /\n"
+            ),
+        },
+    )
+
+    manifest = parse_code_snapshot(snapshot_directory, tmp_path / "staging")
+
+    assert manifest.status == "failed"
 
 
 def test_stage_manifest_rejects_missing_file_accounting() -> None:

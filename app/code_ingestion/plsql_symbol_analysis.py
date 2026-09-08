@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 
 from antlr4 import Token
 
@@ -54,7 +55,11 @@ def extract_symbols(
     )
 
 
-def diagnose_symbol_groups(symbols: tuple[CodeSymbol, ...]) -> tuple[AnalysisDiagnostic, ...]:
+def diagnose_symbol_groups(
+    symbols: tuple[CodeSymbol, ...],
+    *,
+    source_sha256_by_occurrence: Mapping[str, str] | None = None,
+) -> tuple[AnalysisDiagnostic, ...]:
     grouped: dict[str, list[CodeSymbol]] = defaultdict(list)
     for symbol in symbols:
         grouped[symbol.symbol_key].append(symbol)
@@ -68,14 +73,36 @@ def diagnose_symbol_groups(symbols: tuple[CodeSymbol, ...]) -> tuple[AnalysisDia
             by_role[occurrence.occurrence_role].append(occurrence)
         duplicate_role = any(len(items) > 1 for items in by_role.values())
         if duplicate_role:
+            occurrence_hashes = tuple(
+                source_sha256_by_occurrence.get(item.occurrence_id)
+                if source_sha256_by_occurrence is not None
+                else None
+                for item in occurrences
+            )
+            source_hashes = {value for value in occurrence_hashes if value is not None}
+            identical_source_copies = (
+                source_sha256_by_occurrence is not None
+                and all(value is not None for value in occurrence_hashes)
+                and len(source_hashes) == 1
+            )
             diagnostics.append(
                 AnalysisDiagnostic(
                     stage="symbol",
-                    severity="error",
-                    code="overload_symbol_collision",
+                    severity="warning" if identical_source_copies else "error",
+                    code=(
+                        "duplicate_identical_symbol_occurrence"
+                        if identical_source_copies
+                        else "overload_symbol_collision"
+                    ),
                     message=(
                         "Multiple same-role routine occurrences share one overload-safe symbol "
-                        f"key ({symbol_key[:12]}); all occurrences were retained."
+                        f"key ({symbol_key[:12]}); all occurrences were retained"
+                        + (
+                            " because their complete source bytes are identical. "
+                            "Their separate paths remain explicit provenance."
+                            if identical_source_copies
+                            else "; no occurrence may be selected implicitly."
+                        )
                     ),
                     related_occurrence_ids=tuple(item.occurrence_id for item in occurrences),
                 )

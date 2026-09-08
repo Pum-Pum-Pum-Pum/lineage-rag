@@ -40,6 +40,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Existing generation name from the same immutable snapshot whose parse/retrieval artifacts may be reused.",
     )
     parser.add_argument(
+        "--generation",
+        default=PARSER_GENERATION_DIRECTORY,
+        help="New no-overwrite parser generation directory name.",
+    )
+    parser.add_argument(
         "--memory-limit-mib",
         type=int,
         default=settings.code_parse_memory_limit_mib,
@@ -73,7 +78,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         max_retrieval_unit_characters=args.max_retrieval_unit_characters,
         retrieval_overlap_characters=args.retrieval_overlap_characters,
         analysis_policy=load_code_analysis_policy(get_settings().code_analysis_policy_path),
-        generation_directory=PARSER_GENERATION_DIRECTORY,
+        generation_directory=args.generation,
         reuse_generation_directory=(
             args.staging_root / args.snapshot_id / args.reuse_generation
             if args.reuse_generation
@@ -81,7 +86,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         ),
     )
     output_directory = (
-        args.staging_root / manifest.snapshot_id / PARSER_GENERATION_DIRECTORY
+        args.staging_root / manifest.snapshot_id / manifest.parser_generation
     ).resolve()
     print(
         json.dumps(

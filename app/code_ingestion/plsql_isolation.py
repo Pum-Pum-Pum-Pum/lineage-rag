@@ -23,6 +23,12 @@ from app.code_ingestion.snapshot_models import CompilerContext
 
 DEFAULT_PARSE_TIMEOUT_SECONDS = 120.0
 DEFAULT_PARSE_MEMORY_LIMIT_BYTES = 1024 * 1024 * 1024
+# Some otherwise valid package bodies trigger pathological full-script grammar
+# work.  The token-aware segmented parser retains package/routine identity and
+# citeable source ranges without asking the full grammar to process the entire
+# file first.  Keep this deliberately below the size of the observed source
+# that crossed the resource boundary, but well above normal package bodies.
+DEFAULT_FULL_PARSE_MAX_SOURCE_BYTES = 100 * 1024
 
 
 @dataclass(frozen=True)
@@ -45,8 +51,14 @@ def parse_file_isolated(
     timeout_seconds: float = DEFAULT_PARSE_TIMEOUT_SECONDS,
     memory_limit_bytes: int = DEFAULT_PARSE_MEMORY_LIMIT_BYTES,
     max_segment_characters: int = 500,
+    full_parse_max_source_bytes: int = DEFAULT_FULL_PARSE_MAX_SOURCE_BYTES,
 ) -> PlSqlFileParseArtifact:
-    if timeout_seconds <= 0 or memory_limit_bytes <= 0 or max_segment_characters <= 0:
+    if (
+        timeout_seconds <= 0
+        or memory_limit_bytes <= 0
+        or max_segment_characters <= 0
+        or full_parse_max_source_bytes <= 0
+    ):
         raise ValueError("Parser resource boundaries must be greater than zero")
     work_root.mkdir(parents=True, exist_ok=True)
     worker_directory = Path(tempfile.mkdtemp(prefix=".plsql-worker-", dir=work_root))
@@ -60,6 +72,46 @@ def parse_file_isolated(
         max_segment_characters=max_segment_characters,
     )
     try:
+        # Do this before starting a worker.  Starting a full grammar parse for
+        # a known-large source can consume its whole timeout before the safe
+        # lexer-proven structural recovery path gets a chance to run.
+        if input_file.stat().st_size > full_parse_max_source_bytes:
+            structural_result = _run_worker(
+                request.model_copy(update={"parse_mode": "structural"}),
+                worker_directory=worker_directory,
+                suffix="structural-size-boundary",
+                timeout_seconds=timeout_seconds,
+                memory_limit_bytes=memory_limit_bytes,
+            )
+            if structural_result.artifact is not None:
+                artifact = _with_observed_resources(structural_result.artifact, structural_result)
+                return artifact.model_copy(
+                    update={
+                        "diagnostics": (
+                            ParseDiagnostic(
+                                stage="worker",
+                                severity="warning",
+                                code="full_parse_skipped_source_size_structural",
+                                message=(
+                                    "The source exceeded the full-parser size boundary; "
+                                    "the lexer-proven structural parser was used first."
+                                ),
+                            ),
+                            *artifact.diagnostics,
+                        )
+                    }
+                )
+            return _resource_fallback(
+                input_file,
+                snapshot_id=snapshot_id,
+                source_path=source_path,
+                source_sha256=source_sha256,
+                encoding=encoding,
+                duration_ms=structural_result.duration_ms,
+                peak_memory_bytes=structural_result.peak_memory_bytes,
+                code=f"structural_{structural_result.failure_code or 'parser_failure'}_after_size_boundary",
+            )
+
         full_result = _run_worker(
             request,
             worker_directory=worker_directory,

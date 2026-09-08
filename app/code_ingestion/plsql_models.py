@@ -242,7 +242,7 @@ class ParserWorkerRequest(FrozenModel):
     source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     encoding: str
     compiler_context: CompilerContext = Field(default_factory=CompilerContext)
-    parse_mode: Literal["full", "segmented"] = "full"
+    parse_mode: Literal["full", "segmented", "structural"] = "full"
     max_segment_characters: int = Field(default=500, gt=0)
 
 
@@ -260,7 +260,7 @@ class CodeParseStageManifest(FrozenModel):
     snapshot_id: str
     snapshot_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     parser_generation: str = Field(
-        default="plsql_antlr_4_13_2_analysis_v13",
+        default="plsql_antlr_4_13_2_analysis_v15",
         pattern=r"^plsql_antlr_4_13_2_analysis_v(?:[6-9]|[1-9][0-9]+)$",
     )
     parser_contract_version: str = "plsql_parser_contract_v1"

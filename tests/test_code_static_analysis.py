@@ -59,7 +59,7 @@ END;
     assert table_edge.resolution_state == "resolved_in_snapshot"
 
 
-def test_cross_file_symbol_collision_is_recorded_in_each_affected_artifact() -> None:
+def test_exact_cross_file_symbol_duplicate_is_recorded_as_a_warning() -> None:
     first = "CREATE OR REPLACE PROCEDURE duplicate_proc(p_id NUMBER) IS BEGIN NULL; END; /\n"
     second = "CREATE OR REPLACE PROCEDURE duplicate_proc(p_id NUMBER) IS BEGIN NULL; END; /\n"
 
@@ -73,7 +73,11 @@ def test_cross_file_symbol_collision_is_recorded_in_each_affected_artifact() -> 
     )
 
     assert all(
-        any(diagnostic.code == "overload_symbol_collision" for diagnostic in artifact.diagnostics)
+        any(
+            diagnostic.code == "duplicate_identical_symbol_occurrence"
+            and diagnostic.severity == "warning"
+            for diagnostic in artifact.diagnostics
+        )
         for artifact in artifacts
     )
     assert len({artifact.symbols[0].occurrence_id for artifact in artifacts}) == 2

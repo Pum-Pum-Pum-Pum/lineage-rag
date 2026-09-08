@@ -172,7 +172,11 @@ def build_code_combined_retrieval_case_report(
 
     code_paths = _unique(item.source_path for item in code_evidence)
     code_symbols = _unique(item.display_name for item in code_evidence)
-    missing_paths = tuple(sorted(set(case.expected_code_paths).difference(code_paths)))
+    matched_paths = _matched_code_path_expectations(
+        case.expected_code_paths,
+        code_paths,
+    )
+    missing_paths = tuple(sorted(set(case.expected_code_paths).difference(matched_paths)))
     missing_symbols = tuple(
         sorted(set(case.expected_code_symbols).difference(code_symbols))
     )
@@ -217,7 +221,7 @@ def build_code_combined_retrieval_case_report(
         missing_fdd_document_ids=missing_documents,
         require_reviewed_lineage=case.require_reviewed_lineage,
         reviewed_mapping_ids=mapping_ids,
-        code_recall_at_k=_recall(case.expected_code_paths, code_paths),
+        code_recall_at_k=_recall(case.expected_code_paths, matched_paths),
         fdd_recall_at_k=_recall(case.expected_fdd_document_ids, fdd_document_ids),
         code_evidence=_summarize_code_items(code_evidence),
         direct_dense_candidates=(
@@ -288,6 +292,37 @@ def write_json_report_no_overwrite(report: dict[str, Any], path: Path) -> Path:
 
 def _unique(values: Sequence[str] | Any) -> tuple[str, ...]:
     return tuple(dict.fromkeys(str(value) for value in values if str(value).strip()))
+
+
+def _matched_code_path_expectations(
+    expected_paths: Sequence[str],
+    retrieved_paths: Sequence[str],
+) -> tuple[str, ...]:
+    """Match a legacy filename-only expectation only when it is unambiguous.
+
+    Immutable external imports retain their logical source-tree path (for
+    example ``BACKEND/LOB/SQL/pkg_aml.sql``), while older reviewed manifests
+    sometimes name only ``pkg_aml.sql``.  A basename can therefore be accepted
+    as an alias *only* when exactly one retrieved source has that basename.
+    Any expectation containing a directory component remains an exact logical
+    path comparison, and duplicate basenames fail closed.
+    """
+
+    retrieved = tuple(str(path).replace("\\", "/") for path in retrieved_paths)
+    matches: list[str] = []
+    for expected in expected_paths:
+        normalized = str(expected).replace("\\", "/")
+        if normalized in retrieved:
+            matches.append(str(expected))
+            continue
+        if "/" in normalized:
+            continue
+        basename_matches = [
+            path for path in retrieved if path.rsplit("/", 1)[-1] == normalized
+        ]
+        if len(basename_matches) == 1:
+            matches.append(str(expected))
+    return tuple(matches)
 
 
 def _recall(expected: Sequence[str], retrieved: Sequence[str]) -> float | None:

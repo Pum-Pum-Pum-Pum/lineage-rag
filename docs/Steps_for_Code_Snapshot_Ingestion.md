@@ -1,7 +1,7 @@
 # Custom PL/SQL snapshot ingestion
 
 This runbook covers the Phase 2 snapshot and structural-parsing boundaries. It
-validates and archives selected custom PL/SQL/DDL files, compares complete
+validates and archives selected custom PL/SQL files, compares complete
 snapshots, then creates local parser and retrieval-unit artifacts. These steps
 do **not** call OpenAI, create embeddings, or write to Qdrant.
 
@@ -15,14 +15,17 @@ data/raw_code/fci-custom-r12345/
 `-- source/
     |-- packages/
     |   |-- pkg_customer.prc
-    |   `-- fn_validate_customer.fnc
-    `-- ddl/
-        `-- customer_tables.ddl
+    |   `-- pkg_customer.spc
+    `-- functions/
+        `-- fn_validate_customer.fnc
 ```
 
 The `source/` directory must contain the complete selected custom module set
 for that revision—not only files believed to have changed. Initial extensions
-are matched case-insensitively: `.sql`, `.spc`, `.prc`, `.fnc`, and `.ddl`.
+are matched case-insensitively: `.sql`, `.spc`, `.prc`, and `.fnc`. `.ddl`,
+`.cmt`, and every other extension are excluded from current custom-code
+snapshots. The future approved Oracle metadata source, rather than incomplete
+deployment DDL, will be authoritative for Text-to-SQL schema semantics.
 
 The versioned policy is `config/ingestion_sources.toml`. To enable another
 extension already handled as PL/SQL, add a reviewed mapping such as:
@@ -414,10 +417,9 @@ external_object_type_names = ["JSON_ARRAY_T", "JSON_ELEMENT_T", "JSON_OBJECT_T"]
 ```
 
 For PL/SQL intake, the declared top-level package, standalone function, or
-standalone procedure is authoritative. Its name must match the filename stem
-and end `_CUSTOM` or `_MAIN`, case-insensitively. Every member routine inside
-an accepted package is available custom source regardless of the member name.
-`.ddl` schema sources are exempt from program-unit suffix validation.
+standalone procedure is authoritative. Any uploaded owner name is accepted,
+but it must match the filename stem. Every member routine inside an accepted
+package is available source regardless of the member name.
 
 Resolved uploaded symbols take precedence. An absent target whose package or
 standalone unit ends `_CUSTOM`/`_MAIN` is `custom_source_missing`. A target is
@@ -447,13 +449,13 @@ Run the local real-corpus gate and export the focused SME packet:
 & .\.venv\Scripts\python.exe scripts\check_code_preindex_gate.py `
   <snapshot-id> `
   --snapshot-root <verified-snapshot-root> `
-  --generation plsql_antlr_4_13_2_analysis_v13 `
+  --generation plsql_antlr_4_13_2_analysis_v15 `
   --output data\exports\code_analysis\<snapshot-id>-analysis-v13-preindex-gate.json
 
 & .\.venv\Scripts\python.exe scripts\export_code_dependency_review.py `
   <snapshot-id> `
   --snapshot-root <verified-snapshot-root> `
-  --generation plsql_antlr_4_13_2_analysis_v13
+  --generation plsql_antlr_4_13_2_analysis_v15
 ```
 
 The packet groups repeated occurrences by target, proposed kind, resolution
@@ -480,7 +482,7 @@ Then prepare deterministic reviewed code-index records without calling OpenAI:
 ```powershell
 & .\.venv\Scripts\python.exe scripts\prepare_code_index_artifacts.py `
   fci-custom-r1-a47f5d4d54e1 `
-  --parse-generation plsql_antlr_4_13_2_analysis_v13 `
+  --parse-generation plsql_antlr_4_13_2_analysis_v15 `
   --dependency-review-ledger data\exports\code_analysis\reviews\<snapshot-id>-dependency-review-ledger.json
 ```
 

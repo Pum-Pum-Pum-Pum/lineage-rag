@@ -2118,3 +2118,90 @@ The real v7 Re-Query request query now returns `Request!1:25` first, followed
 by its Version and Validation evidence. Focused retrieval-service, lexical,
 hybrid, MCP-adapter, and protocol checks passed **34/34**, with no OpenAI call,
 Qdrant write, or generation rebuild.
+## Step 265 — Read-only SVN custom-code intake
+
+The code-generation launcher now accepts `-SourceDirectory` only with
+`-Stage intake-parse`. It reads the supplied SVN working-copy directory and
+copies only the configured custom PL/SQL extensions into the normal local
+`data/raw_code/<request>/source/` intake. It never writes to the supplied SVN
+directory. Current policy accepts `.sql`, `.spc`, `.prc`, and `.fnc` only;
+`.ddl`, `.cmt`, and all other extensions are deliberately skipped during an
+external import.
+
+The importer records a local operational receipt containing source-directory
+identity, selected extensions, selected-tree hash, skipped-extension counts,
+and an explicit no-external-write assertion. It hashes the selected source tree
+before and after copy and rejects a changing SVN working copy. Existing source
+intake or receipt evidence is never overwritten. The normal immutable snapshot
+builder then compares the complete copied snapshot with its base snapshot, so
+only changed retrieval units require new embeddings while unchanged units reuse
+their content-addressed cache entries.
+
+DDL ingestion is intentionally disabled for future custom-code snapshots:
+approved Oracle metadata will be the authoritative schema source for Text-to-
+SQL, avoiding stale or incomplete deployment DDL from contaminating schema
+semantics. This does not alter older immutable artifacts.
+
+Focused import/policy/launcher tests passed **26/26**; the parser pipeline
+passed **9/9** in its head and tail test groups. These checks were local only:
+no OpenAI call, external-source write, Qdrant write, snapshot publication, or
+activation occurred.
+
+## Step 266 — Preserve exact duplicate source copies without masking conflicts
+
+The complete SVN source tree may contain byte-identical copies of the same
+declared program unit at different logical paths. Both occurrences must remain
+available for provenance and citations; treating them as a fatal overload
+collision blocked dependency review even when their source SHA-256 values were
+identical. Static analysis now records that narrow condition as the warning
+`duplicate_identical_symbol_occurrence`, preserving every path and avoiding an
+implicit source selection.
+
+Different source bytes for the same overload-safe symbol remain a fatal
+`overload_symbol_collision`; they are never collapsed or selected by directory
+order. The pre-index gate now also fails whenever the parse-stage manifest is
+fatal, closing the earlier gap where a gate could pass despite an unexportable
+stage.
+
+Because this changes static-analysis semantics, the default parser generation
+is now `plsql_antlr_4_13_2_analysis_v14`. The existing immutable
+`fci-custom-r3-57bb090e86ba` snapshot was re-analysed into a separate v14
+generation using its v13 parse/retrieval artifacts as verified reuse input:
+29 files reused, 16 full parses, 13 segmented parses, zero fallback/failed
+files, and a passing v14 pre-index gate. Its draft SME packet was exported
+locally with no OpenAI call or Qdrant write.
+
+## Step 267 — Size-bounded PL/SQL parser recovery
+
+The smoke snapshot contained valid package bodies whose full ANTLR parse could
+exceed the isolated parser resource boundary before returning a top-level node.
+Parser generation `plsql_antlr_4_13_2_analysis_v15` starts source files above
+the documented size boundary with lexer-proven structural segmentation. It
+retains the declared package, routine identities, and exact citeable source
+ranges while recording an explicit degraded parser state and warning; it does
+not claim a full grammar parse or drop the source.
+
+Normal-sized sources retain the existing full-then-segmented parser flow. The
+v15 generation is separate and no-overwrite, so prior parse evidence remains
+reproducible. This is local parsing only: no OpenAI call, Qdrant write, or
+source-tree change occurs.
+
+## Step 268 -- Code-generation smoke-test baseline and staged boundary
+
+The `fci-custom-smoke-r4-7480d9cac575` smoke lifecycle completed under parser
+generation v15: dependency review was recorded in an immutable ledger, 879
+code records were prepared and indexed into the isolated
+`code_custom_smoke_r4_v1` collection, and the corrected lexical code-only
+evaluation passed all four positive cases plus its abstention case. The initial
+evaluation report remains retained because its failures exposed a compatibility
+gap between legacy filename-only expectations and the imported full logical
+source path.
+
+Evaluation now accepts a legacy filename-only expected path only when exactly
+one retrieved logical path has that basename; an ambiguous basename fails
+closed. New reviewed cases must use the full imported logical path. The smoke
+collection remains staged test evidence, not a runtime candidate: it was not
+activated and must not replace the currently selected code generation. The
+generation launcher runbook now explicitly separates immutable snapshot work,
+staged indexing, and feature-flag activation from a future approval-bound
+generation-promotion procedure.

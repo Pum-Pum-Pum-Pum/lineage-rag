@@ -17,15 +17,15 @@ from app.code_ingestion.plsql_models import (
     PlSqlFileParseArtifact,
 )
 from app.code_ingestion.snapshot_builder import load_snapshot_manifest
-from app.code_ingestion.program_unit_validation import validate_custom_program_unit
+from app.code_ingestion.program_unit_validation import validate_program_unit
 from app.code_ingestion.plsql_segmentation import (
     inventory_routine_declarations,
     uncovered_routine_declarations,
 )
 
 
-PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v13"
-PARSER_CONTRACT_VERSION = "plsql_parser_contract_v2"
+PARSER_GENERATION_DIRECTORY = "plsql_antlr_4_13_2_analysis_v15"
+PARSER_CONTRACT_VERSION = "plsql_parser_contract_v3"
 
 
 def parse_code_snapshot(
@@ -126,10 +126,9 @@ def parse_code_snapshot(
                     overlap_characters=retrieval_overlap_characters,
                 )
                 reused = False
-            validate_custom_program_unit(
+            validate_program_unit(
                 parsed,
                 source_handler=entry.source_handler,
-                allowed_suffixes=selected_analysis_policy.boundaries.custom_program_unit_suffixes,
             )
             _validate_routine_parse_coverage(source_text, parsed, retrieval)
             stem = _artifact_stem(entry.path)

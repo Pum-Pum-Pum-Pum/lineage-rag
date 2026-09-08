@@ -131,7 +131,7 @@ def validate_code_intake(
                 severity="error",
                 code="no_code_files",
                 path=None,
-                message="No allowlisted PL/SQL or DDL files were found.",
+                message="No allowlisted PL/SQL files were found.",
             )
         )
     if errors:

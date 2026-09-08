@@ -13,7 +13,6 @@ from app.code_ingestion.intake_validation import (
 def test_intake_accepts_allowlisted_extensions_case_insensitively(tmp_path: Path) -> None:
     (tmp_path / "PACKAGE.PRC").write_text("procedure p is begin null; end;\n", encoding="utf-8")
     (tmp_path / "function.FnC").write_text("function f return number is begin return 1; end;\n", encoding="utf-8")
-    (tmp_path / "schema.DDL").write_text("create table t (id number);\n", encoding="utf-8")
     (tmp_path / "mixed.Sql").write_text("select 1 from dual;\n", encoding="utf-8")
     (tmp_path / "package.SpC").write_text("package pkg is end;\n", encoding="utf-8")
 
@@ -24,10 +23,18 @@ def test_intake_accepts_allowlisted_extensions_case_insensitively(tmp_path: Path
         ".sql",
         ".prc",
         ".spc",
-        ".ddl",
     ]
     assert all(entry.encoding == "utf-8" for entry in report.files)
-    assert {entry.source_handler for entry in report.files} == {"plsql", "ddl"}
+    assert {entry.source_handler for entry in report.files} == {"plsql"}
+
+
+@pytest.mark.parametrize("extension", [".ddl", ".cmt"])
+def test_current_code_policy_rejects_excluded_extensions(tmp_path: Path, extension: str) -> None:
+    (tmp_path / "valid.sql").write_text("select 1 from dual;", encoding="utf-8")
+    (tmp_path / f"excluded{extension}").write_text("ignored", encoding="utf-8")
+
+    with pytest.raises(CodeIntakeValidationError, match="extension_not_allowed"):
+        validate_code_intake(tmp_path)
 
 
 def test_line_ending_normalization_does_not_change_normalized_hash(tmp_path: Path) -> None:

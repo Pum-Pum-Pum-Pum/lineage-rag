@@ -109,7 +109,7 @@ def test_file_above_five_mib_is_bounded_and_preserved_on_timeout(tmp_path: Path)
         exact_text = handle.read()
     assert artifact.parser_state == "fallback_parse"
     assert artifact.segments[-1].source_map.end_offset == len(exact_text)
-    assert artifact.diagnostics[0].code == "segmented_parser_timeout_after_full_parser_timeout"
+    assert artifact.diagnostics[0].code == "structural_parser_timeout_after_size_boundary"
 
 
 def test_full_resource_boundary_runs_separate_segmented_worker(monkeypatch, tmp_path: Path) -> None:
@@ -141,6 +141,38 @@ def test_full_resource_boundary_runs_separate_segmented_worker(monkeypatch, tmp_
     assert artifact.duration_ms == 1200
     assert artifact.peak_memory_bytes == 200
     assert artifact.diagnostics[0].code == "full_parse_resource_boundary_segmented_retry"
+
+
+def test_large_source_starts_with_bounded_structural_worker(monkeypatch, tmp_path: Path) -> None:
+    from app.code_ingestion import plsql_isolation
+
+    source_text = "CREATE OR REPLACE PROCEDURE customer_custom IS BEGIN NULL; END; /\n"
+    source = tmp_path / "customer_custom.prc"
+    source_hash = _write_source(source, source_text)
+    segmented = parse_plsql_segments_only(
+        source_text,
+        snapshot_id="snapshot-1",
+        source_path=source.name,
+        source_sha256=source_hash,
+    )
+    modes = []
+
+    def fake_run(request, **kwargs):
+        modes.append(request.parse_mode)
+        return plsql_isolation._WorkerResult(segmented, None, 200, 200)
+
+    monkeypatch.setattr(plsql_isolation, "_run_worker", fake_run)
+
+    artifact = _parse(
+        source,
+        source_hash,
+        tmp_path / "workers",
+        full_parse_max_source_bytes=1,
+    )
+
+    assert modes == ["structural"]
+    assert artifact.parser_state == "segmented_parse"
+    assert artifact.diagnostics[0].code == "full_parse_skipped_source_size_structural"
 
 
 @pytest.mark.parametrize(

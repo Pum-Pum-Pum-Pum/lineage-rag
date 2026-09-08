@@ -279,6 +279,93 @@ def parse_plsql_segments_only(
     )
 
 
+def parse_plsql_structural_only(
+    source_text: str,
+    *,
+    snapshot_id: str,
+    source_path: str,
+    source_sha256: str,
+    compiler_context: CompilerContext | None = None,
+    max_segment_characters: int = 500,
+) -> PlSqlFileParseArtifact:
+    """Retain lexer-proven routine identity without invoking ANTLR.
+
+    This is reserved for a source that exceeds the full-parser size boundary.
+    It is deliberately reported as ``segmented_parse`` with an explicit warning,
+    so downstream gates cannot mistake it for a complete grammar parse.
+    """
+
+    del max_segment_characters  # The structural path never parses fragments.
+    started = time.perf_counter()
+    conditional_view = build_conditional_parse_view(
+        source_text,
+        source_path=source_path,
+        compiler_context=compiler_context,
+    )
+    package_name = detect_package_name(conditional_view.text)
+    segments = find_routine_segments(conditional_view.text, source_path=source_path)
+    nodes = tuple(
+        _structural_node_from_segment(
+            segment,
+            original_source=source_text,
+            source_path=source_path,
+            package_name=package_name,
+            conditional_regions=conditional_view.regions,
+        )
+        for segment in segments
+    )
+    diagnostics = (
+        *conditional_view.diagnostics,
+        ParseDiagnostic(
+            stage="segmented_parse",
+            severity="warning",
+            code="source_size_structural_segmentation",
+            message=(
+                "The source exceeded the full-parser size boundary; lexer-proven "
+                "routine segments were retained without grammar parsing."
+            ),
+        ),
+    )
+    if nodes:
+        return PlSqlFileParseArtifact(
+            snapshot_id=snapshot_id,
+            source_path=source_path,
+            source_sha256=source_sha256,
+            parser_state="segmented_parse",
+            duration_ms=(time.perf_counter() - started) * 1000,
+            peak_memory_bytes=0,
+            syntax_error_count=0,
+            conditional_regions=conditional_view.regions,
+            conditional_error_directives=conditional_view.error_directives,
+            segments=segments,
+            extracted_nodes=nodes,
+            diagnostics=diagnostics,
+        )
+
+    fallback = build_fallback_segments(source_text, source_path=source_path)
+    return PlSqlFileParseArtifact(
+        snapshot_id=snapshot_id,
+        source_path=source_path,
+        source_sha256=source_sha256,
+        parser_state="fallback_parse",
+        duration_ms=(time.perf_counter() - started) * 1000,
+        peak_memory_bytes=0,
+        syntax_error_count=0,
+        conditional_regions=conditional_view.regions,
+        conditional_error_directives=conditional_view.error_directives,
+        segments=fallback,
+        diagnostics=diagnostics
+        + (
+            ParseDiagnostic(
+                stage="fallback",
+                severity="warning",
+                code="structural_segmentation_no_routines",
+                message="No lexer-proven routine declaration was available for structural recovery.",
+            ),
+        ),
+    )
+
+
 def _parse_sql_script(source_text: str, *, stage: str) -> _ParseAttempt:
     lexer = PlSqlLexer(InputStream(source_text))
     lexer_listener = _CollectingErrorListener(stage)

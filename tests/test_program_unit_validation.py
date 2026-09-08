@@ -7,11 +7,8 @@ import pytest
 from app.code_ingestion.plsql_parser_core import parse_plsql_source
 from app.code_ingestion.program_unit_validation import (
     ProgramUnitPolicyError,
-    validate_custom_program_unit,
+    validate_program_unit,
 )
-
-
-SUFFIXES = ("_CUSTOM", "_MAIN")
 
 
 def _parse(source: str, path: str):
@@ -48,36 +45,29 @@ def _parse(source: str, path: str):
         ),
     ],
 )
-def test_declared_custom_program_units_are_accepted(path: str, source: str, owner: str) -> None:
-    assert validate_custom_program_unit(
+def test_declared_program_units_are_accepted(path: str, source: str, owner: str) -> None:
+    assert validate_program_unit(
         _parse(source, path),
         source_handler="plsql",
-        allowed_suffixes=SUFFIXES,
     ) == owner
 
 
-def test_package_member_names_do_not_require_custom_suffix() -> None:
-    source = """CREATE OR REPLACE PACKAGE BODY pkg_owner_custom AS
+def test_package_owner_does_not_require_custom_suffix() -> None:
+    source = """CREATE OR REPLACE PACKAGE BODY pkg_owner AS
   PROCEDURE validate_transaction IS BEGIN NULL; END;
   FUNCTION calculate_amount RETURN NUMBER IS BEGIN RETURN 1; END;
 END;
 /
 """
-    assert validate_custom_program_unit(
-        _parse(source, "pkg_owner_custom.sql"),
+    assert validate_program_unit(
+        _parse(source, "pkg_owner.sql"),
         source_handler="plsql",
-        allowed_suffixes=SUFFIXES,
-    ) == "PKG_OWNER_CUSTOM"
+    ) == "PKG_OWNER"
 
 
 @pytest.mark.parametrize(
     ("path", "source", "message"),
     [
-        (
-            "pkg_kernel.sql",
-            "CREATE OR REPLACE PACKAGE pkg_kernel AS PROCEDURE run; END; /",
-            "must end",
-        ),
         (
             "wrong_custom.prc",
             "CREATE OR REPLACE PROCEDURE actual_custom IS BEGIN NULL; END; /",
@@ -85,19 +75,17 @@ END;
         ),
     ],
 )
-def test_kernel_or_filename_mismatch_fails_closed(path: str, source: str, message: str) -> None:
+def test_filename_mismatch_fails_closed(path: str, source: str, message: str) -> None:
     with pytest.raises(ProgramUnitPolicyError, match=message):
-        validate_custom_program_unit(
+        validate_program_unit(
             _parse(source, path),
             source_handler="plsql",
-            allowed_suffixes=SUFFIXES,
         )
 
 
-def test_ddl_is_not_filtered_by_program_unit_suffix() -> None:
+def test_ddl_has_no_program_unit_requirement() -> None:
     source = "CREATE TABLE transaction_master (id NUMBER);"
-    assert validate_custom_program_unit(
+    assert validate_program_unit(
         _parse(source, "transaction_master.ddl"),
         source_handler="ddl",
-        allowed_suffixes=SUFFIXES,
     ) is None

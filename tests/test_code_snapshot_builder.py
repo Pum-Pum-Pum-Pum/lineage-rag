@@ -140,11 +140,11 @@ def test_snapshot_detects_added_modified_deleted_unchanged_and_exact_rename(tmp_
             tmp_path,
             revision="101",
             base_snapshot_id=base.snapshot_id,
-            expected=["pkg_modify.prc", "pkg_add.ddl", "new_name.fnc", "missing.sql"],
+                expected=["pkg_modify.prc", "pkg_add.sql", "new_name.fnc", "missing.sql"],
             files={
                 "pkg_keep.prc": "keep\n",
                 "pkg_modify.prc": "new\n",
-                "pkg_add.ddl": "create table t (id number);\n",
+                "pkg_add.sql": "begin null; end;\n",
                 "new_name.fnc": "same renamed content\n",
             },
         ),
@@ -152,7 +152,7 @@ def test_snapshot_detects_added_modified_deleted_unchanged_and_exact_rename(tmp_
     )
 
     diff = current.diff
-    assert diff.added == ("pkg_add.ddl",)
+    assert diff.added == ("pkg_add.sql",)
     assert diff.modified == ("pkg_modify.prc",)
     assert diff.deleted == ("pkg_delete.prc",)
     assert diff.unchanged == ("pkg_keep.prc",)

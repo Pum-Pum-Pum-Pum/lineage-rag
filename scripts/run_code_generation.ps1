@@ -8,13 +8,23 @@ param(
     [ValidateSet('intake-parse', 'prepare-index', 'embed-index', 'evaluate', 'activate')]
     [string]$Stage,
 
-    [string]$ParseGeneration = 'plsql_antlr_4_13_2_analysis_v13',
+    [string]$SourceDirectory,
+
+    [string]$ParseGeneration = 'plsql_antlr_4_13_2_analysis_v15',
     [string]$DependencyReviewLedger,
     [string]$CollectionName,
     [string]$EvaluationFile = 'data/evaluations/code_grounded_eval_v1_reviewed.jsonl',
     [ValidateSet('lexical', 'dense', 'hybrid')]
     [string]$CodeRetrievalMode = 'lexical',
-    [string]$QueryVectorsJson
+    [string]$QueryVectorsJson,
+
+    # Activation remains a separate, approval-bound runtime operation.  These
+    # paths are required only for -Stage activate; they are deliberately not
+    # inferred from directory ordering or a "latest" file.
+    [string]$ActivationRequest,
+    [string]$ActivationApproval,
+    [string]$ActivationReadinessReport,
+    [switch]$ApplyActivation
 )
 
 Set-StrictMode -Version Latest
@@ -69,12 +79,44 @@ function Require-DependencyLedger {
     }
 }
 
+function Require-ActivationArtifact {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Path
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        throw "activate requires -$Name. Activation is hash-bound and will not infer this artifact."
+    }
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Activation $Name does not exist: $Path"
+    }
+}
+
+function Confirm-CodeActivation {
+    param([Parameter(Mandatory)][string]$SnapshotId)
+    $expected = "ACTIVATE $SnapshotId"
+    $response = Read-Host "Activation will atomically set CODE_MODES_ENABLED=true in .env for $SnapshotId. Type '$expected' to continue"
+    if ($response -cne $expected) {
+        throw 'Activation was not confirmed. No configuration was changed.'
+    }
+}
+
 Push-Location $RepositoryRoot
 try {
+    if ($Stage -ne 'intake-parse' -and -not [string]::IsNullOrWhiteSpace($SourceDirectory)) {
+        throw '-SourceDirectory is valid only with -Stage intake-parse.'
+    }
     switch ($Stage) {
         'intake-parse' {
             if (-not (Test-Path -LiteralPath $IntakeDirectory -PathType Container)) {
                 throw "Snapshot intake does not exist: $IntakeDirectory"
+            }
+            if (-not [string]::IsNullOrWhiteSpace($SourceDirectory)) {
+                Invoke-ProjectPython -Arguments @(
+                    'scripts/stage_code_source_directory.py',
+                    '--source-directory', $SourceDirectory,
+                    '--intake-directory', ("data/raw_code/$SnapshotRequest")
+                )
             }
             Invoke-ProjectPython -Arguments @('scripts/build_code_snapshot.py', ("data/raw_code/$SnapshotRequest"), '--validate-only')
             $published = & $Python 'scripts/build_code_snapshot.py' ("data/raw_code/$SnapshotRequest")
@@ -82,7 +124,10 @@ try {
             $publication = ($published | Out-String | ConvertFrom-Json)
             $snapshotId = [string]$publication.snapshot_id
             if ([string]::IsNullOrWhiteSpace($snapshotId)) { throw 'Snapshot publication returned no snapshot_id.' }
-            Invoke-ProjectPython -Arguments @('scripts/parse_code_snapshot.py', $snapshotId)
+            Invoke-ProjectPython -Arguments @(
+                'scripts/parse_code_snapshot.py', $snapshotId,
+                '--generation', $ParseGeneration
+            )
             $gateOutput = "data/exports/code_analysis/$snapshotId-$ParseGeneration-preindex-gate.json"
             if (Test-Path -LiteralPath $gateOutput -PathType Leaf) {
                 throw "Pre-index gate output already exists: $gateOutput. Preserve it and publish a new snapshot/generation; do not overwrite review evidence."
@@ -165,8 +210,38 @@ try {
         }
         'activate' {
             $snapshotId = Resolve-SnapshotId
-            Write-Output "NO ACTIVATION PERFORMED. This launcher intentionally does not edit .env, restart services, or switch the code collection for $snapshotId live."
-            Write-Output 'Follow docs/Code_Generation_Launcher_Runbook.md after retrieval, citation, answer, SME, readiness, and rollback gates are approved.'
+            Require-ActivationArtifact -Name 'ActivationRequest' -Path $ActivationRequest
+            Require-ActivationArtifact -Name 'ActivationApproval' -Path $ActivationApproval
+            Require-ActivationArtifact -Name 'ActivationReadinessReport' -Path $ActivationReadinessReport
+
+            $embedded = "data/staging/code_embeddings/$snapshotId/code_index_text_embedding_3_large_v1/code_index_artifact.json"
+            if (-not (Test-Path -LiteralPath $embedded -PathType Leaf)) {
+                throw "Embedded code artifact is missing: $embedded. Run embed-index and the required evaluation gates first."
+            }
+
+            # First perform the exact same no-write preflight that will govern
+            # the change.  It verifies the request, approval, readiness bytes,
+            # current configuration, and the disabled starting state.
+            Invoke-ProjectPython -Arguments @(
+                'scripts/switch_code_modes.py', 'activate',
+                '--request', $ActivationRequest,
+                '--approval', $ActivationApproval,
+                '--readiness-report', $ActivationReadinessReport
+            )
+            if (-not $ApplyActivation) {
+                Write-Output 'ACTIVATION PREFLIGHT ONLY: .env is unchanged. Re-run with -ApplyActivation after the deliberate confirmation gate.'
+                break
+            }
+            Confirm-CodeActivation -SnapshotId $snapshotId
+            Invoke-ProjectPython -Arguments @(
+                'scripts/switch_code_modes.py', 'activate',
+                '--request', $ActivationRequest,
+                '--approval', $ActivationApproval,
+                '--readiness-report', $ActivationReadinessReport,
+                '--apply'
+            )
+            Write-Output "ACTIVATED CONFIGURATION: CODE_MODES_ENABLED=true is now atomically persisted for $snapshotId."
+            Write-Output 'Restart FastAPI and Streamlit if running. In Codex Desktop, toggle the local MCP server off and on so its child process reloads .env. Run the approved runtime readiness and smoke gates; roll back with scripts/switch_code_modes.py if a gate fails.'
         }
     }
 }

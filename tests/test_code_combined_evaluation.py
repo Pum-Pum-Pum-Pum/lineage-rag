@@ -77,6 +77,39 @@ def test_code_gate_fails_on_nearby_wrong_symbol() -> None:
     assert report.missing_code_symbols == ("process_aml",)
 
 
+def test_filename_only_expectation_matches_one_imported_logical_path() -> None:
+    case = _case(expected_code_paths=("pkgaml_custom.sql",))
+    retrieval = _code_retrieval(case.question).model_copy(
+        update={
+            "evidence": (
+                _evidence().model_copy(
+                    update={"source_path": "BACKEND/LOB/SQL/pkgaml_custom.sql"}
+                ),
+            )
+        }
+    )
+
+    report = build_code_combined_retrieval_case_report(case=case, retrieval=retrieval)
+
+    assert report.positive_gate_passed is True
+    assert report.missing_code_paths == ()
+    assert report.code_recall_at_k == 1.0
+
+
+def test_filename_only_expectation_fails_closed_for_duplicate_imported_paths() -> None:
+    case = _case(expected_code_paths=("pkgaml_custom.sql",))
+    first = _evidence().model_copy(update={"source_path": "BACKEND/LOB/SQL/pkgaml_custom.sql"})
+    second = _evidence().model_copy(
+        update={"unit_id": "unit-aml-copy", "source_path": "BACKEND/SMS/SQL/pkgaml_custom.sql"}
+    )
+    retrieval = _code_retrieval(case.question).model_copy(update={"evidence": (first, second)})
+
+    report = build_code_combined_retrieval_case_report(case=case, retrieval=retrieval)
+
+    assert report.positive_gate_passed is False
+    assert report.missing_code_paths == ("pkgaml_custom.sql",)
+
+
 def test_abstention_is_diagnostic_and_draft_cannot_be_release_gate() -> None:
     case = _case(
         mode="code",
