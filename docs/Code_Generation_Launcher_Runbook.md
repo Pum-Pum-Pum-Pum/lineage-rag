@@ -33,15 +33,31 @@ Included files still undergo program-unit and source-identity validation.
   implemented. The operator approved request `f60b4ccf...`, and its configuration
   switch has been applied. Code readiness passed 4/4, combined readiness passed
   7/7, and rollback dry-run passed against the saved settings.
-  **Next checkpoint:** reconnect the Desktop-owned MCP server and verify the
-  new process. Do not repeat approval or apply. No paid/evidence query was run;
+  **Current checkpoint:** the authorized disabled rollback was applied after
+  unsuccessful restart verification. Desktop's `CODE_MODES_ENABLED` override
+  has now been removed and its saved configuration checked. `.env` code modes
+  remain disabled. The old request cannot be reapplied because the rollback
+  starting state differs from its bound before-state. A fresh request is ready:
+  `data/exports/activation/fci-custom-r2-promotion-v3-request.json`, identity
+  `928c46bec3ed2dfb40baa413b25221b2074a0fe33562c3464e1c1d85ca6140be`.
+  The operator approved this request and promotion has now been applied:
+  `.env` has `CODE_MODES_ENABLED=true` and the approved R2 artifact selections.
+  Fresh local readiness passed code 4/4 and combined 7/7; rollback dry-run passed.
+  **Desktop restart verified:** fresh wrapper 24384, launcher 11612 and server
+  28732 were observed under Desktop host 24796 after apply. Three process samples
+  and a follow-up confirmed the server remained present. Saved configuration
+  and runtime/evidence hashes match; search/fetch metadata is exposed.
+  Configuration promotion and restart verification are complete. Do not repeat
+  approval/apply or add Desktop generation overrides. Live retrieval/answer
+  testing was not performed and needs its own bounded cost/disclosure authority.
+  No paid/evidence query was run;
   manual answer testing remains separately authorized work.
   Do not re-ingest, re-embed, or repeat the completed SME reviews.
   The Part2-only artifact must not replace the broader AML lineage:
   the reviewed benchmark also expects the original R22 Neo FDD. Existing R2 v1
   provides broad file-level relationships; these do not imply newly reviewed
-  exact routine selectors. R2 is now selected in `.env`, but Desktop restart
-  verification remains pending. The earlier `-v1` directory with a null FDD generation
+  exact routine selectors. R2 configuration is selected and Desktop process
+  restart is verified; live answer quality is a separate check. The earlier `-v1` directory with a null FDD generation
   is an incomplete draft, not an input to resume from.
 - **New terminal:** restore your variables using the resume block, substituting
   your actual request, immutable snapshot, reviewer, collection, and FDD generation.
@@ -322,11 +338,11 @@ $codeArtifact = "data\staging\code_embeddings\$snapshotId\code_index_text_embedd
 $analysisDirectory = "data\staging\code\$snapshotId\$parseGeneration"
 $fddDirectory = "data\staging\$fddGeneration\processed"
 
-Invoke-CodePython scripts\prepare_fdd_code_lineage.py $definitionPath `
+.\.venv\Scripts\python.exe scripts\prepare_fdd_code_lineage.py $definitionPath `
   --code-artifact $codeArtifact --analysis-directory $analysisDirectory `
   --fdd-processed-directory $fddDirectory --output $candidateLineage
 
-Invoke-CodePython scripts\render_fdd_code_lineage_review.py $candidateLineage `
+.\.venv\Scripts\python.exe scripts\render_fdd_code_lineage_review.py $candidateLineage `
   --output $lineageReview
 ```
 
@@ -346,7 +362,7 @@ After saving the completed Markdown:
 
 ```powershell
 $reviewedLineage = Join-Path $lineageDirectory 'reviewed_lineage_artifact.json'
-Invoke-CodePython scripts\import_fdd_code_lineage_review.py `
+.\.venv\Scripts\python.exe scripts\import_fdd_code_lineage_review.py `
   $candidateLineage $lineageReview --reviewer $reviewer `
   --code-artifact $codeArtifact --analysis-directory $analysisDirectory `
   --fdd-processed-directory $fddDirectory --output $reviewedLineage
@@ -358,7 +374,7 @@ and code artifact. This records the mapping review without changing runtime.
 ## 10. Evaluate combined FDD/code retrieval
 
 ```powershell
-Invoke-CodePython scripts\run_code_combined_retrieval_eval.py `
+.\.venv\Scripts\python.exe scripts\run_code_combined_retrieval_eval.py `
   --eval-file data\evaluations\combined_grounded_eval_v2_reviewed.jsonl `
   --code-artifact $codeArtifact --analysis-directory $analysisDirectory `
   --fdd-generation $fddGeneration --fdd-directory $fddDirectory `
@@ -419,6 +435,36 @@ exact reviewed-symbol anchor takes precedence over this fallback. Generic or
 all-lowercase wording does not trigger the conservative topic heuristic. Passing
 this lexical benchmark does not establish corpus-wide relevance or live answer
 quality; dense/hybrid and manual answer checks remain separate evidence.
+
+### 10a. Code-to-FDD workflow retrieval checks
+
+For an exact named routine, combined retrieval now adds a small, deterministic
+workflow context without changing general ranking: the directly retrieved
+routine, up to two resolved callers, and up to two same-source validation
+blocks that explicitly mention that routine. It then proposes at most three FDD
+units from the local lexical corpus and adds immediate adjacent units from the
+same document. This helps retain the condition and outcome together.
+
+The returned metadata marks these FDD units as
+`workflow_status=unreviewed_documentation_candidate`. They are useful source
+evidence, but are **not** reviewed lineage and must not be described as proof
+that code implements the FDD or that a difference is a defect. Add an accepted
+symbol-level mapping through Steps 7-9 only after SME review.
+
+For an exact logical filename, for example `utpks_utduh_custom.sql`, a code or
+combined search also returns `metadata.parser_inventory` on one returned code
+result. It contains the complete parser-extracted procedure/function inventory
+for that retrieved source file. Generic questions never trigger package
+inventory or package-wide workflow scanning. The existing MCP surface remains
+only `search` and `fetch`.
+
+Before a release, retain focused regression evidence for all four outcomes:
+
+- the expected FDD candidate and its adjacent context are selected;
+- a generic but plausible FDD is not promoted over the specific workflow;
+- absent documentation remains explicitly unreviewed; and
+- a later correction is added as a new reviewed lineage artifact, not by
+  overwriting an earlier candidate or review record.
 
 ## 11. Runtime promotion checkpoint
 

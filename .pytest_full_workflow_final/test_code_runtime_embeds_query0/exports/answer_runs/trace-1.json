@@ -1,0 +1,27 @@
+{
+  "schema_version": "knowledge_mode_answer_trace_v1",
+  "trace_id": "trace-1",
+  "knowledge_mode": "code",
+  "query": "Explain custom behavior",
+  "conversation_context_used": true,
+  "embedding_call": {
+    "request_id": "embed-1",
+    "total_tokens": 4
+  },
+  "retrieval": {
+    "evidence": [],
+    "query": "Explain custom behavior"
+  },
+  "answer_call": {
+    "request_id": "answer-1",
+    "model": "test-chat",
+    "prompt_tokens": 10,
+    "completion_tokens": 5,
+    "total_tokens": 15
+  },
+  "answer": {
+    "query": "Explain custom behavior",
+    "answer": "Grounded visible behavior.",
+    "is_answered": true
+  }
+}

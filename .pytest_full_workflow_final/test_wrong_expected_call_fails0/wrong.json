@@ -1,0 +1,1 @@
+{"schema_version": "code_dependency_classifier_eval_v1", "review_status": "draft", "cases": [{"case_id": "wrong", "source": "CREATE OR REPLACE PROCEDURE p IS BEGIN NULL; END; /", "expected_routine_calls": ["MISSING_CALL"], "expected_boundaries": {}, "forbidden_routine_calls": []}]}

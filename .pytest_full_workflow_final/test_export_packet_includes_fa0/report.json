@@ -1,0 +1,1 @@
+{"metadata": {"run_id": "run-1"}, "cases": [{"case_id": "case-1", "structural_passed": false, "answer": "A refused answer", "is_answered": false, "refusal_reason": "No evidence", "citation_document_ids": ["doc-1"], "citation_release_labels": ["R1"], "failures": ["Expected answer"]}]}

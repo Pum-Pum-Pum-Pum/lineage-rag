@@ -1,0 +1,8 @@
+schema_version = "ingestion_source_policy_v1"
+
+[fdd.extensions]
+".docx" = "docx"
+
+[code.extensions]
+".sql" = "plsql"
+".ddl" = "ddl"

@@ -1,0 +1,24 @@
+{
+  "request_id": "68819664-ec71-40fd-abd5-d31e23e0cd7d",
+  "created_at_utc": "2026-09-12T10:30:31.254028+00:00",
+  "query": "What changed?",
+  "filters": {},
+  "sufficiency": {
+    "is_sufficient": false,
+    "reason": "Insufficient evidence.",
+    "result_count": 0,
+    "top_score": null
+  },
+  "answer_response": {
+    "query": "What changed?",
+    "answer": "I cannot answer.",
+    "is_answered": false,
+    "refusal_reason": "Insufficient evidence.",
+    "citations": [],
+    "usage": null,
+    "cost": null
+  },
+  "retrieval_results": [],
+  "retrieval_metadata": null,
+  "correlation_id": "api-request-123"
+}

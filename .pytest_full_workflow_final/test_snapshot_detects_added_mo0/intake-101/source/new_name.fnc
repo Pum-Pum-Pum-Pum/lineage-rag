@@ -1,0 +1,1 @@
+same renamed content

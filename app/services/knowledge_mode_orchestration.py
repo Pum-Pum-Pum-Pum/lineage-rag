@@ -148,6 +148,7 @@ def run_code_or_combined_query(
                 collection_name=settings.code_qdrant_collection_name,
                 query_vector=vector,
                 fdd_limit=limit,
+                fdd_documents=documents,
             )
         case = SimpleNamespace(
             mode=mode,

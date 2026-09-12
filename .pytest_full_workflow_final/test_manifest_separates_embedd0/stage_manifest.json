@@ -1,0 +1,18 @@
+{
+  "schema_version": "staged_fdd_rebuild_v1",
+  "status": "running",
+  "created_at_utc": "2026-09-12T10:33:08.386580+00:00",
+  "index_generation": "table_context_v1",
+  "representation": "table_parent_context_v1",
+  "collection_name": "functional_specs_v3",
+  "embedding_input_version": "v1",
+  "embedding_record_artifact_version": "v1",
+  "embedding_model": "text-embedding-3-large",
+  "sources": [],
+  "superseded_source_names": [],
+  "fdd_document_lineage_policy_sha256": null,
+  "totals": {},
+  "qdrant": {},
+  "failure_type": null,
+  "failure_message": null
+}

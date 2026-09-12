@@ -15,7 +15,13 @@ from app.fdd_code_lineage.models import (
     resolve_target_unit_ids,
 )
 from app.retrieval.identifier_affinity import identifier_affinity
-from app.retrieval.lexical_search import tokenize
+from app.retrieval.lexical_search import LexicalSearchDocument, tokenize
+from app.fdd_code_lineage.workflow_retrieval import (
+    discover_explicit_routine_workflow,
+    merge_workflow_fdd_candidates,
+    promote_workflow_code_context,
+    workflow_unknown_boundary,
+)
 
 
 class FrozenModel(BaseModel):
@@ -30,6 +36,7 @@ class FddEvidence(FrozenModel):
     source_kind: str
     score: float
     text: str
+    retrieval_metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ReviewedLineageUse(FrozenModel):
@@ -72,6 +79,7 @@ def retrieve_combined_evidence(
     query_vector: Sequence[float] | None = None,
     code_max_units_per_parent: int = 2,
     fdd_limit: int | None = None,
+    fdd_documents: Sequence[LexicalSearchDocument] = (),
 ) -> CombinedRetrievalResult:
     """Keep FDD and code retrieval independent, then follow reviewed links.
 
@@ -95,7 +103,25 @@ def retrieve_combined_evidence(
         query_vector=query_vector,
         max_units_per_parent=code_max_units_per_parent,
     )
-    baseline_fdd = tuple(_fdd_evidence(item) for item in fdd_results)
+    workflow = discover_explicit_routine_workflow(
+        query=query,
+        direct_code_evidence=direct.evidence,
+        code_artifact=code_artifact,
+        analysis_directory=analysis_directory,
+        fdd_documents=fdd_documents,
+        fdd_limit=fdd_limit,
+    )
+    selected_fdd_results = list(fdd_results)
+    if workflow is not None:
+        selected_fdd_results = merge_workflow_fdd_candidates(
+            existing=selected_fdd_results,
+            candidates=workflow.fdd_candidates,
+            # Workflow evidence reserves slots within the existing FDD lane;
+            # it must never expand a combined response beyond five FDD and
+            # five code results.
+            limit=fdd_limit,
+        )
+    baseline_fdd = tuple(_fdd_evidence(item) for item in selected_fdd_results)
     fdd_evidence = _select_lineage_anchored_fdd_evidence(
         query=query,
         candidates=baseline_fdd,
@@ -150,6 +176,8 @@ def retrieve_combined_evidence(
         for mapping_id in mapping_ids
     )
     unknowns: list[str] = []
+    if workflow is not None:
+        unknowns.append(workflow_unknown_boundary(workflow))
     if not fdd_evidence:
         unknowns.append("No FDD evidence was retrieved.")
     if not direct.evidence:
@@ -161,7 +189,13 @@ def retrieve_combined_evidence(
         fdd_generation=fdd_generation,
         code_snapshot_id=code_artifact.snapshot_id,
         fdd_evidence=fdd_evidence,
-        code_evidence=merged,
+        code_evidence=(
+            promote_workflow_code_context(
+                current=merged, discovery=workflow, limit=code_limit
+            )
+            if workflow is not None
+            else merged
+        ),
         direct_code_evidence=_select_parent_diverse_evidence(
             direct.evidence,
             limit=code_limit,
@@ -202,6 +236,11 @@ def _fdd_evidence(result: Any) -> FddEvidence:
         source_kind=str(payload["source_kind"]),
         score=float(result.score),
         text=str(payload["text"]),
+        retrieval_metadata={
+            key: str(payload[key])
+            for key in ("retrieval_relation", "workflow_status")
+            if payload.get(key)
+        },
     )
 
 

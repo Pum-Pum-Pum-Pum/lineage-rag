@@ -1,0 +1,43 @@
+{
+  "max_unit_characters": 6000,
+  "overlap_characters": 400,
+  "schema_version": "code_retrieval_artifact_v2",
+  "snapshot_id": "fci-custom-r153-435a2acebc68",
+  "source_path": "pkg_customer_custom.sql",
+  "total_units": 1,
+  "units": [
+    {
+      "chunk_count": null,
+      "chunk_index": null,
+      "conditional_state": "unconditional",
+      "derived_context": {
+        "conditional_state": "unconditional",
+        "package_name": "pkg_customer_custom",
+        "public_signature": "PROCEDURE run",
+        "referenced_constants": [],
+        "referenced_cursors": [],
+        "referenced_globals": [],
+        "referenced_types": []
+      },
+      "display_name": "run",
+      "package_name": "pkg_customer_custom",
+      "parent_source_map": null,
+      "parent_unit_id": null,
+      "parser_state": "full_parse",
+      "related_unit_ids": [],
+      "retrieval_text": "DERIVED RETRIEVAL CONTEXT - NOT A CITATION SOURCE\nPackage: pkg_customer_custom\nPublic signature: PROCEDURE run\nReferenced package types: <none>\nReferenced constants: <none>\nReferenced global variables: <none>\nReferenced cursors: <none>\nConditional compilation state: unconditional\n\nORIGINAL CITATION SOURCE:\nPROCEDURE run IS BEGIN NULL; END;",
+      "snapshot_id": "fci-custom-r153-435a2acebc68",
+      "source_kind": "procedure",
+      "source_map": {
+        "end_line": 2,
+        "end_offset": 89,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 2,
+        "start_offset": 56
+      },
+      "source_path": "pkg_customer_custom.sql",
+      "text": "PROCEDURE run IS BEGIN NULL; END;",
+      "unit_id": "51b17e25c94bedc79d8e8eb54932ba4ce05fbd130b202c58361c786dd07e7219"
+    }
+  ]
+}

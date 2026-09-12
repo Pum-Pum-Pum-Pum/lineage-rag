@@ -1,0 +1,54 @@
+{
+  "created_at_utc": "2026-09-12T10:30:39.637074Z",
+  "diff": {
+    "added": [
+      "run_review_custom.sql"
+    ],
+    "ambiguous_rename_hashes": [],
+    "base_snapshot_id": null,
+    "deleted": [],
+    "exact_renames": [],
+    "expected_changed_packages": [],
+    "formatting_only_modified": [],
+    "ingestion_policy_changed_from_base": false,
+    "missing_expected_changes": [],
+    "modified": [],
+    "schema_version": "code_snapshot_diff_v1",
+    "unchanged": [],
+    "unexpected_changed_files": []
+  },
+  "files": [
+    {
+      "encoding": "utf-8",
+      "extension": ".sql",
+      "is_large_file": false,
+      "line_count": 10,
+      "normalized_text_sha256": "a58d3e813f98d9ddd66d76ffa714393aaa5c9c75f622fa64199d75befe2cf3f9",
+      "path": "run_review_custom.sql",
+      "sha256": "e4c53908a82625bda2619cb6331b5d7c12dae9571aa4e8ca867b0d6c02ccd3cb",
+      "size_bytes": 252,
+      "source_handler": "plsql",
+      "warnings": []
+    }
+  ],
+  "immutable": true,
+  "ingestion_policy_schema_version": "ingestion_source_policy_v1",
+  "ingestion_policy_sha256": "9f0ef08841f986d8749d13521c2162fb116dc4467601895094ee15e4709d4bfc",
+  "request": {
+    "application_build": "test",
+    "base_snapshot_id": null,
+    "compiler_context": {
+      "oracle_version": null,
+      "plsql_ccflags": null
+    },
+    "expected_changed_packages": [],
+    "module_set": "fci-custom",
+    "reviewer": "test",
+    "schema_version": "code_snapshot_request_v1",
+    "svn_revision": "1"
+  },
+  "schema_version": "code_snapshot_manifest_v1",
+  "snapshot_content_sha256": "11d43381f8344bcb7d982536b109c3e0cd83f1ff64dcac88caebdcc1ce5c6235",
+  "snapshot_id": "fci-custom-r1-11d43381f834",
+  "source_directory_name": "source"
+}

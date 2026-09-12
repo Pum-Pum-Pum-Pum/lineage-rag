@@ -1,0 +1,10 @@
+
+        [
+          {
+            "case_id": "case_1",
+            "query": "branch report",
+            "filters": {"release_label": "R24"},
+            "expectation": {"min_results": 1, "expected_release_label": "R24"}
+          }
+        ]
+        

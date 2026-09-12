@@ -2426,3 +2426,177 @@ Desktop owns the MCP child lifecycle. Requested that the operator toggle the
 existing MCP entry OFF/ON and report completion before further process checks.
 The configuration is applied, but `desktop_restart_verified=false` and
 `activation_complete=false` remain explicit until that verification occurs.
+
+## Step 277 -- Restart verification failed; authorized disabled rollback applied
+
+Following the operator's "Restarted" confirmation, repeated elevated process
+checks found no `app.mcp.server` Python child or `run_mcp_stdio.ps1` wrapper.
+The approved target `.env` still matched, but a selective non-secret read of
+Desktop's configured MCP entry found `CODE_MODES_ENABLED=true` still present.
+`INTERFACE_MODE=mcp` and the separate disclosure setting were also present;
+no generation artifact/path overrides were observed in that entry.
+
+The Desktop flag override would defeat a disabled `.env` rollback. Therefore
+activation was not marked complete. Verified no serving process remained,
+passed rollback dry-run, and applied the explicitly authorized disabled rollback.
+Immutable receipts: `data/exports/activation/generation-20260912T075111482501Z.*.json`.
+No search/fetch, paid embedding, evidence disclosure, competing MCP client, or
+runtime-source edit occurred. Earlier apply/readiness receipts remain history.
+
+Next operator action: leave the Desktop MCP entry OFF and remove its
+`CODE_MODES_ENABLED` environment row, preserving the separate interface and
+disclosure controls. Verify the saved settings before retrying promotion;
+do not treat a saved enable toggle as proof of a running server. The local
+disabled rollback is applied, but Desktop's remaining override must be removed
+before its next launch can be considered rollback-safe.
+
+## Step 278 -- Desktop override removed; reactivation request prepared
+
+The operator reported removing the flag override and restarting Desktop MCP.
+Selective inspection of the saved Culling Blade entry verified no generation
+environment overrides or generation passthrough entries; interface remains
+`mcp`. Process inspection found no matching serving child or wrapper, so a
+successful Desktop startup is not claimed.
+
+The v2 activation dry-run failed closed with `.env differs from the expected
+state; stop and reconcile`. The disabled rollback state differs from the v2
+request's bound before-state, including effective-settings identity. Rendering
+the approved target from the current file reproduces the old target byte hash;
+no unrelated target change was inferred and no manual flag edit was made.
+
+Prepared a fresh immutable request from the current disabled state:
+`data/exports/activation/fci-custom-r2-promotion-v3-request.json`, identity
+`928c46bec3ed2dfb40baa413b25221b2074a0fe33562c3464e1c1d85ca6140be`.
+Existing local generation, review, evaluation and store checks completed without
+querying OpenAI. No activation, search/fetch, paid query, re-embedding or new
+SME review was performed. Explicit approval of the fresh request is the next
+gate; the original v2 approval and all earlier receipts remain immutable history.
+
+## Step 279 -- Approved v3 promotion applied; local readiness passed
+
+The operator explicitly approved request
+`928c46bec3ed2dfb40baa413b25221b2074a0fe33562c3464e1c1d85ca6140be`
+for configuration promotion, restart verification and disabled rollback.
+Recorded approval under `Pum` in
+`data/exports/activation/fci-custom-r2-promotion-v3-approval.json`.
+Verified exact before-state, runtime/evidence binding and absence of Desktop
+generation overrides/passthrough entries. No paid/disclosure authority was added.
+
+Observed Desktop MCP tree: wrapper 35468, launcher 36360, Python child 21388.
+Verified parent/command identities, stopped the serving child, and confirmed
+the remaining tree exited with no matching serving process left. Promotion
+dry-run passed; repeated stopped-process check before applying the exact switch.
+Immutable receipts: `data/exports/activation/generation-20260912T080636085244Z.*.json`.
+
+Fresh-process verification matched target `.env` bytes and effective settings.
+Code readiness passed 4/4; combined readiness passed 7/7; disabled rollback
+dry-run passed. Saved the immutable local verification record at
+`data/exports/activation/fci-custom-r2-promotion-v3-post-apply-verification.json`.
+No gate failed and no rollback was applied. No runtime-source edits, search,
+fetch, embedding, paid call, evidence disclosure or competing MCP server occurred.
+
+The configuration is applied with code modes enabled, FDD v9 unchanged and the
+approved R2 reviewed lineage bundle selected. Desktop must reconnect after this
+apply; `desktop_restart_verified=false` and `activation_complete=false` remain
+explicit pending that check. Do not repeat approval or apply in the meantime.
+
+## Step 280 -- Fresh Desktop MCP restart verified
+
+After the operator reported restarting, verified v3 target `.env` bytes,
+effective settings in the local verification process, runtime/evidence hashes,
+and absence of Desktop generation overrides/passthrough. Initial process checks
+were empty or transient; later observations stabilized. Three consecutive
+samples found wrapper 24384 -> launcher 11612 -> server 28732, with the expected
+project script and `app.mcp.server` commands. Parent 24796 was verified as the
+Desktop `codex.exe` host; the Python server remained present on a follow-up.
+
+Search/fetch metadata is exposed in the session, but neither tool was called.
+No competing MCP client, query embedding, paid call, or new internal evidence
+disclosure occurred. No long-running reliability or live-answer claim is made.
+Saved the bounded restart evidence separately from the earlier pending record:
+`data/exports/activation/fci-custom-r2-promotion-v3-desktop-restart-verification.json`.
+
+The configuration-promotion/restart stage is complete. Earlier local readiness
+passed code 4/4 and combined 7/7, with rollback dry-run passed. Live retrieval
+and answer testing remain separate bounded authorization/evaluation work.
+
+## Step 281 -- Bounded code-to-FDD workflow retrieval hardening (offline)
+
+Added a framework-independent, local workflow-retrieval layer for questions
+that name an exact routine already returned by code retrieval. It keeps the
+normal top-k ranking unchanged for generic queries. For an eligible routine it
+retains the target, up to two statically resolved callers, and up to two
+same-source validation blocks that explicitly mention the routine. It derives
+FDD candidate terms only from code string literals, avoiding historical
+enhancement-comment markers as a false source of current semantic truth.
+
+FDD candidate retrieval remains lexical and bounded to three units, with
+immediately adjacent units from the same source included to preserve the
+condition/outcome sequence. Candidate hits are marked
+`workflow_status=unreviewed_documentation_candidate`; they are not reviewed
+lineage, implementation proof, or an automatically reported conflict. MCP
+instructions now require that boundary to be stated. The existing `search` and
+`fetch` tools, opaque IDs, limits, feature gates, and source catalog remain
+unchanged.
+
+An exact logical filename that is already represented in direct code evidence
+now receives a complete parser inventory in the first code hit's
+`metadata.parser_inventory`. This fixes the distinction between a ranked
+procedure search and a complete package procedure/function listing without
+adding an MCP tool or enabling arbitrary source-path lookup.
+
+The real local, read-only lexical probe for `SpDeleteUnauthKhairatInfo` resolved
+`Fn_Post_Upload_Db`, selected the validation context at lines 11558-11643, and
+retrieved Death Claim v1.6 chunks 22 and 23 without providing the Death Claim
+title. No OpenAI request, Qdrant access/write, MCP call, tunnel, runtime
+configuration edit, or evidence disclosure occurred. Focused offline suite:
+62 passed. These runtime-source changes make the prior activation approval
+stale; a fresh promotion request, approval, readiness, and authorized manual
+MCP evaluation are required before serving this change.
+
+## Step 282 -- Workflow retrieval promotion and bounded local MCP verification
+
+The initial workflow promotion request was prepared, then replaced twice after
+two limit regressions were found during local stdio verification: first,
+workflow FDD candidates could expand the FDD lane; second, the transport could
+emit both its internal planned FDD candidates and the final combined lanes. Both
+issues were corrected before a Desktop restart. The final approved request was
+`139070fca15a78391aec0e1690aae7f0b7e6ead682c9c38da2fffdc488556c5b`;
+its immutable approval and applied activation receipt are in
+`data/exports/activation/fci-custom-r2-workflow-v3-approval.json` and
+`data/exports/activation/generation-20260912T*.result.json` respectively.
+
+The final public combined response preserves the existing bounds: at most five
+FDD and five code hits. Added a regression that proves planned FDD candidates
+are not emitted alongside final combined results. The focused suite passed 27
+tests; the full offline suite passed 745 tests in 221.66 seconds. `uv lock
+--check` and `git diff --check` passed. No paid OpenAI call occurred.
+
+Three authorized local lexical stdio MCP cases passed after final promotion:
+
+- exact `utpks_utduh_custom.sql` inventory returned 19 procedures and 26
+  functions, including `SpDeleteUnauthKhairatInfo`;
+- the exact Khairat routine query returned exactly 10 combined results, with
+  Death Claim v1.6 marked only as an unreviewed documentation candidate plus
+  bounded caller/validation context;
+- a generic deletion-workflow query returned six bounded results and did not
+  trigger workflow expansion.
+
+The Desktop MCP setting was then enabled by the operator. A local mutex check
+did not find an active stdio child, which is consistent with lazy launch before
+the first Desktop tool invocation; it is not evidence of a failed Desktop
+connection. No competing child was started. Desktop end-to-end retrieval and
+answer-quality testing remain separately authorized evidence-disclosure work.
+
+## Step 283 -- Desktop end-to-end hybrid check failed closed
+
+The operator explicitly authorized one bounded paid hybrid Desktop/ChatGPT
+`search` check. The registered Desktop `search` tool was invoked once with the
+combined `SpDeleteUnauthKhairatInfo` documentation-candidate query, without a
+`fetch` or retry. It returned `Transport closed` before any retrieval result.
+A follow-up local mutex observation found no active
+`Local\\CullingBladeLineageMcpStdio` child. This is recorded as a Desktop
+stdio startup/transport failure, not as a retrieval, citation, answer-quality,
+or provider-success result. No retry, configuration change, or new evidence
+operation was performed. Provider-side usage cannot be inferred from a failed
+transport response and must not be claimed without a provider trace.

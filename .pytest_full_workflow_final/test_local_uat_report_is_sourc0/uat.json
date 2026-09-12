@@ -1,0 +1,136 @@
+{
+  "schema_version": "local_bounded_tool_uat_v1",
+  "knowledge_mode": "combined",
+  "question": "Explain the visible AML transaction integration implementation.",
+  "fdd_generation": "functional_specs_v5",
+  "code_snapshot_id": "code-snapshot-r1",
+  "lineage_artifact_identity_sha256": "0beb986383bff77f2ba06a54d1dd92c8044f5d14a5085ca79f860577b74579ba",
+  "policy_sha256": "dcdd5b90790c77e913ddcfeaa619715311b8cdca9491d8b78a806472e5b789e2",
+  "contains_internal_source_text": true,
+  "external_api_calls": 0,
+  "execution": {
+    "schema_version": "bounded_tool_execution_v1",
+    "trace": {
+      "schema_version": "bounded_tool_trace_v1",
+      "plan_identity_sha256": "649fef8e259531a2786df073bd9481726faeb5d9d4e2b29436079b1c6c070dd9",
+      "policy_sha256": "dcdd5b90790c77e913ddcfeaa619715311b8cdca9491d8b78a806472e5b789e2",
+      "status": "completed",
+      "calls": [
+        {
+          "invocation_id": "2e4f0118edd886ae08953bfa1a39e22f8d7384dd88a5bcb59990bffc60d4e398",
+          "tool_name": "fdd_search",
+          "status": "completed",
+          "result_count": 1,
+          "evidence_identities": [
+            "fdd-unit-aml"
+          ],
+          "error_type": null
+        },
+        {
+          "invocation_id": "4213eadb8c937a9d69da9b382531f1c7a9fc98e87b02cc2ac52ead37acf9e355",
+          "tool_name": "code_search",
+          "status": "completed",
+          "result_count": 1,
+          "evidence_identities": [
+            "code-unit-aml"
+          ],
+          "error_type": null
+        },
+        {
+          "invocation_id": "a459314b1e2646c1d5d5a5f224defb9d6e60e37537c88d060f3a6ea4ffef81fd",
+          "tool_name": "impact_graph",
+          "status": "completed",
+          "result_count": 1,
+          "evidence_identities": [
+            "1dce1c452ae6d8c275c91aefeeb81a946024d85e06e5a3b1565667f42cd31250"
+          ],
+          "error_type": null
+        }
+      ],
+      "total_evidence_units": 2,
+      "automatic_routing_used": false
+    },
+    "outputs": [
+      {
+        "tool_name": "fdd_search",
+        "query": "Explain the visible AML transaction integration implementation.",
+        "evidence": [
+          {
+            "unit_id": "fdd-unit-aml",
+            "document_id": "FDD-AML-R24",
+            "document_family": "AML",
+            "release_label": "R24",
+            "source_kind": "paragraph",
+            "score": 5.539720770839918,
+            "text": "FCIS transaction integration with FlagRight.",
+            "retrieval_metadata": {}
+          }
+        ],
+        "truncated": false
+      },
+      {
+        "tool_name": "code_search",
+        "query": "Explain the visible AML transaction integration implementation.",
+        "snapshot_id": "code-snapshot-r1",
+        "evidence": [
+          {
+            "unit_id": "code-unit-aml",
+            "point_id": "11111111-1111-5111-8111-111111111111",
+            "score": 4.515059148159854,
+            "retrieval_method": "lexical",
+            "snapshot_id": "code-snapshot-r1",
+            "module_id": "fci-custom",
+            "source_path": "pkg_aml_custom.sql",
+            "source_kind": "procedure",
+            "display_name": "SP_PROCESS_AML",
+            "parent_unit_id": null,
+            "package_name": "PKG_AML_CUSTOM",
+            "start_line": 10,
+            "end_line": 20,
+            "parser_state": "full_parse",
+            "conditional_state": "unconditional",
+            "text": "PROCEDURE sp_process_aml IS BEGIN NULL; END;",
+            "retrieval_metadata": {
+              "matched_query_terms": [
+                "aml",
+                "integration"
+              ]
+            }
+          }
+        ],
+        "truncated": false
+      },
+      {
+        "tool_name": "impact_graph",
+        "query": "Explain the visible AML transaction integration implementation.",
+        "nodes": [
+          {
+            "node_id": "fdd:FDD-AML-R24",
+            "node_kind": "fdd_document",
+            "label": "FDD-AML-R24",
+            "source_identity": "fdd-unit-aml"
+          },
+          {
+            "node_id": "code:code-unit-aml",
+            "node_kind": "code_unit",
+            "label": "pkg_aml_custom.sql:SP_PROCESS_AML",
+            "source_identity": "code-unit-aml"
+          }
+        ],
+        "edges": [
+          {
+            "edge_id": "1dce1c452ae6d8c275c91aefeeb81a946024d85e06e5a3b1565667f42cd31250",
+            "edge_kind": "reviewed_implementation",
+            "source_node_id": "fdd:FDD-AML-R24",
+            "target_node_id": "code:code-unit-aml",
+            "resolution_state": "reviewed",
+            "evidence_identity": "b4c5eacac9fb5de403ca4ada5c9a8e849feb5cc6ed3efefeb99e690f464b7b01"
+          }
+        ],
+        "truncated": false,
+        "unknowns": []
+      }
+    ]
+  },
+  "report_identity_sha256": "4d5ceef28195add81d8b72f527b7747c26806ddc5cc73da51c01c9f662149c42"
+}

@@ -1,0 +1,1 @@
+scripts/run_code_modes_activation_smoke.py

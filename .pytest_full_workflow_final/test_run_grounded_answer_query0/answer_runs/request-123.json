@@ -1,0 +1,62 @@
+{
+  "request_id": "request-123",
+  "created_at_utc": "2026-09-12T10:30:28.115993+00:00",
+  "query": "What changed in branch reports?",
+  "filters": {
+    "document_family": "ASNB",
+    "release_label": "R24",
+    "source_kind": "paragraph"
+  },
+  "sufficiency": {
+    "is_sufficient": true,
+    "reason": "Retrieved evidence passed baseline sufficiency checks.",
+    "result_count": 1,
+    "top_score": 0.82
+  },
+  "answer_response": {
+    "query": "What changed in branch reports?",
+    "answer": "Grounded answer [C1].",
+    "is_answered": true,
+    "refusal_reason": null,
+    "citations": [],
+    "usage": null,
+    "cost": null
+  },
+  "retrieval_results": [
+    {
+      "point_id": "point-1",
+      "score": 0.82,
+      "payload": {
+        "unit_id": "FS_ASNB_R24::chunk_1",
+        "text": "Branch report evidence",
+        "document_family": "ASNB",
+        "release_label": "R24",
+        "source_kind": "paragraph"
+      }
+    }
+  ],
+  "retrieval_metadata": {
+    "retrieval_mode": "hybrid",
+    "hybrid_dense_weight": 0.6,
+    "hybrid_lexical_weight": 0.4,
+    "hybrid_candidate_limit": 10,
+    "hybrid_fusion_method": "weighted_rrf",
+    "hybrid_rrf_rank_constant": 1.0,
+    "limit": 3,
+    "retrieval_candidate_limit": 3,
+    "original_query": "What changed in branch reports?",
+    "retrieval_query": "What changed in branch reports?",
+    "current_state_requested": false,
+    "historical_context_requested": false,
+    "effective_release_label": "R24",
+    "release_source": "request_filter",
+    "referenced_release_labels": [],
+    "min_results": 1,
+    "min_top_score": 0.25,
+    "candidate_lanes": {
+      "dense": [],
+      "lexical": []
+    }
+  },
+  "correlation_id": null
+}

@@ -1,0 +1,43 @@
+{
+  "max_unit_characters": 6000,
+  "overlap_characters": 400,
+  "schema_version": "code_retrieval_artifact_v2",
+  "snapshot_id": "fci-custom-r153-c131dd1f37f3",
+  "source_path": "a/duplicate_proc_custom.prc",
+  "total_units": 1,
+  "units": [
+    {
+      "chunk_count": null,
+      "chunk_index": null,
+      "conditional_state": "unconditional",
+      "derived_context": {
+        "conditional_state": "unconditional",
+        "package_name": "<standalone>",
+        "public_signature": "CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER)",
+        "referenced_constants": [],
+        "referenced_cursors": [],
+        "referenced_globals": [],
+        "referenced_types": []
+      },
+      "display_name": "duplicate_proc_custom",
+      "package_name": null,
+      "parent_source_map": null,
+      "parent_unit_id": null,
+      "parser_state": "full_parse",
+      "related_unit_ids": [],
+      "retrieval_text": "DERIVED RETRIEVAL CONTEXT - NOT A CITATION SOURCE\nPackage: <standalone>\nPublic signature: CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER)\nReferenced package types: <none>\nReferenced constants: <none>\nReferenced global variables: <none>\nReferenced cursors: <none>\nConditional compilation state: unconditional\n\nORIGINAL CITATION SOURCE:\nCREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER) IS BEGIN NULL; END",
+      "snapshot_id": "fci-custom-r153-c131dd1f37f3",
+      "source_kind": "procedure",
+      "source_map": {
+        "end_line": 1,
+        "end_offset": 81,
+        "source_path": "a/duplicate_proc_custom.prc",
+        "start_line": 1,
+        "start_offset": 0
+      },
+      "source_path": "a/duplicate_proc_custom.prc",
+      "text": "CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER) IS BEGIN NULL; END",
+      "unit_id": "350bd4fbd93a53364158a3dc15a6a3522824fb10700aeb97847e24955f453511"
+    }
+  ]
+}

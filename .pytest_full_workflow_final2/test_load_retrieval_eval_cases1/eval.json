@@ -1,0 +1,14 @@
+
+        [
+          {
+            "case_id": "case_1",
+            "query": "B-01 report layout",
+            "filters": {"release_label": "R24"},
+            "expectation": {
+              "expected_to_pass": false,
+              "expected_marker_contains_any": ["B-01"],
+              "unsupported_evidence_contains_any": ["Sample Report", ".xlsx"]
+            }
+          }
+        ]
+        

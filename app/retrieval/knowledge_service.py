@@ -22,6 +22,10 @@ from app.code_retrieval.models import CodeRetrievalResult
 from app.code_retrieval.service import retrieve_code_evidence
 from app.embeddings.client import get_embedding_client
 from app.fdd_code_lineage.combined_retrieval import CombinedRetrievalResult, retrieve_combined_evidence
+from app.fdd_code_lineage.workflow_retrieval import (
+    PackageInventory,
+    inventory_for_explicit_package_query,
+)
 from app.fdd_code_lineage.models import FddCodeLineageArtifact, validate_lineage_artifact
 from app.fdd_code_lineage.reviewed_bundle import load_reviewed_lineage
 from app.fdd_code_lineage.paid_evaluation import embed_one_query
@@ -198,6 +202,7 @@ class KnowledgeRetrievalExecution:
     fdd: PlannedRetrievalResult | None = None
     code: CodeRetrievalResult | None = None
     combined: CombinedRetrievalResult | None = None
+    package_inventory: PackageInventory | None = None
     embedding_call: dict[str, Any] | None = None
 
 
@@ -278,7 +283,11 @@ class KnowledgeRetrievalService:
         results: list[KnowledgeSearchHit] = []
         ranking_scope: Literal["global", "per_source_type"] = "global"
 
-        if execution.fdd is not None:
+        # Combined retrieval retains the planned FDD result internally for
+        # provenance and answer orchestration.  Its public transport response
+        # must contain only the bounded, post-lineage combined lanes; emitting
+        # both would duplicate FDD evidence and violate the five-per-lane cap.
+        if execution.fdd is not None and execution.combined is None:
             results.extend(
                 _to_search_hits(
                     execution.fdd.results,
@@ -288,7 +297,12 @@ class KnowledgeRetrievalService:
             )
         if execution.code is not None:
             results.extend(
-                _to_code_search_hits(execution.code, catalog.code_by_internal_id, limit=limit)
+                _to_code_search_hits(
+                    execution.code,
+                    catalog.code_by_internal_id,
+                    limit=limit,
+                    package_inventory=execution.package_inventory,
+                )
             )
         if execution.combined is not None:
             ranking_scope = "per_source_type"
@@ -296,7 +310,12 @@ class KnowledgeRetrievalService:
                 _to_fdd_evidence_hits(execution.combined, catalog.fdd_by_internal_id, limit=limit)
             )
             results.extend(
-                _to_combined_code_hits(execution.combined, catalog.code_by_internal_id, limit=limit)
+                _to_combined_code_hits(
+                    execution.combined,
+                    catalog.code_by_internal_id,
+                    limit=limit,
+                    package_inventory=execution.package_inventory,
+                )
             )
         return KnowledgeSearchResponse(
             query=execution.query,
@@ -411,6 +430,11 @@ class KnowledgeRetrievalService:
                     query=query,
                     retrieval_mode=self.retrieval_config.retrieval_mode,
                     code=code,
+                    package_inventory=inventory_for_explicit_package_query(
+                        query=query,
+                        direct_code_evidence=code.evidence,
+                        analysis_directory=self.settings.code_analysis_directory,
+                    ),
                     embedding_call=embedding_call,
                 )
 
@@ -465,6 +489,7 @@ class KnowledgeRetrievalService:
                 collection_name=self.settings.code_qdrant_collection_name,
                 query_vector=query_vector,
                 fdd_limit=limit,
+                fdd_documents=documents,
             )
             return KnowledgeRetrievalExecution(
                 mode="combined",
@@ -472,6 +497,11 @@ class KnowledgeRetrievalService:
                 retrieval_mode=self.retrieval_config.retrieval_mode,
                 fdd=planned,
                 combined=combined,
+                package_inventory=inventory_for_explicit_package_query(
+                    query=query,
+                    direct_code_evidence=getattr(combined, "direct_code_evidence", ()),
+                    analysis_directory=self.settings.code_analysis_directory,
+                ),
                 embedding_call=embedding_call,
             )
         finally:
@@ -521,16 +551,52 @@ def _to_search_hits(results: list[Any], catalog: dict[str, _CatalogSource], *, l
     return hits
 
 
-def _to_code_search_hits(result: CodeRetrievalResult, catalog: dict[str, _CatalogSource], *, limit: int) -> list[KnowledgeSearchHit]:
-    return [_search_hit(_catalog_source(catalog, item.unit_id), item.score) for item in result.evidence[:limit]]
+def _to_code_search_hits(
+    result: CodeRetrievalResult,
+    catalog: dict[str, _CatalogSource],
+    *,
+    limit: int,
+    package_inventory: PackageInventory | None = None,
+) -> list[KnowledgeSearchHit]:
+    return _add_package_inventory(
+        [_search_hit(_catalog_source(catalog, item.unit_id), item.score, item.retrieval_metadata) for item in result.evidence[:limit]],
+        package_inventory,
+    )
 
 
 def _to_fdd_evidence_hits(result: CombinedRetrievalResult, catalog: dict[str, _CatalogSource], *, limit: int) -> list[KnowledgeSearchHit]:
-    return [_search_hit(_catalog_source(catalog, item.unit_id), item.score) for item in result.fdd_evidence[:limit]]
+    return [_search_hit(_catalog_source(catalog, item.unit_id), item.score, item.retrieval_metadata) for item in result.fdd_evidence[:limit]]
 
 
-def _to_combined_code_hits(result: CombinedRetrievalResult, catalog: dict[str, _CatalogSource], *, limit: int) -> list[KnowledgeSearchHit]:
-    return [_search_hit(_catalog_source(catalog, item.unit_id), item.score) for item in result.code_evidence[:limit]]
+def _to_combined_code_hits(
+    result: CombinedRetrievalResult,
+    catalog: dict[str, _CatalogSource],
+    *,
+    limit: int,
+    package_inventory: PackageInventory | None = None,
+) -> list[KnowledgeSearchHit]:
+    return _add_package_inventory(
+        [_search_hit(_catalog_source(catalog, item.unit_id), item.score, item.retrieval_metadata) for item in result.code_evidence[:limit]],
+        package_inventory,
+    )
+
+
+def _add_package_inventory(
+    hits: list[KnowledgeSearchHit], package_inventory: PackageInventory | None
+) -> list[KnowledgeSearchHit]:
+    """Attach one complete parser inventory without changing result count."""
+
+    if package_inventory is None or not hits:
+        return hits
+    metadata = dict(hits[0].metadata)
+    metadata["parser_inventory"] = {
+        "status": "complete",
+        "source_path": package_inventory.source_path,
+        "procedures": list(package_inventory.procedures),
+        "functions": list(package_inventory.functions),
+    }
+    hits[0] = hits[0].model_copy(update={"metadata": metadata})
+    return hits
 
 
 def _catalog_source(catalog: dict[str, _CatalogSource], internal_unit_id: str) -> _CatalogSource:
@@ -546,8 +612,10 @@ def _search_hit(
     retrieval_payload: dict[str, Any] | None = None,
 ) -> KnowledgeSearchHit:
     metadata = dict(source.metadata)
-    if retrieval_payload and retrieval_payload.get("retrieval_relation"):
-        metadata["retrieval_relation"] = str(retrieval_payload["retrieval_relation"])
+    if retrieval_payload:
+        for key in ("retrieval_relation", "workflow_status"):
+            if retrieval_payload.get(key):
+                metadata[key] = str(retrieval_payload[key])
     return KnowledgeSearchHit(
         id=source.public_id,
         title=source.title,

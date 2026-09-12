@@ -1,0 +1,1 @@
+{"manifest_sha256": "140e34c8b8037cae7cdc643aecc6b4127a42e24377077e78b7d165bb93265f18", "batch_identity_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "diagnostic_passes": 1, "diagnostic_total": 1, "cases": [{"case_id": "uat-combined-test-001", "diagnostic_passed": true}]}

@@ -1,0 +1,54 @@
+{
+  "created_at_utc": "2026-09-12T10:32:10.620649Z",
+  "diff": {
+    "added": [
+      "pkg.sql"
+    ],
+    "ambiguous_rename_hashes": [],
+    "base_snapshot_id": null,
+    "deleted": [],
+    "exact_renames": [],
+    "expected_changed_packages": [],
+    "formatting_only_modified": [],
+    "ingestion_policy_changed_from_base": false,
+    "missing_expected_changes": [],
+    "modified": [],
+    "schema_version": "code_snapshot_diff_v1",
+    "unchanged": [],
+    "unexpected_changed_files": []
+  },
+  "files": [
+    {
+      "encoding": "utf-8",
+      "extension": ".sql",
+      "is_large_file": false,
+      "line_count": 1,
+      "normalized_text_sha256": "2a492a97ee5f87b9cf1e0e67ba27cf37aa788cb8a4857e18b2f614c27a372877",
+      "path": "pkg.sql",
+      "sha256": "2a492a97ee5f87b9cf1e0e67ba27cf37aa788cb8a4857e18b2f614c27a372877",
+      "size_bytes": 20,
+      "source_handler": "plsql",
+      "warnings": []
+    }
+  ],
+  "immutable": true,
+  "ingestion_policy_schema_version": "ingestion_source_policy_v1",
+  "ingestion_policy_sha256": "9f0ef08841f986d8749d13521c2162fb116dc4467601895094ee15e4709d4bfc",
+  "request": {
+    "application_build": "14.7.300",
+    "base_snapshot_id": null,
+    "compiler_context": {
+      "oracle_version": null,
+      "plsql_ccflags": null
+    },
+    "expected_changed_packages": [],
+    "module_set": "fci-custom",
+    "reviewer": "Phase 2 SME",
+    "schema_version": "code_snapshot_request_v1",
+    "svn_revision": "300"
+  },
+  "schema_version": "code_snapshot_manifest_v1",
+  "snapshot_content_sha256": "9b4b9c8a32ff90830a6433df7b3bd99fc43b407dac69cb3366d8d84c469ed08a",
+  "snapshot_id": "fci-custom-r300-9b4b9c8a32ff",
+  "source_directory_name": "source"
+}

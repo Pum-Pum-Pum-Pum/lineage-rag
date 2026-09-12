@@ -1,0 +1,52 @@
+{
+  "antlr_runtime_version": "4.13.2",
+  "antlr_tool_version": "4.13.2",
+  "conditional_error_directives": [],
+  "conditional_regions": [],
+  "diagnostics": [],
+  "duration_ms": 50616.76720000105,
+  "extracted_nodes": [
+    {
+      "conditional_state": "unconditional",
+      "display_name": "run_review_custom",
+      "enclosing_routines": [],
+      "extraction_method": "antlr",
+      "node_id": "9bb6e13813e7c3167aa65b2fe01d2e1e33cf17c9ad406eee498eaaff0ca65038",
+      "node_kind": "procedure",
+      "package_name": null,
+      "signature_text": "CREATE OR REPLACE PROCEDURE run_review_custom(p_sql VARCHAR2)",
+      "source_map": {
+        "end_line": 9,
+        "end_offset": 246,
+        "source_path": "run_review_custom.sql",
+        "start_line": 1,
+        "start_offset": 0
+      }
+    }
+  ],
+  "grammar_commit": "a7704d4c029c33a89818ac103f758f7c72d8d16c",
+  "parser_state": "full_parse",
+  "peak_memory_bytes": 11666260,
+  "schema_version": "plsql_file_parse_v1",
+  "segments": [
+    {
+      "degradation_reason": null,
+      "display_name": null,
+      "parse_succeeded": true,
+      "segment_id": "1d5a87ace3763102a8482dda8973ff60470a5e509a6903519a358455c69b6b8a",
+      "segment_kind": "file",
+      "source_map": {
+        "end_line": 10,
+        "end_offset": 252,
+        "source_path": "run_review_custom.sql",
+        "start_line": 1,
+        "start_offset": 0
+      },
+      "syntax_error_count": 0
+    }
+  ],
+  "snapshot_id": "fci-custom-r1-11d43381f834",
+  "source_path": "run_review_custom.sql",
+  "source_sha256": "e4c53908a82625bda2619cb6331b5d7c12dae9571aa4e8ca867b0d6c02ccd3cb",
+  "syntax_error_count": 0
+}

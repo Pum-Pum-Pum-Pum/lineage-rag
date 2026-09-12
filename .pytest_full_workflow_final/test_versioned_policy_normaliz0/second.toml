@@ -1,0 +1,10 @@
+schema_version = "code_analysis_policy_v5"
+[boundaries]
+custom_program_unit_suffixes = ["_custom", "_main"]
+infer_noncustom_qualified_packages_as_kernel = true
+kernel_program_unit_suffixes = ["_kernel"]
+kernel_package_names = ["kernel_claim"]
+kernel_package_prefixes = ["KERNEL_"]
+external_package_prefixes = ["dbms_"]
+infrastructure_utility_calls = ["isdebug.writeline"]
+ignored_builtin_calls = ["nvl"]

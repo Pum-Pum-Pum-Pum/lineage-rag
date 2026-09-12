@@ -1,0 +1,29 @@
+{
+  "total_cases": 1,
+  "analyzed_case_count": 1,
+  "high_severity_count": 0,
+  "medium_severity_count": 0,
+  "low_severity_count": 1,
+  "info_severity_count": 0,
+  "label_counts": {
+    "expected_unanswerable": 1
+  },
+  "cases": [
+    {
+      "case_id": "mobile_login",
+      "query": "mobile app login flow",
+      "comparison_outcome": "both_fail",
+      "expected_to_pass": false,
+      "severity": "low",
+      "root_cause_labels": [
+        "expected_unanswerable"
+      ],
+      "rationale": "Both retrievers failed on a case that is expected not to pass, which is consistent with an unanswerable or unsupported-evidence scenario.",
+      "recommended_next_action": "Keep this as an abstention/no-evidence regression case and verify answer generation refuses safely.",
+      "dense_top_unit_id": "dense-unit",
+      "lexical_top_unit_id": "lexical-unit",
+      "dense_top_preview": "Unrelated approval table",
+      "lexical_top_preview": "Unrelated background paragraph"
+    }
+  ]
+}

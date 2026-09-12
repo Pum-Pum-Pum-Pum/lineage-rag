@@ -1,0 +1,69 @@
+{
+  "antlr_runtime_version": "4.13.2",
+  "antlr_tool_version": "4.13.2",
+  "conditional_error_directives": [],
+  "conditional_regions": [],
+  "diagnostics": [],
+  "duration_ms": 2622.6854999986244,
+  "extracted_nodes": [
+    {
+      "conditional_state": "unconditional",
+      "display_name": "pkg_customer_custom",
+      "enclosing_routines": [],
+      "extraction_method": "antlr",
+      "node_id": "41ea9d92865bd7b2c619d0fffef6e36dda49e1ac6d2c674ad4cfb55114820940",
+      "node_kind": "package_body",
+      "package_name": "pkg_customer_custom",
+      "signature_text": null,
+      "source_map": {
+        "end_line": 3,
+        "end_offset": 93,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 1,
+        "start_offset": 0
+      }
+    },
+    {
+      "conditional_state": "unconditional",
+      "display_name": "run",
+      "enclosing_routines": [],
+      "extraction_method": "antlr",
+      "node_id": "5f0fbc0728a2d24568eb549d446e9e007817ff3760345651e1e022c55aa29c88",
+      "node_kind": "procedure",
+      "package_name": "pkg_customer_custom",
+      "signature_text": "PROCEDURE run",
+      "source_map": {
+        "end_line": 2,
+        "end_offset": 89,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 2,
+        "start_offset": 56
+      }
+    }
+  ],
+  "grammar_commit": "a7704d4c029c33a89818ac103f758f7c72d8d16c",
+  "parser_state": "full_parse",
+  "peak_memory_bytes": 5206016,
+  "schema_version": "plsql_file_parse_v1",
+  "segments": [
+    {
+      "degradation_reason": null,
+      "display_name": null,
+      "parse_succeeded": true,
+      "segment_id": "cfa2847084c94fe1186544e751230fb4738e04ee7625e43b6199c66f9b3b9242",
+      "segment_kind": "file",
+      "source_map": {
+        "end_line": 4,
+        "end_offset": 97,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 1,
+        "start_offset": 0
+      },
+      "syntax_error_count": 0
+    }
+  ],
+  "snapshot_id": "fci-custom-r153-435a2acebc68",
+  "source_path": "pkg_customer_custom.sql",
+  "source_sha256": "fb1b80d06f0ce07e5a3ef91afddd9341554e8b3498392f9b7913d6a2277e7b98",
+  "syntax_error_count": 0
+}

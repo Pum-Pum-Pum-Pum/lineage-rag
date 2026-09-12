@@ -1,0 +1,1 @@
+{"actions": [{"case_id": "cheque", "status": "paid_replay_pending_semantic_review", "required_artifact_patterns": ["*R21*"]}]}

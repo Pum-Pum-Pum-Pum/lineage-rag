@@ -1,0 +1,52 @@
+{
+  "antlr_runtime_version": "4.13.2",
+  "antlr_tool_version": "4.13.2",
+  "conditional_error_directives": [],
+  "conditional_regions": [],
+  "diagnostics": [],
+  "duration_ms": 11553.259499996784,
+  "extracted_nodes": [
+    {
+      "conditional_state": "unconditional",
+      "display_name": "duplicate_proc_custom",
+      "enclosing_routines": [],
+      "extraction_method": "antlr",
+      "node_id": "642b8b9e0885a245c0ace243779b0d0472bbe03825eb6f4e186e0626dc985c0c",
+      "node_kind": "procedure",
+      "package_name": null,
+      "signature_text": "CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER)",
+      "source_map": {
+        "end_line": 1,
+        "end_offset": 110,
+        "source_path": "b/duplicate_proc_custom.prc",
+        "start_line": 1,
+        "start_offset": 0
+      }
+    }
+  ],
+  "grammar_commit": "a7704d4c029c33a89818ac103f758f7c72d8d16c",
+  "parser_state": "full_parse",
+  "peak_memory_bytes": 6434206,
+  "schema_version": "plsql_file_parse_v1",
+  "segments": [
+    {
+      "degradation_reason": null,
+      "display_name": null,
+      "parse_succeeded": true,
+      "segment_id": "25a6aff53c57808d729dc3b423a9a8738e8816314d677dcf5f56685c2fa56445",
+      "segment_kind": "file",
+      "source_map": {
+        "end_line": 1,
+        "end_offset": 114,
+        "source_path": "b/duplicate_proc_custom.prc",
+        "start_line": 1,
+        "start_offset": 0
+      },
+      "syntax_error_count": 0
+    }
+  ],
+  "snapshot_id": "fci-custom-r153-677db6957865",
+  "source_path": "b/duplicate_proc_custom.prc",
+  "source_sha256": "d202f388c840155aa6724904731d63d26c1429b3fffee542e641891b9e9c418d",
+  "syntax_error_count": 0
+}

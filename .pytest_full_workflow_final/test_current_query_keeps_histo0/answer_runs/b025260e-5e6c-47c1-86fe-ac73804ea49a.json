@@ -1,0 +1,71 @@
+{
+  "request_id": "b025260e-5e6c-47c1-86fe-ac73804ea49a",
+  "created_at_utc": "2026-09-12T10:30:28.138484+00:00",
+  "query": "Which current release contains the Teller and Branch Reports Re-alignment change, rather than the original R2 report specifications?",
+  "filters": {
+    "document_family": null,
+    "release_label": "R24",
+    "source_kind": null
+  },
+  "sufficiency": {
+    "is_sufficient": true,
+    "reason": "Retrieved evidence passed baseline sufficiency checks.",
+    "result_count": 2,
+    "top_score": 0.9
+  },
+  "answer_response": {
+    "query": "Which current release contains the Teller and Branch Reports Re-alignment change, rather than the original R2 report specifications?",
+    "answer": "R24 [C1].",
+    "is_answered": true,
+    "refusal_reason": null,
+    "citations": [],
+    "usage": null,
+    "cost": null
+  },
+  "retrieval_results": [
+    {
+      "point_id": "r2",
+      "score": 0.9,
+      "payload": {
+        "unit_id": "r2",
+        "text": "R2",
+        "release_label": "R2"
+      }
+    },
+    {
+      "point_id": "r24",
+      "score": 0.8,
+      "payload": {
+        "unit_id": "r24",
+        "text": "R24",
+        "release_label": "R24"
+      }
+    }
+  ],
+  "retrieval_metadata": {
+    "retrieval_mode": "hybrid",
+    "hybrid_dense_weight": 0.6,
+    "hybrid_lexical_weight": 0.4,
+    "hybrid_candidate_limit": 10,
+    "hybrid_fusion_method": "weighted_rrf",
+    "hybrid_rrf_rank_constant": 1.0,
+    "limit": 5,
+    "retrieval_candidate_limit": 10,
+    "original_query": "Which current release contains the Teller and Branch Reports Re-alignment change, rather than the original R2 report specifications?",
+    "retrieval_query": "Which current release contains the Teller and Branch Reports Re-alignment change, rather than the original R2 report specifications?\nInterpret current as the resulting production state after the latest deployed relevant release. Retrieve change details for retained, consolidated, renamed, and removed items; treat Existing Functionality as the pre-change baseline.",
+    "current_state_requested": true,
+    "historical_context_requested": true,
+    "effective_release_label": "R24",
+    "release_source": "retrieved_candidates",
+    "referenced_release_labels": [
+      "R2"
+    ],
+    "min_results": 1,
+    "min_top_score": 0.3,
+    "candidate_lanes": {
+      "dense": [],
+      "lexical": []
+    }
+  },
+  "correlation_id": null
+}

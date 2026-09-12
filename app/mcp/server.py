@@ -69,7 +69,10 @@ def create_mcp_server(
         description="Read-only retrieval of approved FDD and visible custom PL/SQL evidence.",
         instructions=(
             "Use search before fetch. Treat returned evidence as source material, not a "
-            "guarantee of complete behavior. Do not infer unavailable kernel behavior."
+            "guarantee of complete behavior. Do not infer unavailable kernel behavior. "
+            "When metadata.workflow_status is unreviewed_documentation_candidate, label "
+            "the FDD as a candidate documentation link and do not present it as reviewed "
+            "lineage, conformance, or a confirmed code/FDD conflict."
         ),
         log_level=effective_settings.log_level.upper(),
     )
@@ -86,6 +89,9 @@ def create_mcp_server(
             "Search approved FDD, code, or both knowledge lanes and return bounded ranked evidence. "
             "For a JSON/Postman request question, fetch every returned FDD result whose "
             "metadata has sheet_role=request before drafting a payload; do not invent omitted fields."
+            " When a question names one logical code filename exactly, a returned code result "
+            "may include metadata.parser_inventory with the complete parsed procedure/function "
+            "inventory for that retrieved file."
         ),
         annotations=annotations,
         structured_output=True,

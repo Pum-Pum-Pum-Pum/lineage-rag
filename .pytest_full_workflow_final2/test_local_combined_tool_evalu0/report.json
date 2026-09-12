@@ -1,0 +1,131 @@
+{
+  "schema_version": "bounded_tool_eval_report_v1",
+  "manifest_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "policy_sha256": "dcdd5b90790c77e913ddcfeaa619715311b8cdca9491d8b78a806472e5b789e2",
+  "fdd_generation": "functional_specs_v5",
+  "code_snapshot_id": "code-snapshot-r1",
+  "lineage_artifact_identity_sha256": "0beb986383bff77f2ba06a54d1dd92c8044f5d14a5085ca79f860577b74579ba",
+  "cases": [
+    {
+      "case_id": "tool-combined-test-001",
+      "passed": true,
+      "checks": [
+        {
+          "name": "fdd_documents",
+          "passed": true,
+          "expected": [
+            "FDD-AML-R24"
+          ],
+          "observed": [
+            "FDD-AML-R24"
+          ]
+        },
+        {
+          "name": "code_paths",
+          "passed": true,
+          "expected": [
+            "pkg_aml_custom.sql"
+          ],
+          "observed": [
+            "pkg_aml_custom.sql"
+          ]
+        },
+        {
+          "name": "code_symbols",
+          "passed": true,
+          "expected": [
+            "SP_PROCESS_AML"
+          ],
+          "observed": [
+            "SP_PROCESS_AML"
+          ]
+        },
+        {
+          "name": "reviewed_lineage",
+          "passed": true,
+          "expected": [
+            "reviewed_edge"
+          ],
+          "observed": [
+            "reviewed_edge"
+          ]
+        }
+      ],
+      "execution_trace": {
+        "schema_version": "bounded_tool_trace_v1",
+        "plan_identity_sha256": "d212b6bd618560a600eb3548c12b9909b1cfc356bfdf20cd9207e1c7903f805b",
+        "policy_sha256": "dcdd5b90790c77e913ddcfeaa619715311b8cdca9491d8b78a806472e5b789e2",
+        "status": "completed",
+        "calls": [
+          {
+            "invocation_id": "c315db54efa9112fe9250f5e1017710caf97a60e0f99fb00618b7e134e1571d3",
+            "tool_name": "fdd_search",
+            "status": "completed",
+            "result_count": 1,
+            "evidence_identities": [
+              "fdd-unit-aml"
+            ],
+            "error_type": null
+          },
+          {
+            "invocation_id": "8d421e48c211f8acb869a2c785e672714db737e5e9cf1b88fac68552c000e339",
+            "tool_name": "code_search",
+            "status": "completed",
+            "result_count": 1,
+            "evidence_identities": [
+              "code-unit-aml"
+            ],
+            "error_type": null
+          },
+          {
+            "invocation_id": "199b8c989ce8fba983009e6546828dcf7966bdf27a6f0c551413b551991d8ad8",
+            "tool_name": "impact_graph",
+            "status": "completed",
+            "result_count": 1,
+            "evidence_identities": [
+              "1dce1c452ae6d8c275c91aefeeb81a946024d85e06e5a3b1565667f42cd31250"
+            ],
+            "error_type": null
+          }
+        ],
+        "total_evidence_units": 2,
+        "automatic_routing_used": false
+      }
+    }
+  ],
+  "safety_checks": [
+    {
+      "name": "automatic_routing_disabled",
+      "passed": true,
+      "detail": "The policy forbids model-selected routing."
+    },
+    {
+      "name": "over_budget_plan_blocked",
+      "passed": true,
+      "detail": "A four-call plan is rejected before any handler executes."
+    },
+    {
+      "name": "missing_handler_blocked",
+      "passed": true,
+      "detail": "Missing handlers return a source-free blocked trace."
+    },
+    {
+      "name": "trace_excludes_source_outputs",
+      "passed": true,
+      "detail": "Operational traces contain identities and counts, not citeable source outputs."
+    },
+    {
+      "name": "no_external_api_calls",
+      "passed": true,
+      "detail": "The evaluator uses local lexical artifacts only."
+    }
+  ],
+  "positive_passes": 1,
+  "positive_total": 1,
+  "safety_passes": 5,
+  "safety_total": 5,
+  "all_cases_reviewed": false,
+  "release_gate_eligible": false,
+  "external_api_calls": 0,
+  "report_identity_sha256": "27cb0ad6441f835d1a8d6753f8edda774793f0f5d1e67048d6834e1785ca0775"
+}

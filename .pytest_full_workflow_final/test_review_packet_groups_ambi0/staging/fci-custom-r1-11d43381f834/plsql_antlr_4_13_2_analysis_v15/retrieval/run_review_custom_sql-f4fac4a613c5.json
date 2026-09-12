@@ -1,0 +1,43 @@
+{
+  "max_unit_characters": 6000,
+  "overlap_characters": 400,
+  "schema_version": "code_retrieval_artifact_v2",
+  "snapshot_id": "fci-custom-r1-11d43381f834",
+  "source_path": "run_review_custom.sql",
+  "total_units": 1,
+  "units": [
+    {
+      "chunk_count": null,
+      "chunk_index": null,
+      "conditional_state": "unconditional",
+      "derived_context": {
+        "conditional_state": "unconditional",
+        "package_name": "<standalone>",
+        "public_signature": "CREATE OR REPLACE PROCEDURE run_review_custom(p_sql VARCHAR2)",
+        "referenced_constants": [],
+        "referenced_cursors": [],
+        "referenced_globals": [],
+        "referenced_types": []
+      },
+      "display_name": "run_review_custom",
+      "package_name": null,
+      "parent_source_map": null,
+      "parent_unit_id": null,
+      "parser_state": "full_parse",
+      "related_unit_ids": [],
+      "retrieval_text": "DERIVED RETRIEVAL CONTEXT - NOT A CITATION SOURCE\nPackage: <standalone>\nPublic signature: CREATE OR REPLACE PROCEDURE run_review_custom(p_sql VARCHAR2)\nReferenced package types: <none>\nReferenced constants: <none>\nReferenced global variables: <none>\nReferenced cursors: <none>\nConditional compilation state: unconditional\n\nORIGINAL CITATION SOURCE:\nCREATE OR REPLACE PROCEDURE run_review_custom(p_sql VARCHAR2) IS\r\n  l_id NUMBER;\r\nBEGIN\r\n  pkg_visible_custom.do_work();\r\n  pkg_kernel.do_work();\r\n  unknown_local();\r\n  SELECT id INTO l_id FROM app.business_table;\r\n  EXECUTE IMMEDIATE p_sql;\r\nEND",
+      "snapshot_id": "fci-custom-r1-11d43381f834",
+      "source_kind": "procedure",
+      "source_map": {
+        "end_line": 9,
+        "end_offset": 246,
+        "source_path": "run_review_custom.sql",
+        "start_line": 1,
+        "start_offset": 0
+      },
+      "source_path": "run_review_custom.sql",
+      "text": "CREATE OR REPLACE PROCEDURE run_review_custom(p_sql VARCHAR2) IS\r\n  l_id NUMBER;\r\nBEGIN\r\n  pkg_visible_custom.do_work();\r\n  pkg_kernel.do_work();\r\n  unknown_local();\r\n  SELECT id INTO l_id FROM app.business_table;\r\n  EXECUTE IMMEDIATE p_sql;\r\nEND",
+      "unit_id": "cc864a18973acd9699c4f4710e71f35da6d89eac89ad0ffb82c2d61460e363c8"
+    }
+  ]
+}

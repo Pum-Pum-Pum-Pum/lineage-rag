@@ -1,0 +1,41 @@
+{
+  "analysis_artifacts": [
+    "analysis/invalid_ddl-775c7b039b97.json"
+  ],
+  "analysis_policy_sha256": "f707e1f5f9bcc63db8ad48f9d0448d4904e1f28fd53947cc39b427b1e67cd5fc",
+  "file_count": 1,
+  "max_retrieval_unit_characters": 6000,
+  "max_segment_characters": 500,
+  "memory_limit_bytes": 1073741824,
+  "parse_artifacts": [
+    "parse/invalid_ddl-775c7b039b97.json"
+  ],
+  "parse_reuse_records": [
+    {
+      "reuse_key_sha256": "6c3eb5175c890d58259e5859da0d2cb666c61c855af309f05a4d6530c970510d",
+      "reused": false,
+      "reused_from_generation": null,
+      "source_path": "invalid.ddl",
+      "source_sha256": "6d9ea9754add5691e23cedb6bf3f2a928f1dd3e88c261db96ff467f66c183e92"
+    }
+  ],
+  "parser_contract_version": "plsql_parser_contract_v3",
+  "parser_generation": "plsql_antlr_4_13_2_analysis_v15",
+  "retrieval_artifacts": [
+    "retrieval/invalid_ddl-775c7b039b97.json"
+  ],
+  "retrieval_overlap_characters": 400,
+  "reused_from_generation": null,
+  "reused_parse_file_count": 0,
+  "schema_version": "code_parse_stage_v2",
+  "snapshot_content_sha256": "c7ac302b1822bd354ef854013119d4953ee870a1713e3c12231a368b93bb2f7d",
+  "snapshot_id": "fci-custom-r153-c7ac302b1822",
+  "state_counts": {
+    "failed": 0,
+    "fallback_parse": 1,
+    "full_parse": 0,
+    "segmented_parse": 0
+  },
+  "status": "complete_with_degradation",
+  "timeout_seconds": 120.0
+}

@@ -1,0 +1,1 @@
+CREATE OR REPLACE PROCEDURE duplicate_proc_custom(p_id NUMBER) IS BEGIN NULL; END; /

@@ -1,0 +1,10 @@
+{
+  "document_name": "example.docx",
+  "total_records": 0,
+  "cached_count": 0,
+  "embedded_count": 0,
+  "cache_miss_count": 0,
+  "cache_hit_rate": 0.0,
+  "embedding_models": [],
+  "artifact_versions": []
+}

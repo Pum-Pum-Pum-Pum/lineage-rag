@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from app.core.config import Settings
 from app.retrieval import knowledge_service
 from app.retrieval.knowledge_service import (
+    KnowledgeSearchHit,
     KnowledgeRetrievalExecution,
     KnowledgeRetrievalService,
     SourceCatalog,
@@ -114,6 +115,64 @@ def test_search_formats_results_from_active_catalog_without_exposing_internal_id
     assert response.results[0].id.startswith("fdd_")
     assert document.unit_id not in response.model_dump_json()
     assert response.results[0].short_excerpt == "Evidence text"
+
+
+def test_combined_search_emits_only_bounded_combined_lanes(monkeypatch, tmp_path: Path) -> None:
+    """The internal planned FDD candidates must not be appended to MCP output."""
+
+    settings = SimpleNamespace(fdd_generation="functional_specs_v9", processed_dir=tmp_path)
+    service = KnowledgeRetrievalService(
+        settings=settings,
+        retrieval_config=RetrievalRuntimeConfig("lexical", 0.4, 0.6, 10),
+    )
+    planned = SimpleNamespace(results=[object()])
+    combined = object()
+    monkeypatch.setattr(
+        service,
+        "retrieve",
+        lambda **_: KnowledgeRetrievalExecution(
+            mode="combined",
+            query="exact routine",
+            retrieval_mode="lexical",
+            fdd=planned,
+            combined=combined,
+        ),
+    )
+    monkeypatch.setattr(
+        service,
+        "_build_catalog",
+        lambda **_: SimpleNamespace(fdd_by_internal_id={}, code_by_internal_id={}),
+    )
+    monkeypatch.setattr(
+        knowledge_service,
+        "_to_search_hits",
+        lambda *args, **kwargs: pytest.fail("planned FDD candidates must not be emitted"),
+    )
+    fdd_hit = KnowledgeSearchHit(
+        id="fdd_" + "a" * 64,
+        title="FDD candidate",
+        source_type="fdd",
+        short_excerpt="FDD evidence",
+        score=1.0,
+        metadata={},
+        source_reference="document:fdd#source=fdd_" + "a" * 64,
+    )
+    code_hit = KnowledgeSearchHit(
+        id="code_" + "b" * 64,
+        title="Code routine",
+        source_type="code",
+        short_excerpt="Code evidence",
+        score=1.0,
+        metadata={},
+        source_reference="code:snapshot/source.sql#L1-L1",
+    )
+    monkeypatch.setattr(knowledge_service, "_to_fdd_evidence_hits", lambda *args, **kwargs: [fdd_hit])
+    monkeypatch.setattr(knowledge_service, "_to_combined_code_hits", lambda *args, **kwargs: [code_hit])
+
+    response = service.search(query="exact routine", mode="combined", limit=5)
+
+    assert response.ranking_scope == "per_source_type"
+    assert response.results == (fdd_hit, code_hit)
 
 
 def test_request_json_query_retains_same_workbook_request_sheet_and_exposes_sheet_metadata() -> None:

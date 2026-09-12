@@ -1,0 +1,10 @@
+schema_version = "ingestion_source_policy_v1"
+
+[fdd.extensions]
+".pdf" = "pdf"
+
+[code.extensions]
+".sql" = "plsql"
+".prc" = "plsql"
+".fnc" = "plsql"
+".ddl" = "ddl"

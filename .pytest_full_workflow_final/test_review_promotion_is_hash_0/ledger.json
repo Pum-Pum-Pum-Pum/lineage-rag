@@ -1,0 +1,27 @@
+{
+  "approval_note": "All reviewed expectations are accepted.",
+  "approval_source": "chat_confirmation",
+  "decisions": [
+    {
+      "case_id": "tool-review-case-001",
+      "rationale": "All reviewed expectations are accepted.",
+      "rationale_source": "chat_confirmation",
+      "verdict": "accepted"
+    }
+  ],
+  "draft_manifest": "C:\\OC\\AI\\AI_Projects\\Culling Blade Lineage- Gen AI RAG System\\.pytest_full_workflow_final\\test_review_promotion_is_hash_0\\draft.jsonl",
+  "draft_manifest_sha256": "c8ffd1af465e3e15b397997bd60f670da472706606662ab544ca5e507bf455ed",
+  "evaluated_report_identity_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "ledger_identity_sha256": "3bb5356f113c474ad274cb420fd2d7b167f6f3524042d859f28b05c78782cbe1",
+  "review_packet": "C:\\OC\\AI\\AI_Projects\\Culling Blade Lineage- Gen AI RAG System\\.pytest_full_workflow_final\\test_review_promotion_is_hash_0\\review.md",
+  "review_packet_sha256": "9584c588b3562e0d5c992906a6bc6ef44d67c9d49b8d6e119e10a5664c651803",
+  "reviewed_at": "2026-09-12T10:30:27.958762+00:00",
+  "reviewed_manifest": "C:\\OC\\AI\\AI_Projects\\Culling Blade Lineage- Gen AI RAG System\\.pytest_full_workflow_final\\test_review_promotion_is_hash_0\\reviewed.jsonl",
+  "reviewed_manifest_sha256": "91a4d762221fd1038e442a7e2067951bd857b6625d9b4f9659ff13abd5816ee0",
+  "reviewer": "Reviewer",
+  "schema_version": "bounded_tool_eval_review_ledger_v1",
+  "summary": {
+    "accepted_cases": 1,
+    "total_cases": 1
+  }
+}
