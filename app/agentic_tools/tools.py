@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 from itertools import islice
-import re
 from typing import Any
 
 from app.agentic_tools.models import (
@@ -20,21 +19,11 @@ from app.fdd_code_lineage.combined_retrieval import (
     CombinedRetrievalResult,
     FddEvidence,
 )
+from app.retrieval.identifier_affinity import normalized_identifier_tokens
 
 
 FddSearchRunner = Callable[[str, int], Iterable[Any]]
 CodeSearchRunner = Callable[[str, int], CodeRetrievalResult]
-
-
-_IDENTIFIER_TOKEN_PATTERN = re.compile(
-    r"[A-Z]+(?=[A-Z][a-z]|\d|$)|[A-Z]?[a-z]+|\d+"
-)
-_IDENTIFIER_ALIASES = {
-    "txn": "transaction",
-    "txns": "transaction",
-    "sent": "send",
-    "sending": "send",
-}
 
 
 def run_fdd_search_tool(
@@ -101,30 +90,24 @@ def select_identifier_affinity_evidence(
     if len(evidence) <= limit:
         return tuple(evidence)
     selected = list(evidence[:limit])
-    query_tokens = _normalized_identifier_tokens(query)
+    query_tokens = normalized_identifier_tokens(query)
     if not query_tokens:
         return tuple(selected)
     scored = [
-        (len(query_tokens & _normalized_identifier_tokens(item.display_name)), rank, item)
+        (len(query_tokens & normalized_identifier_tokens(item.display_name)), rank, item)
         for rank, item in enumerate(evidence)
     ]
     best_matches, _, best = max(scored, key=lambda item: (item[0], -item[1]))
     if best_matches < minimum_matches or any(item.unit_id == best.unit_id for item in selected):
         return tuple(selected)
     weakest_matches = min(
-        len(query_tokens & _normalized_identifier_tokens(item.display_name))
+        len(query_tokens & normalized_identifier_tokens(item.display_name))
         for item in selected
     )
     if best_matches <= weakest_matches:
         return tuple(selected)
     selected[-1] = best
     return tuple(selected)
-
-
-def _normalized_identifier_tokens(value: str) -> set[str]:
-    expanded = value.replace("_", " ").replace("$", " ")
-    raw = _IDENTIFIER_TOKEN_PATTERN.findall(expanded)
-    return {_IDENTIFIER_ALIASES.get(token.casefold(), token.casefold()) for token in raw}
 
 
 def run_impact_graph_tool(
@@ -299,7 +282,7 @@ def _code_node(code) -> ImpactGraphNode:
 
 
 def _requests_unavailable_kernel_implementation(query: str) -> bool:
-    tokens = _normalized_identifier_tokens(query)
+    tokens = normalized_identifier_tokens(query)
     boundary = bool(tokens & {"kernel", "java", "j2ee"})
     unavailable_scope = bool(tokens & {"hidden", "unavailable", "internal"})
     implementation_detail = bool(tokens & {"method", "implementation", "line", "defect"})

@@ -23,6 +23,7 @@ from app.code_retrieval.service import retrieve_code_evidence
 from app.embeddings.client import get_embedding_client
 from app.fdd_code_lineage.combined_retrieval import CombinedRetrievalResult, retrieve_combined_evidence
 from app.fdd_code_lineage.models import FddCodeLineageArtifact, validate_lineage_artifact
+from app.fdd_code_lineage.reviewed_bundle import load_reviewed_lineage
 from app.fdd_code_lineage.paid_evaluation import embed_one_query
 from app.retrieval.lexical_search import (
     LexicalSearchDocument,
@@ -421,9 +422,7 @@ class KnowledgeRetrievalService:
                     raise RuntimeError("FDD and code query vector dimensions are incompatible")
 
             documents = self._fdd_document_loader(self._fdd_artifact_directory())
-            lineage = FddCodeLineageArtifact.model_validate_json(
-                Path(self.settings.fdd_code_lineage_artifact_path).read_text(encoding="utf-8")
-            )
+            lineage = load_reviewed_lineage(Path(self.settings.fdd_code_lineage_artifact_path))
             validate_lineage_artifact(
                 lineage,
                 fdd_document_ids={item.document_id for item in documents},
@@ -432,6 +431,9 @@ class KnowledgeRetrievalService:
             )
             if lineage.status != "reviewed" or lineage.fdd_generation != self.settings.fdd_generation:
                 raise RuntimeError("Configured FDD/code lineage is not reviewed or generation-compatible")
+            combined_fdd_candidate_limit = max(
+                limit, self.retrieval_config.hybrid_candidate_limit
+            )
             planned = retrieve_planned_query_evidence(
                 qdrant_client=fdd_client,
                 collection_name=self.settings.qdrant_collection_name,
@@ -440,7 +442,7 @@ class KnowledgeRetrievalService:
                 query_vector=query_vector,
                 retrieval_config=self.retrieval_config,
                 lexical_artifact_directory=self._fdd_artifact_directory(),
-                limit=limit,
+                limit=combined_fdd_candidate_limit,
             )
             planned = _add_request_workbook_companions(
                 planned=planned,
@@ -462,6 +464,7 @@ class KnowledgeRetrievalService:
                 client=code_client,
                 collection_name=self.settings.code_qdrant_collection_name,
                 query_vector=query_vector,
+                fdd_limit=limit,
             )
             return KnowledgeRetrievalExecution(
                 mode="combined",

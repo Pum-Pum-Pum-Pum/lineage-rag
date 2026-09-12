@@ -24,7 +24,8 @@ param(
     [string]$ActivationRequest,
     [string]$ActivationApproval,
     [string]$ActivationReadinessReport,
-    [switch]$ApplyActivation
+    [switch]$ApplyActivation,
+    [switch]$ServicesStopped
 )
 
 Set-StrictMode -Version Latest
@@ -77,6 +78,47 @@ function Require-DependencyLedger {
     if (-not (Test-Path -LiteralPath $DependencyReviewLedger -PathType Leaf)) {
         throw "Dependency review ledger does not exist: $DependencyReviewLedger"
     }
+}
+
+function Resolve-BaseEmbeddingCacheArtifact {
+    param([Parameter(Mandatory)][string]$SnapshotId)
+
+    $manifestPath = Join-Path $SnapshotRoot "$SnapshotId\snapshot_manifest.json"
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw "Immutable snapshot manifest is missing: $manifestPath"
+    }
+    try {
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "Immutable snapshot manifest is not valid JSON: $manifestPath"
+    }
+    if ([string]$manifest.snapshot_id -ne $SnapshotId) {
+        throw "Immutable snapshot manifest identity does not match requested snapshot: $SnapshotId"
+    }
+    $baseSnapshotId = [string]$manifest.diff.base_snapshot_id
+    if ([string]::IsNullOrWhiteSpace($baseSnapshotId)) {
+        return $null
+    }
+
+    $cacheArtifact = Join-Path $EmbeddingRoot (
+        "$baseSnapshotId\code_index_text_embedding_3_large_v1\code_index_artifact.json"
+    )
+    if (-not (Test-Path -LiteralPath $cacheArtifact -PathType Leaf)) {
+        throw "Base snapshot '$baseSnapshotId' has no embedded code artifact at $cacheArtifact. Refusing a paid full re-embedding; embed and verify the approved base generation first."
+    }
+    try {
+        $artifact = Get-Content -LiteralPath $cacheArtifact -Raw | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "Base embedding artifact is not valid JSON: $cacheArtifact"
+    }
+    if ([string]$artifact.status -ne 'embedded' -or
+        [string]$artifact.snapshot_id -ne $baseSnapshotId -or
+        [string]$artifact.embedding_model -ne 'text-embedding-3-large') {
+        throw "Base embedding artifact is not a compatible embedded text-embedding-3-large generation: $cacheArtifact"
+    }
+    return $cacheArtifact
 }
 
 function Require-ActivationArtifact {
@@ -156,7 +198,6 @@ try {
             Write-Output "PREPARED ONLY: $artifact. No OpenAI call, Qdrant write, or activation occurred."
         }
         'embed-index' {
-            Confirm-ExternalOperation -Operation 'Code embed-index'
             if ([string]::IsNullOrWhiteSpace($CollectionName) -or $CollectionName -notmatch '^code_custom_[A-Za-z0-9_]+$') {
                 throw 'embed-index requires a new -CollectionName beginning code_custom_ (for example, code_custom_r2_v1).'
             }
@@ -165,11 +206,29 @@ try {
             if (-not (Test-Path -LiteralPath $prepared -PathType Leaf)) {
                 throw "Prepared reviewed code artifact is missing: $prepared. Run prepare-index first."
             }
-            Invoke-ProjectPython -Arguments @(
+            $embeddedDirectory = Join-Path $EmbeddingRoot (
+                "$snapshotId\code_index_text_embedding_3_large_v1"
+            )
+            if (Test-Path -LiteralPath $embeddedDirectory) {
+                throw "Embedded code generation already exists: $embeddedDirectory. Refusing a duplicate paid embedding run."
+            }
+            $baseCacheArtifact = Resolve-BaseEmbeddingCacheArtifact -SnapshotId $snapshotId
+            if ($null -ne $baseCacheArtifact) {
+                Write-Output "Embedding reuse enabled: base snapshot cache=$baseCacheArtifact"
+            }
+            else {
+                Write-Output 'Embedding reuse unavailable: this is a first-generation snapshot with no base snapshot.'
+            }
+            Confirm-ExternalOperation -Operation 'Code embed-index'
+            $embeddingArguments = @(
                 'scripts/embed_code_index_artifacts.py', $prepared,
                 '--output-root', 'data/staging/code_embeddings',
                 '--authorization', 'I_AUTHORIZE_OPENAI_CODE_DISCLOSURE_AND_COST'
             )
+            if ($null -ne $baseCacheArtifact) {
+                $embeddingArguments += @('--cache-artifact', $baseCacheArtifact)
+            }
+            Invoke-ProjectPython -Arguments $embeddingArguments
             $embedded = "data/staging/code_embeddings/$snapshotId/code_index_text_embedding_3_large_v1/code_index_artifact.json"
             Invoke-ProjectPython -Arguments @(
                 'scripts/index_code_qdrant.py', $embedded,
@@ -212,6 +271,24 @@ try {
             $snapshotId = Resolve-SnapshotId
             Require-ActivationArtifact -Name 'ActivationRequest' -Path $ActivationRequest
             Require-ActivationArtifact -Name 'ActivationApproval' -Path $ActivationApproval
+            $requestPayload = Get-Content -LiteralPath $ActivationRequest -Raw | ConvertFrom-Json
+            if ($requestPayload.schema_version -eq 'code_generation_promotion_request_v1') {
+                if ($requestPayload.snapshot_id -ne $snapshotId) {
+                    throw 'Promotion request belongs to a different immutable snapshot.'
+                }
+                $promotionArguments = @('scripts/promote_code_generation.py', 'switch',
+                    '--action', 'activate', '--request', $ActivationRequest, '--approval', $ActivationApproval)
+                Invoke-ProjectPython -Arguments $promotionArguments
+                if ($ApplyActivation) {
+                    if (-not $ServicesStopped) { throw 'Stop serving processes and confirm -ServicesStopped before applying.' }
+                    Confirm-CodeActivation -SnapshotId $snapshotId
+                    Invoke-ProjectPython -Arguments ($promotionArguments + @('--apply', '--services-stopped'))
+                    Write-Output 'GENERATION CONFIGURATION APPLIED: restart the intended client and verify readiness. Activation is not yet complete.'
+                } else {
+                    Write-Output 'GENERATION PREFLIGHT ONLY: no .env change or service restart occurred.'
+                }
+                break
+            }
             Require-ActivationArtifact -Name 'ActivationReadinessReport' -Path $ActivationReadinessReport
 
             $embedded = "data/staging/code_embeddings/$snapshotId/code_index_text_embedding_3_large_v1/code_index_artifact.json"

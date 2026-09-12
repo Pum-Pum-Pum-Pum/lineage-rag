@@ -12,6 +12,9 @@ from app.retrieval.retrieval_config import build_retrieval_runtime_config
 from app.schemas.readiness_api import ReadinessCheck, ReadinessResponse
 from app.vectorstore.qdrant_schema import create_persistent_qdrant_client
 from app.code_indexing.contract import load_code_index_artifact
+from app.fdd_code_lineage.reviewed_bundle import load_reviewed_lineage
+from app.fdd_code_lineage.models import validate_lineage_artifact
+from app.retrieval.lexical_search import load_retrieval_ready_documents
 
 
 router = APIRouter(tags=["readiness"])
@@ -174,12 +177,24 @@ def _extended_mode_readiness(settings, knowledge_mode: str) -> ReadinessResponse
     if knowledge_mode == "combined":
         checks.append(_check_retrieval_ready_artifacts(settings.processed_dir, required=True))
         lineage_path = Path(settings.fdd_code_lineage_artifact_path)
+        try:
+            lineage = load_reviewed_lineage(lineage_path)
+            if lineage.fdd_generation != settings.fdd_generation or artifact is None:
+                raise ValueError("Lineage generation mismatch")
+            validate_lineage_artifact(
+                lineage, code_artifact=artifact,
+                fdd_document_ids={d.document_id for d in load_retrieval_ready_documents(settings.processed_dir)},
+                analysis_directory=settings.code_analysis_directory,
+            )
+            lineage_ready = True
+        except Exception:
+            lineage_ready = False
         checks.append(
             ReadinessCheck(
                 name="reviewed_lineage_artifact",
                 required=True,
-                is_ready=lineage_path.is_file(),
-                detail="Reviewed lineage artifact exists." if lineage_path.is_file() else "Reviewed lineage artifact is missing.",
+                is_ready=lineage_ready,
+                detail="Reviewed lineage matches the selected generation." if lineage_ready else "Reviewed lineage is missing, invalid, or generation-incompatible.",
             )
         )
         fdd_client = None

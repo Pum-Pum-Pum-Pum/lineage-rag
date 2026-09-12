@@ -24,7 +24,8 @@ from app.fdd_code_lineage.evaluation import (
     require_reviewed_code_combined_cases,
     write_json_report_no_overwrite,
 )
-from app.fdd_code_lineage.models import FddCodeLineageArtifact, validate_lineage_artifact
+from app.fdd_code_lineage.models import validate_lineage_artifact
+from app.fdd_code_lineage.reviewed_bundle import load_evaluation_lineage
 from app.retrieval.lexical_search import (
     load_retrieval_ready_documents,
     search_lexical_artifacts,
@@ -55,6 +56,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Local JSON object mapping case_id to a precomputed query vector.",
     )
     parser.add_argument("--limit", type=_positive_int, default=10)
+    parser.add_argument("--fdd-candidate-limit", type=_positive_int, default=30)
     parser.add_argument("--candidate-limit", type=_positive_int, default=30)
     parser.add_argument("--max-units-per-parent", type=_positive_int, default=2)
     parser.add_argument("--minimum-positive-pass-rate", type=_rate, default=0.90)
@@ -95,9 +97,7 @@ def main(argv: list[str] | None = None) -> int:
                 "Combined cases require FDD generation/directory and lineage artifact"
             )
         fdd_documents = load_retrieval_ready_documents(args.fdd_directory)
-        lineage = FddCodeLineageArtifact.model_validate_json(
-            args.lineage_artifact.read_text(encoding="utf-8")
-        )
+        lineage = load_evaluation_lineage(args.lineage_artifact)
         if lineage.status != "reviewed":
             raise ValueError("Combined evaluation requires reviewed lineage")
         if lineage.fdd_generation != args.fdd_generation:
@@ -127,6 +127,8 @@ def main(argv: list[str] | None = None) -> int:
     print("external_api_calls=0")
     if args.dry_run:
         return 0
+    if args.fdd_candidate_limit < args.limit:
+        raise ValueError("fdd-candidate-limit must be greater than or equal to limit")
 
     client = QdrantClient(path=str(args.qdrant_path)) if needs_dense else None
     reports = []
@@ -148,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 assert lineage is not None
                 fdd_results = search_lexical_artifacts(
-                    args.fdd_directory, case.question, limit=args.limit
+                    args.fdd_directory, case.question, limit=args.fdd_candidate_limit
                 )
                 retrieval = retrieve_combined_evidence(
                     query=case.question,
@@ -165,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
                     collection_name=args.collection_name,
                     query_vector=vector,
                     code_max_units_per_parent=args.max_units_per_parent,
+                    fdd_limit=args.limit,
                 )
             report = build_code_combined_retrieval_case_report(
                 case=case, retrieval=retrieval
@@ -199,7 +202,13 @@ def main(argv: list[str] | None = None) -> int:
             "lineage_artifact_identity_sha256": (
                 lineage.artifact_identity_sha256 if lineage else None
             ),
+            "lineage_schema_version": lineage.schema_version if lineage else None,
+            "lineage_source_artifact_identities": [
+                source.artifact_identity_sha256
+                for source in getattr(lineage, "sources", ())
+            ],
             "retrieval_limit": args.limit,
+            "fdd_candidate_limit": args.fdd_candidate_limit,
             "candidate_limit": args.candidate_limit,
             "max_units_per_parent": args.max_units_per_parent,
             "reviewed_manifest": reviewed_manifest,

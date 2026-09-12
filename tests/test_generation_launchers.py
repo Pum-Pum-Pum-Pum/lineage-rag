@@ -40,6 +40,10 @@ def test_code_launcher_exposes_guarded_stages_and_existing_scripts() -> None:
         assert script in content
     assert "I_AUTHORIZE_OPENAI_CODE_DISCLOSURE_AND_COST" in content
     assert "Type APPROVE to continue" in content
+    assert "Resolve-BaseEmbeddingCacheArtifact" in content
+    assert "--cache-artifact" in content
+    assert "Refusing a duplicate paid embedding run" in content
+    assert "Refusing a paid full re-embedding" in content
     assert "scripts/run_code_combined_retrieval_eval.py" in content
     assert "This launcher never creates query embeddings" in content
     assert "do not overwrite review evidence" in content
@@ -58,8 +62,9 @@ def test_launcher_runbooks_document_exact_commands_and_boundaries() -> None:
 
     assert "run_fdd_generation.ps1 -Generation functional_specs_v9 -Stage prepare" in fdd
     assert "run_fdd_generation.ps1 -Generation functional_specs_v9 -Stage embed-index" in fdd
-    assert "run_code_generation.ps1 -SnapshotRequest fci-custom-r3 -Stage intake-parse" in code
-    assert "run_code_generation.ps1 -SnapshotRequest fci-custom-r3 -Stage embed-index" in code
+    assert "run_code_generation.ps1 -SnapshotRequest" in code
+    assert "-Stage intake-parse" in code
+    assert "-Stage embed-index" in code
     assert "ACTIVATE functional_specs_v9" in fdd
     assert "atomically updates" in fdd
     assert "complete, immutable custom-code generation" in code
@@ -71,5 +76,7 @@ def test_launcher_runbooks_document_exact_commands_and_boundaries() -> None:
     assert "Export and review the dependency packet" in code
     assert "<snapshot-id>-dependency-review-ledger.json" in code
     assert "Copy only the value after `immutable snapshot=`" in code
-    assert "Activation preflight and atomic `.env` update" in code
+    assert "activation preflight and atomic `.env` update" in code
     assert "-ApplyActivation" in code
+    assert "automatically\nuses that exact base artifact as its cache source" in code
+    assert "Refusing a duplicate paid embedding run" in (ROOT_DIR / "scripts" / "run_code_generation.ps1").read_text(encoding="utf-8")

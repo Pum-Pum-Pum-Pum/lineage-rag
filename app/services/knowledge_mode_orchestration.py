@@ -15,6 +15,7 @@ from app.code_retrieval.service import retrieve_code_evidence
 from app.fdd_code_lineage.combined_answer import CombinedAnswerResponse
 from app.fdd_code_lineage.combined_retrieval import retrieve_combined_evidence
 from app.fdd_code_lineage.models import FddCodeLineageArtifact, validate_lineage_artifact
+from app.fdd_code_lineage.reviewed_bundle import load_reviewed_lineage
 from app.fdd_code_lineage.paid_evaluation import (
     embed_one_query,
     generate_grounded_answer,
@@ -110,9 +111,7 @@ def run_code_or_combined_query(
             if not fdd_qdrant.collection_exists(settings.qdrant_collection_name):
                 raise RuntimeError("Configured FDD collection is unavailable")
             documents = load_retrieval_ready_documents(settings.processed_dir)
-            lineage = FddCodeLineageArtifact.model_validate_json(
-                Path(settings.fdd_code_lineage_artifact_path).read_text(encoding="utf-8")
-            )
+            lineage = load_reviewed_lineage(Path(settings.fdd_code_lineage_artifact_path))
             validate_lineage_artifact(
                 lineage,
                 fdd_document_ids={item.document_id for item in documents},
@@ -121,6 +120,9 @@ def run_code_or_combined_query(
             )
             if lineage.status != "reviewed" or lineage.fdd_generation != settings.fdd_generation:
                 raise RuntimeError("Configured FDD/code lineage is not reviewed or generation-compatible")
+            combined_fdd_candidate_limit = max(
+                limit, retrieval_config.hybrid_candidate_limit
+            )
             planned = retrieve_planned_query_evidence(
                 qdrant_client=fdd_qdrant,
                 collection_name=settings.qdrant_collection_name,
@@ -129,7 +131,7 @@ def run_code_or_combined_query(
                 query_vector=vector,
                 retrieval_config=retrieval_config,
                 lexical_artifact_directory=settings.processed_dir,
-                limit=limit,
+                limit=combined_fdd_candidate_limit,
             )
             retrieval = retrieve_combined_evidence(
                 query=retrieval_query,
@@ -145,6 +147,7 @@ def run_code_or_combined_query(
                 client=code_qdrant,
                 collection_name=settings.code_qdrant_collection_name,
                 query_vector=vector,
+                fdd_limit=limit,
             )
         case = SimpleNamespace(
             mode=mode,

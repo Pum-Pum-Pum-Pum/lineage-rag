@@ -2205,3 +2205,224 @@ activated and must not replace the currently selected code generation. The
 generation launcher runbook now explicitly separates immutable snapshot work,
 staged indexing, and feature-flag activation from a future approval-bound
 generation-promotion procedure.
+
+## Step 269 -- Base-artifact embedding reuse and duplicate-cost preflight
+
+Code embedding now resolves the immutable snapshot's declared base snapshot
+and requires its compatible embedded `text-embedding-3-large` artifact before
+external work begins. It supplies that artifact to the code embedding process
+as the only cache source. Exact content-identical retrieval units reuse their
+prior vectors; new or changed unit text is the only material sent for new
+embeddings, even when it belongs to a package that otherwise contains unchanged
+units.
+
+The complete candidate collection is still rebuilt with all current snapshot
+records, preserving independent generation integrity. Missing base embeddings
+fail before the paid confirmation rather than falling back silently to a full
+re-embedding. An existing embedded candidate directory likewise fails before
+confirmation, preventing a no-overwrite write failure from occurring only
+after duplicate paid calls.
+
+## Step 270 -- Offline embedding-assisted lineage candidate discovery
+
+Added a separate proposal generator that compares stored FDD/code vectors locally,
+extracts lexer-identified enhancement comment regions, and produces immutable
+JSON and searchable HTML review reports. Explicit operator correspondences keep
+R66 Neo Day2 separate from R24 REQ07 Neo Day2 Part2. Every result remains a
+candidate; similarity is not an approval or proof of implementation.
+
+The first run compared 126 FDD documents with 439 code units from the six-file
+R2 snapshot and returned 627 candidate pairs. Reports bind input bytes and retain
+exact routine/overload selectors, snippets, comment ranges and ambiguity signals.
+No new embeddings, API calls, Qdrant writes, runtime configuration edits or lineage
+approvals occurred. Existing runtime and retrieval behavior remain unchanged.
+
+Verification: 14 focused proposal tests passed, the full locked offline regression
+suite passed 687 tests, dependency lock verification passed, and `git diff --check`
+passed. Semantic accuracy of the 627 suggestions still requires SME evaluation.
+
+## Step 271 -- Focused Neo Day2 Part2 candidate packet
+
+Created `data/staging/fdd_code_lineage/fci-custom-r2-v3-part2` without changing
+older candidates or reviewed artifacts. Three narrow candidate relationships
+cover spBatchTxnEndPoint (deferred staging), spUHEndPoint (offline-helper/status
+handling), and spRealtimeSubsTransaction (offline detection/risk-profile/message).
+Each includes an exact body overload and its specification declaration, the FDD
+passage, snapshot source ranges, explanatory excerpts and explicit scope limits.
+
+Operator confirmation establishes the package/enhancement association and source
+line accuracy, not automatic acceptance of each behavioural mapping. All three
+SME decisions remain pending. The candidate validator resolved all six targets;
+the review packet is bound to the candidate identity and includes input hashes.
+No source re-ingestion, embeddings, external calls, approval import, combined-gate
+rerun or activation occurred. This focused supplement must not silently replace
+the broader AML lineage required by the combined benchmark.
+
+## Step 272 -- Import focused Part2 SME acceptance
+
+The operator saved all three Part2 verdicts as `reviewed` with the rationale
+"The understanding above is accepted" and requested continuation. Imported the
+unchanged saved packet under the established reviewer name `Pum` into
+`data/staging/fdd_code_lineage/fci-custom-r2-v3-part2/reviewed_lineage_artifact.json`.
+
+- Reviewed mappings: 3 (six exact body/spec targets).
+- Candidate identity: `ee84bb628573eef9dbf2406cd9f7e3f1ca8f0fb707eaffeb91ece6f090b7130d`.
+- Saved review packet SHA-256: `8b50e3f4efa47a8f0aba0cab4aa4c452ecfbd03239b8774593c77c9224683f98`.
+- Reviewed artifact identity: `e2ecf0ed2e5b5e87fe1ec6bd6f35d98c7ab224934f80395da18933f4db7b5435`.
+
+Verified the written artifact's status, reviewer, mapping count, candidate binding,
+FDD/code generation identities and exact saved packet hash. Existing R2 v1 lineage
+uses the same FDD/code identities and retains broader reviewed file-level links;
+it was not overwritten. The focused artifact covers Part2 only, while two positive
+combined cases expect the original R22 FDD. This coverage check is not a retrieval
+evaluation, nor does it require promoting advisory expected symbols to hard gates.
+Next work is approval-provenance-preserving consolidation before the full combined
+gate. No new embeddings, external calls, service restart or activation occurred.
+
+## Step 273 -- Provenance-preserving lineage union and full combined gate
+
+Added an evaluation-only reviewed bundle and no-overwrite consolidation CLI.
+The bundle retains exact original reviewed/candidate JSON and saved review packet
+bytes, validates their hashes and decision bindings, and unions unchanged mappings
+only when FDD/code identities match. It creates no new SME approvals. Existing
+serving loaders do not accept this format; no runtime behavior was changed here.
+
+Created `data/staging/fdd_code_lineage/fci-custom-r2-consolidated-v1/reviewed_lineage_bundle.json`
+from R2 v1 and the focused v3 Part2 review: six mappings, twelve targets, two
+original review chains. Bundle identity:
+`896d0e2305923671d1410816de33afc7d404fbc5125958cb95c4b9fc8ff5a254`.
+Original approval artifacts and their scope are unchanged.
+
+Ran the full unchanged five-case reviewed combined manifest locally with lexical
+retrieval and the existing 30-candidate FDD pool. Report:
+`data/exports/evaluations/code-combined-retrieval-20260912T062343Z.json`.
+Two of four positive cases pass (batch-send and unitholder). Transaction-flow
+misses the R22 Neo FDD and follows no reviewed mapping; offline-impact misses the
+Part2 v1.3 FDD. Code recall is 1.0 for all four positives. The negative case has
+no reported failures. `release_gate_eligible=false`; exit 1 is the intended gate
+failure, not a tool crash. Consolidation does not itself resolve FDD retrieval.
+
+Verification: 25 focused tests passed; the full locked regression suite passed
+699 tests. Updated the runbook with completed checkpoints, consolidation inputs,
+the evaluation-only boundary, and the remaining FDD selection/ranking gap.
+No embeddings, external API calls, runtime configuration changes, restarts or
+activation occurred. Next work is bounded retrieval diagnosis/rectification
+against the existing reviewed benchmark, not another SME acceptance import.
+
+## Step 274 -- Bounded explicit-topic FDD diversity for combined retrieval
+
+Read-only inspection of all 9,874 active-generation lexical units showed the
+missing R22 transaction-flow FDD at candidate rank 12 and the missing Part2
+offline-impact FDD at rank 24. Both were already inside the existing 30-candidate
+pool but outside the ten returned units. Generic operational words crowded out
+the topic matches; neither missing embeddings nor invalid approval caused this.
+
+Added a combined-only fallback that replaces at most one existing output slot
+with a new document matching an explicit query acronym/mixed-case name in both
+document identity and source text. Shared application prefixes are excluded;
+whole tokens must match, original candidate ordering breaks ties, and existing
+scores and source identities remain unchanged. A newly selected exact reviewed
+symbol anchor takes precedence. This is a conservative diversity heuristic, not
+semantic proof or new lineage: lowercase/generic wording does not activate it.
+FDD-only lexical scoring, code-only retrieval, candidate/output bounds, weighted
+RRF, reviewed artifacts, and the reviewed benchmark remain unchanged.
+
+The full combined lexical gate now passes all four positive cases with FDD/code
+recall 1.0; the negative case reports no failures. Retained report:
+`data/exports/evaluations/code-combined-retrieval-20260912T063429Z.json`.
+Code-only regression also passes all four positives, with no negative-case
+failures, in `data/exports/evaluations/code-combined-retrieval-20260912T063626Z.json`.
+Both reports have `release_gate_eligible=true` and `external_api_calls=0`.
+The earlier failed report remains unchanged.
+
+Added 15 focused tests for bounded selection, unrelated topics, acronym/name
+matching, title-only/source-only and substring rejection, shared-prefix exclusion,
+document diversity, stable ordering, and empty/underfilled pools. The focused
+selection/lineage/bundle suite passed 40 tests. No new embeddings, Qdrant writes,
+service restarts, `.env` edits, or runtime activation were performed.
+The full locked regression suite passed 714 tests; offline dependency-lock
+verification and `git diff --check` passed.
+
+Next checkpoint is generation-aware runtime promotion and provenance-preserving
+serving support for the bundle, with fresh approval of the changed runtime and
+separate live/manual validation. The five-case offline gate is not a production
+readiness or complete semantic-answer assessment.
+
+## Step 275 -- Generation-aware promotion preparation and reviewed-bundle serving
+
+Added a verified serving loader for original reviewed v1 lineage and the retained
+multi-review bundle. Shared retrieval and answer orchestration use it; combined
+readiness now validates lineage integrity, target resolution, and selected FDD/code
+identities rather than merely checking whether a file exists. MCP disclosure gates
+remain ahead of retrieval/catalog work.
+
+Added `app/activation/code_generation.py` and `scripts/promote_code_generation.py`.
+The new pending request binds the five code-generation settings, prior `.env`
+identity, non-secret effective settings identity, runtime Python/PowerShell/config/
+dependency-lock files, reviewed generation/evaluation bytes and directory membership.
+Preparation rebuilds the reviewed index contract locally, verifies both passed
+retrieval reports, matches evaluated/serving FDD units, and checks existing stores.
+The launcher dispatches new promotion requests separately from legacy flag-only
+activation; no historical request is upgraded silently.
+
+Apply requires exact request approval, fresh preflight and stopped-process operator
+confirmation; it preserves unrelated `.env` lines, uses a local exclusive lock and
+atomic replacement, and records immutable intent/result receipts. It does not start
+services or claim activation complete. Rollback restores previous selection with
+code modes disabled, rejecting conflicting environment overrides. It can still run
+when target runtime/evidence files become invalid. Requests and receipts contain no
+API credentials; hashes do not authenticate the approving human.
+
+R2 preparation verified 439 code points and availability/dimension of the FDD v9
+collection (9,874 points). No ingestion, embeddings, upserts, `.env` mutation,
+approval import, restart or paid/disclosure operation was performed. The initial
+v1 pending request is retained as stale history after the rollback safeguard changed.
+The current pending request is:
+`data/exports/activation/fci-custom-r2-promotion-v2-request.json`, identity
+`f60b4ccf46a1c6b1b81e5fe025d4907548378e790bb63621354b40f3148df76a`.
+It authorizes zero paid requests and no additional evidence disclosure.
+
+The runbook now documents preparation, explicit approval, dry-run, atomic promotion,
+disabled rollback and separate restart/live verification. Desktop overrides for
+generation keys must be removed before switching; especially a hard-coded
+`CODE_MODES_ENABLED=true` would defeat a disabled `.env` rollback. Interface and
+disclosure settings remain separate operator controls. Next action requires the
+operator's confirmation of the exact request and client configuration; live smoke
+cost/disclosure approval is not inferred from this preparation.
+
+Final verification: 737 offline regression tests passed; dependency-lock and
+`git diff --check` passed. Candidate settings passed code readiness 4/4 and
+combined readiness 7/7 without a query or runtime change, retained in
+`data/exports/activation/fci-custom-r2-promotion-v2-candidate-readiness.json`.
+The active `.env` SHA-256 still equals the request's before-state hash. No
+approval was recorded and the generation was not applied; post-restart serving
+identity and live/manual behavior remain unverified.
+
+## Step 276 -- Approved R2 configuration promotion; Desktop reconnect pending
+
+The operator explicitly approved request
+`f60b4ccf46a1c6b1b81e5fe025d4907548378e790bb63621354b40f3148df76a`
+for configuration promotion, restart verification and disabled rollback, and
+confirmed Desktop generation overrides were removed. Recorded approval under
+`Pum` in `data/exports/activation/fci-custom-r2-promotion-v2-approval.json`, identity
+`0eb37b2c61bdd822fc7a8e6ec11ed8540524aea9d70841becfd12d7339c10c44`.
+
+Verified and stopped only the existing project MCP tree (wrapper 724, interpreter
+launcher 15832, serving child 11408). Checked that no MCP/FastAPI/Streamlit serving
+process or port-8000/8501 listener remained. Final no-write promotion preflight
+passed, then applied the exact approved five-key generation switch atomically.
+Intent/result receipts are retained under
+`data/exports/activation/generation-20260912T074313594598Z.*.json`.
+
+A fresh local verification process confirmed the saved `.env` and effective
+settings match the approved target. Code readiness passed 4/4 and combined passed
+7/7; disabled rollback dry-run passed. Retained
+`data/exports/activation/fci-custom-r2-promotion-v2-post-apply-verification.json`.
+FDD v9 is unchanged; code collection is `code_custom_r2_v1` with the reviewed R2
+bundle. No paid call, search/fetch, evidence disclosure or competing MCP client
+was used. No gate failed, so rollback was not applied.
+
+Desktop owns the MCP child lifecycle. Requested that the operator toggle the
+existing MCP entry OFF/ON and report completion before further process checks.
+The configuration is applied, but `desktop_restart_verified=false` and
+`activation_complete=false` remain explicit until that verification occurs.

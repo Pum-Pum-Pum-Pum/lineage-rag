@@ -300,8 +300,8 @@ def test_combined_hybrid_reuses_one_query_embedding_for_both_lanes(
     monkeypatch.setattr(knowledge_service, "retrieve_planned_query_evidence", lambda **_: planned)
     monkeypatch.setattr(knowledge_service, "retrieve_combined_evidence", fake_combined)
     monkeypatch.setattr(
-        knowledge_service.FddCodeLineageArtifact,
-        "model_validate_json",
+        knowledge_service,
+        "load_reviewed_lineage",
         lambda _: lineage,
     )
     monkeypatch.setattr(knowledge_service, "validate_lineage_artifact", lambda *args, **kwargs: None)
