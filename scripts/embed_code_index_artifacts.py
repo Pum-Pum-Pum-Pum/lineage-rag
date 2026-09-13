@@ -16,7 +16,10 @@ from app.code_indexing.contract import (
     load_code_index_artifact,
     write_code_index_artifact_no_overwrite,
 )
-from app.code_indexing.embedding import embed_code_index_artifact
+from app.code_indexing.embedding import (
+    embed_code_index_artifact,
+    inspect_code_embedding_reuse,
+)
 from app.embeddings.client import get_embedding_client
 
 
@@ -37,15 +40,23 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
     artifact = load_code_index_artifact(args.prepared_artifact)
-    unique_inputs = len({record.cache_key for record in artifact.records})
+    reuse_plan = inspect_code_embedding_reuse(
+        artifact,
+        cache_artifact_paths=args.cache_artifact,
+    )
     if args.dry_run:
         print(json.dumps({
             "status": "dry_run",
             "snapshot_id": artifact.snapshot_id,
-            "records": artifact.total_records,
-            "unique_embedding_inputs": unique_inputs,
+            "records": reuse_plan.total_records,
+            "unique_embedding_inputs": reuse_plan.unique_embedding_inputs,
+            "cached_records": reuse_plan.cached_records,
+            "external_embedding_records": reuse_plan.external_embedding_records,
+            "cached_unique_embedding_inputs": reuse_plan.cached_unique_embedding_inputs,
+            "external_embedding_inputs": reuse_plan.external_embedding_inputs,
             "embedding_model": artifact.embedding_model,
-            "external_code_would_be_sent": True,
+            "cache_artifacts": [str(path) for path in args.cache_artifact],
+            "external_code_would_be_sent": reuse_plan.external_embedding_inputs > 0,
             "external_calls_performed": False,
         }, indent=2))
         return

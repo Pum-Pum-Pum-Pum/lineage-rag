@@ -1,0 +1,18 @@
+{
+          "query": "What does R1 support?",
+          "answer_response": {
+            "query": "What does R1 support?",
+            "answer": "R1 supports the documented function [C1].",
+            "is_answered": true,
+            "refusal_reason": null,
+            "citations": [{
+              "unit_id": "unit-1",
+              "document_family": "FS_ASNB",
+              "release_label": "R1",
+              "source_kind": "paragraph",
+              "score": 0.8,
+              "text_preview": "documented function",
+              "document_id": "R1-doc"
+            }]
+          }
+        }

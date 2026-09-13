@@ -2600,3 +2600,42 @@ stdio startup/transport failure, not as a retrieval, citation, answer-quality,
 or provider-success result. No retry, configuration change, or new evidence
 operation was performed. Provider-side usage cannot be inferred from a failed
 transport response and must not be claimed without a provider trace.
+
+## Step 284 -- R3 controlled expansion controls prepared
+
+Implemented the pre-ingestion and pre-embedding controls for the proposed
+`fci-custom-r3` expansion; no R3 source was copied, parsed, embedded, indexed,
+evaluated, promoted, or exposed through MCP. R3 is fixed to the active
+`functional_specs_v9` FDD generation and the embedded R2 base snapshot
+`fci-custom-r2-ffd9732906d4`.
+
+The new reviewed R3 benchmark contract requires exactly seven complete package
+pairs (14 new logical source files): two FDD-enhancement pairs, two
+multi-routine validation pairs, one table-heavy pair, one no-approved-FDD
+mapping pair, and one cross-package dependency pair. It also requires one
+separate real modified R2 source path. Before intake, the benchmark validates
+all referenced FDD identities against v9. After snapshot publication it fails
+closed unless the observed delta is exactly the reviewed 14 additions plus the
+one modified base source, with no deletion, formatting-only change, missing
+expected change, or unexpected source change.
+
+The embedding dry-run now computes cache hits and exact cache-miss input counts
+from the approved R2 embedded artifact without constructing an OpenAI client or
+disclosing code. R3's launcher runs that preflight before its existing paid
+approval prompt. After an authorized embedding run, a no-overwrite report proves
+that no unchanged source path contains a newly embedded record and records only
+path/state/count metadata, base identity, and candidate identity.
+
+Added a separate reviewed documentation-boundary diagnostic for the intentional
+no-approved-FDD case. It requires the expected code evidence, fails if any
+reviewed FDD/code mapping applies, and labels any retrieved FDD units as
+unreviewed candidates rather than confirmed lineage. It is separate from the
+existing R2 code/combined release evaluator, so it does not alter accepted R2
+cases or weaken its gate. The new R3 runbook documents the immutable review,
+complete-snapshot, reuse-preflight, local-evaluation, and later promotion path.
+
+Focused offline validation passed: 30 tests, plus PowerShell launcher syntax
+validation. The broader `git diff --check` cannot currently traverse existing
+permission-denied historical `.pytest_full_workflow_final*` paths; the changed
+R3 files themselves passed a path-scoped diff check. No OpenAI call, Qdrant
+write, `.env` change, activation, or Desktop/MCP operation occurred.

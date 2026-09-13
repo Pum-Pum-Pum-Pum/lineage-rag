@@ -1,0 +1,71 @@
+{
+  "request_id": "current-state-request",
+  "created_at_utc": "2026-09-12T16:46:32.020563+00:00",
+  "query": "Give me a summary: how many teller and branch reports are there currently?",
+  "filters": {
+    "document_family": null,
+    "release_label": "R24",
+    "source_kind": null
+  },
+  "sufficiency": {
+    "is_sufficient": true,
+    "reason": "Retrieved evidence passed baseline sufficiency checks.",
+    "result_count": 2,
+    "top_score": 0.8
+  },
+  "answer_response": {
+    "query": "Give me a summary: how many teller and branch reports are there currently?",
+    "answer": "There are currently 2 teller and 4 branch reports [C1][C2].",
+    "is_answered": true,
+    "refusal_reason": null,
+    "citations": [],
+    "usage": null,
+    "cost": null
+  },
+  "retrieval_results": [
+    {
+      "point_id": "r24-teller",
+      "score": 0.8,
+      "payload": {
+        "unit_id": "r24-teller",
+        "text": "R24 teller realignment",
+        "release_label": "R24",
+        "source_kind": "table"
+      }
+    },
+    {
+      "point_id": "r24-branch",
+      "score": 0.7,
+      "payload": {
+        "unit_id": "r24-branch",
+        "text": "R24 branch realignment",
+        "release_label": "R24",
+        "source_kind": "table"
+      }
+    }
+  ],
+  "retrieval_metadata": {
+    "retrieval_mode": "hybrid",
+    "hybrid_dense_weight": 0.4,
+    "hybrid_lexical_weight": 0.6,
+    "hybrid_candidate_limit": 10,
+    "hybrid_fusion_method": "weighted_rrf",
+    "hybrid_rrf_rank_constant": 1.0,
+    "limit": 5,
+    "retrieval_candidate_limit": 10,
+    "original_query": "Give me a summary: how many teller and branch reports are there currently?",
+    "retrieval_query": "Give me a summary: how many teller and branch reports are there currently?\nInterpret current as the resulting production state after the latest deployed relevant release. Retrieve change details for retained, consolidated, renamed, and removed items; treat Existing Functionality as the pre-change baseline.",
+    "current_state_requested": true,
+    "historical_context_requested": false,
+    "effective_release_label": "R24",
+    "release_source": "retrieved_candidates",
+    "referenced_release_labels": [],
+    "min_results": 1,
+    "min_top_score": 0.3,
+    "candidate_lanes": {
+      "dense": [],
+      "lexical": []
+    }
+  },
+  "correlation_id": null
+}

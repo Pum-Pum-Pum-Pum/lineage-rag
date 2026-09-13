@@ -1,0 +1,145 @@
+{
+  "schema_version": "code_r3_benchmark_manifest_v1",
+  "snapshot_request": "fci-custom-r3",
+  "base_snapshot_id": "fci-custom-r2-ffd9732906d4",
+  "fdd_generation": "functional_specs_v9",
+  "modified_base_source_path": "utpks_utduh_custom.sql",
+  "package_pairs": [
+    {
+      "pair_id": "zakat-paydet-wrapper",
+      "category": "fdd_enhancement",
+      "spec_path": "pkgpnbzakatpaydetwrapper_p_custom.spc",
+      "body_path": "pkgpnbzakatpaydetwrapper_p_custom.sql",
+      "key_routines": [
+        "spZakatPayDetValidation",
+        "spZakatPayDetUpload"
+      ],
+      "expected_callers": [],
+      "expected_callees": [],
+      "fdd_document_ids": [
+        "FS_FCIS_14.7.0.0.0$ASNB_R25_Zakat_Khultah_2_v1.2"
+      ],
+      "enhancement_markers": [
+        "FCIS_14.7.0.0.0$ASNB_R25 (REQ03) - Zakat Khultah Phase2 Enhancement"
+      ],
+      "expected_outcome": "reviewed_lineage_candidate",
+      "rationale": "Tests exact R25 enhancement-comment discovery for Zakat payment-detail import and validation."
+    },
+    {
+      "pair_id": "zakat-payment-process",
+      "category": "fdd_enhancement",
+      "spec_path": "pkgpnbzakatpaymentprocess_p_custom.spc",
+      "body_path": "pkgpnbzakatpaymentprocess_p_custom.sql",
+      "key_routines": [
+        "spProcessZakatPayment",
+        "spZakatPaymentProcessWrapper"
+      ],
+      "expected_callers": [],
+      "expected_callees": [],
+      "fdd_document_ids": [
+        "FS_FCIS_14.7.0.0.0$ASNB_R25_Zakat_Khultah_Enhancement_v1.6"
+      ],
+      "enhancement_markers": [
+        "FCIS_14.7.0.0.0$ASNB_R25 (REQ03) - Zakat Khultah Phase2 Enhancement"
+      ],
+      "expected_outcome": "reviewed_lineage_candidate",
+      "rationale": "Tests R25 Zakat payment-processing lineage using exact bounded enhancement comments."
+    },
+    {
+      "pair_id": "transaction-bll-p-validation",
+      "category": "multi_routine_validation",
+      "spec_path": "pkgtransactionbll_p_custom.spc",
+      "body_path": "pkgtransactionbll_p_custom.sql",
+      "key_routines": [
+        "SPUNITHOLDERVALIDATIONS",
+        "spValidateAML",
+        "spCheckMandatoryFields"
+      ],
+      "expected_callers": [],
+      "expected_callees": [],
+      "fdd_document_ids": [],
+      "enhancement_markers": [],
+      "expected_outcome": "code_workflow_evidence",
+      "rationale": "Tests retrieval of a multi-routine transaction-validation workflow without asserting FDD lineage."
+    },
+    {
+      "pair_id": "bo-report-flow",
+      "category": "multi_routine_validation",
+      "spec_path": "pkgpnbboreportinterface_p_custom.spc",
+      "body_path": "pkgpnbboreportinterface_p_custom.sql",
+      "key_routines": [
+        "spExtractUTMCReport",
+        "spUTMC003",
+        "spExtractASNBPortal"
+      ],
+      "expected_callers": [],
+      "expected_callees": [],
+      "fdd_document_ids": [],
+      "enhancement_markers": [],
+      "expected_outcome": "code_workflow_evidence",
+      "rationale": "Tests multi-routine BO-report extraction flow and package-level routine inventory."
+    },
+    {
+      "pair_id": "unitholder-merge",
+      "category": "table_heavy",
+      "spec_path": "pkgunitholdermerge_p_custom.spc",
+      "body_path": "pkgunitholdermerge_p_custom.sql",
+      "key_routines": [
+        "spValidateUHMerge",
+        "spPopulateBulkUHMergeData",
+        "spUnitHolderMergeBulkUpload"
+      ],
+      "expected_callers": [],
+      "expected_callees": [],
+      "fdd_document_ids": [],
+      "enhancement_markers": [],
+      "expected_outcome": "table_operation_evidence",
+      "rationale": "Tests table-operation retrieval for unitholder-merge and bulk-upload behavior without inferred database semantics."
+    },
+    {
+      "pair_id": "pnb-datacenter",
+      "category": "no_approved_fdd_mapping",
+      "spec_path": "pkgpnbdatacenter_p_custom.spc",
+      "body_path": "pkgpnbdatacenter_p_custom.sql",
+      "key_routines": [
+        "spClearUnauthRecords",
+        "spDeleteZakatUH",
+        "spAuthZakatUH"
+      ],
+      "expected_callers": [],
+      "expected_callees": [],
+      "fdd_document_ids": [],
+      "enhancement_markers": [],
+      "expected_outcome": "no_reviewed_fdd_lineage",
+      "rationale": "Tests useful Data Center code retrieval while requiring an explicit no-reviewed-FDD-lineage boundary."
+    },
+    {
+      "pair_id": "transaction-bll-cross-package",
+      "category": "cross_package_dependency",
+      "spec_path": "pkgtransactionbll_custom.spc",
+      "body_path": "pkgtransactionbll_custom.sql",
+      "key_routines": [
+        "SfPostDeriveTxnDates",
+        "spPreValidateAmountUnits",
+        "sfPostBusinessLogicVal"
+      ],
+      "expected_callers": [
+        "pkgtransactionbll_custom.SfPostDeriveTxnDates",
+        "pkgtransactionbll_custom.spPreValidateAmountUnits",
+        "pkgtransactionbll_custom.sfPostBusinessLogicVal"
+      ],
+      "expected_callees": [
+        "pkgtransactionbll_p_custom.SfPostDeriveTxnDates",
+        "pkgtransactionbll_p_custom.spPreValidateAmountUnits",
+        "pkgtransactionbll_p_custom.sfPostBusinessLogicVal"
+      ],
+      "fdd_document_ids": [],
+      "enhancement_markers": [],
+      "expected_outcome": "cross_package_workflow_evidence",
+      "rationale": "Tests real caller-to-callee retrieval from transaction BLL custom logic into the selected transaction BLL P package."
+    }
+  ],
+  "sme_reviewed": false,
+  "review_status": "draft",
+  "reviewer": null
+}

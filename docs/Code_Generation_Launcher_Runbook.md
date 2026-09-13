@@ -6,6 +6,12 @@ root, in the same PowerShell terminal. Stop whenever a command reports an error.
 Do not paste the whole runbook as one script: two steps require an SME to edit
 and save a review before continuing.
 
+For the controlled `fci-custom-r3` seven-package expansion, first follow the
+[R3 seven-package expansion runbook](R3_Seven_Package_Expansion_Runbook.md).
+R3 additionally requires its reviewed benchmark manifest on every launcher
+command, validates the complete 14-new-file/one-modified-base-file delta, and
+records cache reuse before it permits a paid embedding prompt.
+
 Only `.sql`, `.spc`, `.prc`, and `.fnc` files are included, case-insensitively.
 `.ddl`, `.cmt`, and every other extension are skipped. The source directory must
 contain the complete intended code set, including unchanged files. Files absent

@@ -1,0 +1,95 @@
+{
+  "analysis_policy_sha256": "f707e1f5f9bcc63db8ad48f9d0448d4904e1f28fd53947cc39b427b1e67cd5fc",
+  "dependencies": [
+    {
+      "candidate_symbol_occurrence_ids": [],
+      "confidence": "high",
+      "dependency_kind": "external_package",
+      "edge_id": "dbebba05b13ec2d8f77030f350603ff321dc49e5504010ac81feb1da1a298114",
+      "extraction_method": "antlr_tokens",
+      "resolution_state": "external_schema",
+      "source_map": {
+        "end_line": 1,
+        "end_offset": 92,
+        "source_path": "b/duplicate_proc_custom.prc",
+        "start_line": 1,
+        "start_offset": 72
+      },
+      "source_path": "b/duplicate_proc_custom.prc",
+      "source_symbol_occurrence_id": "ca2b2073d82f2997945c5c2b9406aa37f2ebbe4d6a96b4491b5b357d7cce3835",
+      "target_canonical_name": "DBMS_OUTPUT.PUT_LINE",
+      "target_display_name": "DBMS_OUTPUT.PUT_LINE"
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "overload_symbol_collision",
+      "message": "Multiple same-role routine occurrences share one overload-safe symbol key (aad798c24c0a); all occurrences were retained; no occurrence may be selected implicitly.",
+      "related_occurrence_ids": [
+        "6d74d5e7d39814b1c3edd42c388da3353d009f1b1666e7024109df0f7b9fb4f0",
+        "ca2b2073d82f2997945c5c2b9406aa37f2ebbe4d6a96b4491b5b357d7cce3835"
+      ],
+      "severity": "error",
+      "source_map": null,
+      "source_path": null,
+      "stage": "symbol"
+    }
+  ],
+  "module_id": "fci-custom",
+  "parser_state": "full_parse",
+  "schema_objects": [],
+  "schema_version": "code_static_analysis_v1",
+  "snapshot_id": "fci-custom-r153-677db6957865",
+  "source_path": "b/duplicate_proc_custom.prc",
+  "source_sha256": "d202f388c840155aa6724904731d63d26c1429b3fffee542e641891b9e9c418d",
+  "symbols": [
+    {
+      "canonical_qualified_name": "DUPLICATE_PROC_CUSTOM",
+      "canonical_return_type": null,
+      "conditional_state": "unconditional",
+      "declaration_signature_hash": "9f9b06b7ebf2f7acdfb009e0ad8c640d89a80093002c5b5950371e85d62827e4",
+      "language": "plsql",
+      "module_id": "fci-custom",
+      "name": {
+        "canonical_name": "DUPLICATE_PROC_CUSTOM",
+        "display_name": "duplicate_proc_custom",
+        "is_quoted": false
+      },
+      "occurrence_id": "ca2b2073d82f2997945c5c2b9406aa37f2ebbe4d6a96b4491b5b357d7cce3835",
+      "occurrence_role": "implementation",
+      "overload_discriminator_hash": "8583bf9385aa54151d236e00dc874d6e466afdd2dd6af4b9c1f318783b3bc162",
+      "parameters": [
+        {
+          "canonical_declared_type": "NUMBER",
+          "declared_type": "NUMBER",
+          "has_default": false,
+          "mode": "IN",
+          "name": {
+            "canonical_name": "P_ID",
+            "display_name": "p_id",
+            "is_quoted": false
+          },
+          "nocopy": false,
+          "normalized_default": null,
+          "position": 1,
+          "type_family": "numeric"
+        }
+      ],
+      "qualified_display_name": "duplicate_proc_custom",
+      "return_type": null,
+      "snapshot_id": "fci-custom-r153-677db6957865",
+      "source_map": {
+        "end_line": 1,
+        "end_offset": 110,
+        "source_path": "b/duplicate_proc_custom.prc",
+        "start_line": 1,
+        "start_offset": 0
+      },
+      "source_node_id": "642b8b9e0885a245c0ace243779b0d0472bbe03825eb6f4e186e0626dc985c0c",
+      "source_path": "b/duplicate_proc_custom.prc",
+      "symbol_key": "aad798c24c0a37b0b8fad3621d92043a6604f4d1a4508dc62f25e2630efbf07a",
+      "symbol_kind": "procedure"
+    }
+  ],
+  "synonyms": []
+}

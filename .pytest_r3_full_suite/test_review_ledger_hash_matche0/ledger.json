@@ -1,0 +1,19 @@
+{
+  "approval_note": "The exact one-case UAT packet and disclosure are approved.",
+  "approval_source": "chat_confirmation",
+  "automatic_retries": 0,
+  "batch_identity_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "batch_report_sha256": "7e77501aa7e0175dd4555bf87f761725271cf582238bbe786c151f9f00d7e442",
+  "case_count": 1,
+  "draft_manifest_sha256": "140e34c8b8037cae7cdc643aecc6b4127a42e24377077e78b7d165bb93265f18",
+  "internal_evidence_disclosure_authorized": true,
+  "ledger_identity_sha256": "efead5dbfb9fe33db4c7d5088e244bf6e43912210acf5086fdc2edf0e1006502",
+  "maximum_answer_requests": 1,
+  "maximum_query_embedding_requests": 0,
+  "paid_use_authorized": true,
+  "review_packet_sha256": "a48f1e40146d42a8b24ad16542025b6ba80e56c63ecf8f7d728abd1011ef8acc",
+  "reviewed_at": "2026-09-12T16:46:31.881564+00:00",
+  "reviewed_manifest_sha256": "e3666e9bf29dc65132f7732747191b89e43e9640e03168256aa4df9865c3d334",
+  "reviewer": "Reviewer",
+  "schema_version": "manual_bounded_tool_uat_review_ledger_v1"
+}

@@ -16,8 +16,46 @@ class CodeEmbeddingSummary:
     unique_embedding_inputs: int
     cached_records: int
     embedded_records: int
+    cached_unique_embedding_inputs: int
+    external_embedding_inputs: int
     request_count: int
     vector_dimension: int
+
+
+@dataclass(frozen=True)
+class CodeEmbeddingReusePlan:
+    """A local, no-provider accounting of cache reuse for one prepared artifact."""
+
+    total_records: int
+    unique_embedding_inputs: int
+    cached_records: int
+    external_embedding_records: int
+    cached_unique_embedding_inputs: int
+    external_embedding_inputs: int
+
+
+def inspect_code_embedding_reuse(
+    prepared: CodeIndexArtifact,
+    *,
+    cache_artifact_paths: Iterable[Path] = (),
+) -> CodeEmbeddingReusePlan:
+    """Calculate cache misses without creating a client or disclosing code."""
+
+    if prepared.status != "prepared":
+        raise ValueError("Only a prepared code index artifact may be inspected")
+    cache = _load_cache(cache_artifact_paths, embedding_model=prepared.embedding_model)
+    grouped = _group_records(prepared)
+    cached_keys = {key for key in grouped if key in cache}
+    return CodeEmbeddingReusePlan(
+        total_records=len(prepared.records),
+        unique_embedding_inputs=len(grouped),
+        cached_records=sum(record.cache_key in cached_keys for record in prepared.records),
+        external_embedding_records=sum(
+            record.cache_key not in cached_keys for record in prepared.records
+        ),
+        cached_unique_embedding_inputs=len(cached_keys),
+        external_embedding_inputs=len(grouped) - len(cached_keys),
+    )
 
 
 def embed_code_index_artifact(
@@ -32,16 +70,7 @@ def embed_code_index_artifact(
     if request_batch_size <= 0:
         raise ValueError("request_batch_size must be greater than zero")
     cache = _load_cache(cache_artifact_paths, embedding_model=prepared.embedding_model)
-    grouped: dict[str, list[CodeIndexRecord]] = {}
-    for record in prepared.records:
-        same = grouped.setdefault(record.cache_key, [])
-        if same and (
-            same[0].content_sha256 != record.content_sha256
-            or same[0].embedding_text != record.embedding_text
-            or same[0].embedding_model != record.embedding_model
-        ):
-            raise RuntimeError(f"Conflicting code embedding cache identity: {record.cache_key}")
-        same.append(record)
+    grouped = _group_records(prepared)
 
     vectors: dict[str, tuple[float, ...]] = {}
     cached_keys = set()
@@ -98,9 +127,25 @@ def embed_code_index_artifact(
         unique_embedding_inputs=len(grouped),
         cached_records=cached_record_count,
         embedded_records=len(prepared.records) - cached_record_count,
+        cached_unique_embedding_inputs=len(cached_keys),
+        external_embedding_inputs=len(missing),
         request_count=request_count,
         vector_dimension=vector_dimension,
     )
+
+
+def _group_records(prepared: CodeIndexArtifact) -> dict[str, list[CodeIndexRecord]]:
+    grouped: dict[str, list[CodeIndexRecord]] = {}
+    for record in prepared.records:
+        same = grouped.setdefault(record.cache_key, [])
+        if same and (
+            same[0].content_sha256 != record.content_sha256
+            or same[0].embedding_text != record.embedding_text
+            or same[0].embedding_model != record.embedding_model
+        ):
+            raise RuntimeError(f"Conflicting code embedding cache identity: {record.cache_key}")
+        same.append(record)
+    return grouped
 
 
 def _load_cache(

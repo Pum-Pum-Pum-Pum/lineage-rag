@@ -14,6 +14,7 @@ param(
     [string]$DependencyReviewLedger,
     [string]$CollectionName,
     [string]$EvaluationFile = 'data/evaluations/code_grounded_eval_v1_reviewed.jsonl',
+    [string]$R3BenchmarkManifest,
     [ValidateSet('lexical', 'dense', 'hybrid')]
     [string]$CodeRetrievalMode = 'lexical',
     [string]$QueryVectorsJson,
@@ -78,6 +79,33 @@ function Require-DependencyLedger {
     if (-not (Test-Path -LiteralPath $DependencyReviewLedger -PathType Leaf)) {
         throw "Dependency review ledger does not exist: $DependencyReviewLedger"
     }
+}
+
+function Require-R3Benchmark {
+    param([string]$SnapshotId)
+
+    if ($SnapshotRequest -ne 'fci-custom-r3') {
+        return
+    }
+    if ([string]::IsNullOrWhiteSpace($R3BenchmarkManifest)) {
+        throw 'fci-custom-r3 requires -R3BenchmarkManifest pointing to its reviewed seven-package benchmark.'
+    }
+    if (-not (Test-Path -LiteralPath $R3BenchmarkManifest -PathType Leaf)) {
+        throw "R3 benchmark manifest does not exist: $R3BenchmarkManifest"
+    }
+    $arguments = @(
+        'scripts/verify_code_r3_benchmark.py',
+        '--manifest', $R3BenchmarkManifest,
+        '--require-reviewed',
+        '--fdd-directory', 'data/staging/functional_specs_v9/processed'
+    )
+    if (-not [string]::IsNullOrWhiteSpace($SnapshotId)) {
+        $arguments += @(
+            '--snapshot-manifest',
+            ("data/code_snapshots/$SnapshotId/snapshot_manifest.json")
+        )
+    }
+    Invoke-ProjectPython -Arguments $arguments
 }
 
 function Resolve-BaseEmbeddingCacheArtifact {
@@ -150,6 +178,7 @@ try {
     }
     switch ($Stage) {
         'intake-parse' {
+            Require-R3Benchmark
             if (-not (Test-Path -LiteralPath $IntakeDirectory -PathType Container)) {
                 throw "Snapshot intake does not exist: $IntakeDirectory"
             }
@@ -166,6 +195,7 @@ try {
             $publication = ($published | Out-String | ConvertFrom-Json)
             $snapshotId = [string]$publication.snapshot_id
             if ([string]::IsNullOrWhiteSpace($snapshotId)) { throw 'Snapshot publication returned no snapshot_id.' }
+            Require-R3Benchmark -SnapshotId $snapshotId
             Invoke-ProjectPython -Arguments @(
                 'scripts/parse_code_snapshot.py', $snapshotId,
                 '--generation', $ParseGeneration
@@ -185,6 +215,7 @@ try {
         'prepare-index' {
             Require-DependencyLedger
             $snapshotId = Resolve-SnapshotId
+            Require-R3Benchmark -SnapshotId $snapshotId
             Invoke-ProjectPython -Arguments @(
                 'scripts/prepare_code_index_artifacts.py', $snapshotId,
                 '--parse-generation', $ParseGeneration,
@@ -202,6 +233,7 @@ try {
                 throw 'embed-index requires a new -CollectionName beginning code_custom_ (for example, code_custom_r2_v1).'
             }
             $snapshotId = Resolve-SnapshotId
+            Require-R3Benchmark -SnapshotId $snapshotId
             $prepared = "data/staging/code_indexes/$snapshotId/code_index_contract_v5/code_index_artifact.json"
             if (-not (Test-Path -LiteralPath $prepared -PathType Leaf)) {
                 throw "Prepared reviewed code artifact is missing: $prepared. Run prepare-index first."
@@ -219,6 +251,15 @@ try {
             else {
                 Write-Output 'Embedding reuse unavailable: this is a first-generation snapshot with no base snapshot.'
             }
+            $preflightArguments = @(
+                'scripts/embed_code_index_artifacts.py', $prepared,
+                '--output-root', 'data/staging/code_embeddings',
+                '--dry-run'
+            )
+            if ($null -ne $baseCacheArtifact) {
+                $preflightArguments += @('--cache-artifact', $baseCacheArtifact)
+            }
+            Invoke-ProjectPython -Arguments $preflightArguments
             Confirm-ExternalOperation -Operation 'Code embed-index'
             $embeddingArguments = @(
                 'scripts/embed_code_index_artifacts.py', $prepared,
@@ -230,6 +271,17 @@ try {
             }
             Invoke-ProjectPython -Arguments $embeddingArguments
             $embedded = "data/staging/code_embeddings/$snapshotId/code_index_text_embedding_3_large_v1/code_index_artifact.json"
+            if ($SnapshotRequest -eq 'fci-custom-r3') {
+                $reuseReport = "data/exports/code_analysis/$snapshotId-code-embedding-reuse-verification.json"
+                Invoke-ProjectPython -Arguments @(
+                    'scripts/verify_code_embedding_reuse.py',
+                    '--snapshot-manifest', "data/code_snapshots/$snapshotId/snapshot_manifest.json",
+                    '--base-artifact', $baseCacheArtifact,
+                    '--embedded-artifact', $embedded,
+                    '--output', $reuseReport
+                )
+                Write-Output "R3 embedding reuse verification passed: $reuseReport"
+            }
             Invoke-ProjectPython -Arguments @(
                 'scripts/index_code_qdrant.py', $embedded,
                 '--qdrant-path', 'data/qdrant_code_local',
@@ -244,6 +296,7 @@ try {
         }
         'evaluate' {
             $snapshotId = Resolve-SnapshotId
+            Require-R3Benchmark -SnapshotId $snapshotId
             $embedded = "data/staging/code_embeddings/$snapshotId/code_index_text_embedding_3_large_v1/code_index_artifact.json"
             if (-not (Test-Path -LiteralPath $embedded -PathType Leaf)) {
                 throw "Embedded code artifact is missing: $embedded. Run embed-index first."
@@ -269,6 +322,7 @@ try {
         }
         'activate' {
             $snapshotId = Resolve-SnapshotId
+            Require-R3Benchmark -SnapshotId $snapshotId
             Require-ActivationArtifact -Name 'ActivationRequest' -Path $ActivationRequest
             Require-ActivationArtifact -Name 'ActivationApproval' -Path $ActivationApproval
             $requestPayload = Get-Content -LiteralPath $ActivationRequest -Raw | ConvertFrom-Json

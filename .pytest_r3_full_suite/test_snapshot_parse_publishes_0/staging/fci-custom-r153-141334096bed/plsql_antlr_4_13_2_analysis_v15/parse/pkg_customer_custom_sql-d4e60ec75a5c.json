@@ -1,0 +1,86 @@
+{
+  "antlr_runtime_version": "4.13.2",
+  "antlr_tool_version": "4.13.2",
+  "conditional_error_directives": [],
+  "conditional_regions": [],
+  "diagnostics": [],
+  "duration_ms": 18011.211399993044,
+  "extracted_nodes": [
+    {
+      "conditional_state": "unconditional",
+      "display_name": "pkg_customer_custom",
+      "enclosing_routines": [],
+      "extraction_method": "antlr",
+      "node_id": "2b096f99a301932af064f4f2a35e7c767cc499d6b4dd5b248904b133337f82f4",
+      "node_kind": "package_body",
+      "package_name": "pkg_customer_custom",
+      "signature_text": null,
+      "source_map": {
+        "end_line": 4,
+        "end_offset": 194,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 1,
+        "start_offset": 0
+      }
+    },
+    {
+      "conditional_state": "unconditional",
+      "display_name": "c_country",
+      "enclosing_routines": [],
+      "extraction_method": "antlr",
+      "node_id": "227ccb88d063bd4c783b8f5fbcef1f1f8b278639f79d61f5216b571451bd9fc9",
+      "node_kind": "constant",
+      "package_name": "pkg_customer_custom",
+      "signature_text": null,
+      "source_map": {
+        "end_line": 2,
+        "end_offset": 95,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 2,
+        "start_offset": 56
+      }
+    },
+    {
+      "conditional_state": "unconditional",
+      "display_name": "update_customer",
+      "enclosing_routines": [],
+      "extraction_method": "antlr",
+      "node_id": "3cf5ffe46e44471ed38fbb804259c220f747789d543d9071671d8aeb564be741",
+      "node_kind": "procedure",
+      "package_name": "pkg_customer_custom",
+      "signature_text": "PROCEDURE update_customer",
+      "source_map": {
+        "end_line": 3,
+        "end_offset": 170,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 3,
+        "start_offset": 98
+      }
+    }
+  ],
+  "grammar_commit": "a7704d4c029c33a89818ac103f758f7c72d8d16c",
+  "parser_state": "full_parse",
+  "peak_memory_bytes": 7860921,
+  "schema_version": "plsql_file_parse_v1",
+  "segments": [
+    {
+      "degradation_reason": null,
+      "display_name": null,
+      "parse_succeeded": true,
+      "segment_id": "8e2f7fe303b7cad44c6c02366e28f73ab6b645c0d1531441e8834c2e89c0a883",
+      "segment_kind": "file",
+      "source_map": {
+        "end_line": 5,
+        "end_offset": 198,
+        "source_path": "pkg_customer_custom.sql",
+        "start_line": 1,
+        "start_offset": 0
+      },
+      "syntax_error_count": 0
+    }
+  ],
+  "snapshot_id": "fci-custom-r153-141334096bed",
+  "source_path": "pkg_customer_custom.sql",
+  "source_sha256": "0ee958ffb572c67646f7b4c14cd45616264d8d76aaf6e850acdc949c18944d4c",
+  "syntax_error_count": 0
+}

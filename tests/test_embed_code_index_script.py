@@ -35,7 +35,8 @@ def test_dry_run_reports_external_disclosure_without_calling(tmp_path, capsys) -
         str(path), "--output-root", str(tmp_path / "out"), "--dry-run"
     ])
     report = json.loads(capsys.readouterr().out)
-    assert report["external_code_would_be_sent"] is True
+    assert report["external_code_would_be_sent"] is False
+    assert report["external_embedding_inputs"] == 0
     assert report["external_calls_performed"] is False
 
 

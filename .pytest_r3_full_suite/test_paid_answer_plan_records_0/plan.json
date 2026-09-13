@@ -1,0 +1,18 @@
+{
+  "answer_generation_request_count": 1,
+  "case_count": 1,
+  "draft_baseline": false,
+  "eval_files": {
+    "C:\\OC\\AI\\AI_Projects\\Culling Blade Lineage- Gen AI RAG System\\.pytest_r3_full_suite\\test_paid_answer_plan_records_0\\eval.jsonl": "5c5a9de95f5c9f2fae93b01d7b789c6634c9f808576d9f0f2f9a7cf82b649bb6"
+  },
+  "external_api_calls_performed": 0,
+  "external_disclosure_scope": "Evaluation questions plus retrieved internal FDD and PL/SQL evidence excerpts",
+  "query_embedding_request_count": 1,
+  "release_gate_eligible": false,
+  "required_next_action": "Obtain explicit authorization for the stated OpenAI disclosure and cost; then run a separately recorded paid evaluation and SME-review its answers.",
+  "retrieval_report": "C:\\OC\\AI\\AI_Projects\\Culling Blade Lineage- Gen AI RAG System\\.pytest_r3_full_suite\\test_paid_answer_plan_records_0\\report-True.json",
+  "retrieval_report_sha256": "636a38bb73f7efe18c612ca29acb07c2be047e933c9fceb807da0292fc682314",
+  "reviewed_manifest": true,
+  "schema_version": "code_combined_answer_eval_plan_v1",
+  "status": "awaiting_explicit_paid_authorization"
+}

@@ -42,6 +42,10 @@ def test_code_launcher_exposes_guarded_stages_and_existing_scripts() -> None:
     assert "Type APPROVE to continue" in content
     assert "Resolve-BaseEmbeddingCacheArtifact" in content
     assert "--cache-artifact" in content
+    assert "Require-R3Benchmark" in content
+    assert "scripts/verify_code_r3_benchmark.py" in content
+    assert "scripts/verify_code_embedding_reuse.py" in content
+    assert "--dry-run" in content
     assert "Refusing a duplicate paid embedding run" in content
     assert "Refusing a paid full re-embedding" in content
     assert "scripts/run_code_combined_retrieval_eval.py" in content
@@ -79,4 +83,8 @@ def test_launcher_runbooks_document_exact_commands_and_boundaries() -> None:
     assert "activation preflight and atomic `.env` update" in code
     assert "-ApplyActivation" in code
     assert "automatically\nuses that exact base artifact as its cache source" in code
+    assert "R3 seven-package expansion runbook" in code
+    assert "code_documentation_boundary_case_v1" in (
+        ROOT_DIR / "docs" / "R3_Seven_Package_Expansion_Runbook.md"
+    ).read_text(encoding="utf-8")
     assert "Refusing a duplicate paid embedding run" in (ROOT_DIR / "scripts" / "run_code_generation.ps1").read_text(encoding="utf-8")
