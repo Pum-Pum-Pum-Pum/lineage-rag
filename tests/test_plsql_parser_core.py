@@ -161,6 +161,28 @@ END real_one;
     assert [segment.display_name for segment in segments] == ["real_one"]
 
 
+def test_token_segmentation_does_not_reopen_case_depth_from_end_case_label() -> None:
+    source = """PROCEDURE first_routine IS
+BEGIN
+  CASE 1
+    WHEN 1 THEN NULL;
+  END CASE;
+END first_routine;
+
+PROCEDURE second_routine IS
+BEGIN
+  NULL;
+END second_routine;
+"""
+
+    segments = find_routine_segments(source, source_path="pkg_case_custom.sql")
+
+    assert [segment.display_name for segment in segments] == [
+        "first_routine",
+        "second_routine",
+    ]
+
+
 def test_sql_case_expression_does_not_hide_following_routine_end() -> None:
     source = """PROCEDURE sp_report IS
   l_value VARCHAR2(20);

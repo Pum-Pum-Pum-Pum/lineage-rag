@@ -177,8 +177,12 @@ def build_code_combined_retrieval_case_report(
         code_paths,
     )
     missing_paths = tuple(sorted(set(case.expected_code_paths).difference(matched_paths)))
+    matched_symbols = _matched_code_symbol_expectations(
+        case.expected_code_symbols,
+        code_symbols,
+    )
     missing_symbols = tuple(
-        sorted(set(case.expected_code_symbols).difference(code_symbols))
+        symbol for symbol in case.expected_code_symbols if symbol not in matched_symbols
     )
     missing_documents = tuple(
         sorted(set(case.expected_fdd_document_ids).difference(fdd_document_ids))
@@ -191,7 +195,7 @@ def build_code_combined_retrieval_case_report(
     if (
         case.expected_code_symbols
         and case.expected_code_symbol_policy == "any"
-        and not set(case.expected_code_symbols).intersection(code_symbols)
+        and not matched_symbols
     ):
         failures.append(
             "None of the alternative expected code symbols were retrieved: "
@@ -323,6 +327,16 @@ def _matched_code_path_expectations(
         if len(basename_matches) == 1:
             matches.append(str(expected))
     return tuple(matches)
+
+
+def _matched_code_symbol_expectations(
+    expected_symbols: Sequence[str],
+    retrieved_symbols: Sequence[str],
+) -> tuple[str, ...]:
+    """Match Oracle routine identities without treating identifier case as semantic."""
+
+    retrieved = {symbol.casefold() for symbol in retrieved_symbols}
+    return tuple(symbol for symbol in expected_symbols if symbol.casefold() in retrieved)
 
 
 def _recall(expected: Sequence[str], retrieved: Sequence[str]) -> float | None:

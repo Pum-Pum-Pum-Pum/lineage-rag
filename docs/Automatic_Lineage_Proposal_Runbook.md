@@ -57,6 +57,11 @@ code release, optional requirement, full title and attributable `basis`. A
 registry entry is a discovery hint, not SME approval of every routine it touches.
 Other FDDs still receive semantic candidate discovery without registry entries.
 
+When one comment identity is reused by different packages for different FDDs,
+use a new registry file with a `source_paths` array on each affected mapping.
+The proposal engine then resolves that correspondence only for the named logical
+source path; it does not treat a shared marker as corpus-wide proof.
+
 ## Review the result
 
 Open `review.html`, filter by document or package, then expand a document.

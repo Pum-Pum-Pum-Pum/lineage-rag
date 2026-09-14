@@ -11,11 +11,13 @@ dependencies = [
     "mcp>=2,<3",
     "numpy>=2.5,<3",
     "openai>=2.48,<3",
+    "portalocker>=3,<4",
     "pydantic>=2.13,<3",
     "pydantic-settings>=2.14,<3",
     "python-docx>=1.2,<2",
     "qdrant-client>=1.18,<2",
     "streamlit>=1.60,<2",
+    "tiktoken>=0.12,<1",
     "uvicorn>=0.51,<1",
 ]
 

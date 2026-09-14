@@ -11,12 +11,19 @@ from app.core.config import get_settings
 from app.embeddings.embedding_contract import EmbeddingBatch, EmbeddingRecord, validate_embedding_batch_inputs
 
 
-def get_embedding_client() -> OpenAI:
+def get_embedding_client(*, max_retries: int | None = None) -> OpenAI:
+    """Create an embedding client, optionally with an explicit retry bound."""
+
     settings = get_settings()
-    return OpenAI(
-        api_key=settings.openai_api_key,
-        base_url=settings.openai_base_url or None,
-    )
+    options: dict[str, object] = {
+        "api_key": settings.openai_api_key,
+        "base_url": settings.openai_base_url or None,
+    }
+    if max_retries is not None:
+        if max_retries < 0:
+            raise ValueError("max_retries must be zero or greater")
+        options["max_retries"] = max_retries
+    return OpenAI(**options)
 
 
 def embed_batch(

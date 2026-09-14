@@ -40,6 +40,14 @@ def test_dry_run_reports_external_disclosure_without_calling(tmp_path, capsys) -
     assert report["external_calls_performed"] is False
 
 
+def test_code_embedding_defaults_to_no_automatic_retries() -> None:
+    args = embed_code_index_artifacts.parse_args([
+        "prepared.json", "--output-root", "output"
+    ])
+
+    assert args.max_retries == 0
+
+
 def test_paid_run_requires_sme_review_before_authorization(tmp_path) -> None:
     path = _empty_artifact(tmp_path)
     with pytest.raises(PermissionError, match="SME-reviewed"):

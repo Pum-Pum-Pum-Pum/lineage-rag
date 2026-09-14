@@ -331,6 +331,107 @@ def test_code_retrieval_modes_preserve_exact_artifact_provenance(tmp_path: Path)
     assert hybrid.dense_candidates and hybrid.lexical_candidates
 
 
+def test_lexical_code_retrieval_prioritizes_an_exact_named_routine(tmp_path: Path) -> None:
+    artifact = _reviewed_embedded(tmp_path)
+    target, generic = artifact.records
+    target = target.model_copy(
+        update={
+            "display_name": "spExactRoutine",
+            "embedding_text": "PROCEDURE spExactRoutine IS BEGIN NULL; END;",
+            "citation_text": "PROCEDURE spExactRoutine IS BEGIN NULL; END;",
+        }
+    )
+    generic = generic.model_copy(
+        update={
+            "display_name": "spGenericRoutine",
+            "embedding_text": "visible custom behavior routine " * 20,
+            "citation_text": "visible custom behavior routine " * 20,
+        }
+    )
+    artifact = artifact.model_copy(update={"records": (target, generic)})
+
+    result = retrieve_code_evidence(
+        artifact=artifact,
+        query="What visible custom behavior is implemented by spExactRoutine?",
+        mode="lexical",
+        limit=1,
+        candidate_limit=2,
+    )
+
+    assert result.evidence[0].display_name == "spExactRoutine"
+
+
+def test_lexical_code_retrieval_prioritizes_explicit_technical_entity_pair(
+    tmp_path: Path,
+) -> None:
+    """Generic answer-writing words must not hide a matching integration unit."""
+
+    artifact = _reviewed_embedded(tmp_path)
+    target, generic = artifact.records
+    target = target.model_copy(
+        update={
+            "display_name": "spRealtimeSubsTransaction",
+            "package_name": "pkgAMLAIntegration_p_Custom",
+            "embedding_text": "FCIS FlagRight transaction integration procedure",
+            "citation_text": "PROCEDURE spRealtimeSubsTransaction IS BEGIN NULL; END;",
+        }
+    )
+    generic = generic.model_copy(
+        update={
+            "display_name": "spGenericCustomFlow",
+            "package_name": "pkgOther_Custom",
+            "embedding_text": "FCIS system custom flow visible where " * 20,
+            "citation_text": "PROCEDURE spGenericCustomFlow IS BEGIN NULL; END;",
+        }
+    )
+    artifact = artifact.model_copy(update={"records": (target, generic)})
+
+    result = retrieve_code_evidence(
+        artifact=artifact,
+        query=(
+            "How does the system integrate FCIS transactions with FlagRight, "
+            "and where is that flow visible in custom code?"
+        ),
+        mode="lexical",
+        limit=1,
+        candidate_limit=2,
+    )
+
+    assert result.evidence[0].display_name == "spRealtimeSubsTransaction"
+
+
+def test_lexical_code_retrieval_prioritizes_an_exact_named_source_file(
+    tmp_path: Path,
+) -> None:
+    artifact = _reviewed_embedded(tmp_path)
+    target, generic = artifact.records
+    target = target.model_copy(
+        update={
+            "source_path": "pkg_target_custom.sql",
+            "embedding_text": "PROCEDURE unrelated IS BEGIN NULL; END;",
+            "citation_text": "PROCEDURE unrelated IS BEGIN NULL; END;",
+        }
+    )
+    generic = generic.model_copy(
+        update={
+            "source_path": "pkg_generic_custom.sql",
+            "embedding_text": "visible custom code package inventory " * 20,
+            "citation_text": "visible custom code package inventory " * 20,
+        }
+    )
+    artifact = artifact.model_copy(update={"records": (target, generic)})
+
+    result = retrieve_code_evidence(
+        artifact=artifact,
+        query="List the parsed inventory for pkg_target_custom.sql.",
+        mode="lexical",
+        limit=1,
+        candidate_limit=2,
+    )
+
+    assert result.evidence[0].source_path == "pkg_target_custom.sql"
+
+
 def test_code_retrieval_limits_repeated_children_per_parent(tmp_path: Path) -> None:
     artifact = _reviewed_embedded(tmp_path)
     base = artifact.records[0]

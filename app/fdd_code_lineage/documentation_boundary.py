@@ -97,14 +97,21 @@ def build_documentation_boundary_case_report(
     paths = _unique(item.source_path for item in retrieval.code_evidence)
     symbols = _unique(item.display_name for item in retrieval.code_evidence)
     missing_paths = tuple(sorted(set(case.expected_code_paths).difference(paths)))
-    missing_symbols = tuple(sorted(set(case.expected_code_symbols).difference(symbols)))
+    matched_symbols = tuple(
+        symbol
+        for symbol in case.expected_code_symbols
+        if symbol.casefold() in {retrieved.casefold() for retrieved in symbols}
+    )
+    missing_symbols = tuple(
+        symbol for symbol in case.expected_code_symbols if symbol not in matched_symbols
+    )
     failures: list[str] = []
     if missing_paths:
         failures.append(f"Missing code paths: {list(missing_paths)}")
     if case.expected_code_symbol_policy == "all" and missing_symbols:
         failures.append(f"Missing code symbols: {list(missing_symbols)}")
     if case.expected_code_symbol_policy == "any" and not (
-        set(case.expected_code_symbols).intersection(symbols)
+        matched_symbols
     ):
         failures.append(
             "None of the expected code symbols were retrieved: "

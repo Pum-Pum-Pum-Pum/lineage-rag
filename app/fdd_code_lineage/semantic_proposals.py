@@ -43,11 +43,15 @@ def unit_vectors(vectors, dimension: int) -> np.ndarray:
     return matrix / norms[:, None]
 
 
-def load_registry(path: Path, document_ids: set[str], bindings: dict) -> dict[str, set[str]]:
+def load_registry(
+    path: Path, document_ids: set[str], bindings: dict
+) -> tuple[dict[str, set[str]], dict[tuple[str, str], set[str]], set[str]]:
     registry = json.loads(read_bound(path, bindings, 'enhancement_registry'))
     if registry.get('schema_version') != 'enhancement_fdd_registry_v1':
         raise ValueError('Unknown enhancement registry schema')
     lookup: dict[str, set[str]] = {}
+    scoped_lookup: dict[tuple[str, str], set[str]] = {}
+    registered_identities: set[str] = set()
     for row in registry['mappings']:
         if not row.get('basis', '').strip():
             raise ValueError('Enhancement correspondence needs an attributable basis')
@@ -55,14 +59,25 @@ def load_registry(path: Path, document_ids: set[str], bindings: dict) -> dict[st
         if doc not in document_ids:
             raise ValueError(f'Registry FDD is absent from selected generation: {doc}')
         key = identity_key(row['code_release'], row.get('requirement'), row['title'])
-        lookup.setdefault(key, set()).add(doc)
-    return lookup
+        registered_identities.add(key)
+        source_paths = row.get('source_paths')
+        if source_paths is None:
+            lookup.setdefault(key, set()).add(doc)
+            continue
+        if not isinstance(source_paths, list) or not source_paths or any(
+            not isinstance(item, str) or not item.strip() for item in source_paths
+        ):
+            raise ValueError('Scoped registry source_paths must be a nonempty string list')
+        for source_path in source_paths:
+            scoped_lookup.setdefault((key, source_path.replace('\\', '/')), set()).add(doc)
+    return lookup, scoped_lookup, registered_identities
 
 
 def build_proposals(*, fdd_stage: Path, snapshot_directory: Path, analysis_directory: Path,
                     code_artifact_path: Path, registry_path: Path, top_k: int = 5,
                     minimum_similarity: float = 0.45, ambiguity_margin: float = 0.03,
-                    progress: Callable[[str], None] = lambda _: None) -> dict:
+                    progress: Callable[[str], None] = lambda _: None,
+                    allow_provisional: bool = False) -> dict:
     if not 1 <= top_k <= 20 or not 0 <= minimum_similarity <= 1 or not 0 <= ambiguity_margin <= 1:
         raise ValueError('Invalid candidate count or similarity thresholds')
     bindings: dict[str, str] = {}
@@ -73,10 +88,12 @@ def build_proposals(*, fdd_stage: Path, snapshot_directory: Path, analysis_direc
     if len(set(source_names)) != len(source_names):
         raise ValueError('Duplicate FDD source declarations')
     document_ids = {name.rsplit('.', 1)[0] for name in source_names}
-    registry = load_registry(registry_path, document_ids, bindings)
+    registry, scoped_registry, registered_identities = load_registry(
+        registry_path, document_ids, bindings
+    )
     read_bound(code_artifact_path, bindings, 'code_embedding_artifact')
     code = load_code_index_artifact(code_artifact_path)
-    if code.status != 'embedded' or code.dependency_review_status != 'reviewed':
+    if code.status != 'embedded' or (code.dependency_review_status != 'reviewed' and not allow_provisional):
         raise ValueError('Code requires a reviewed embedded artifact')
     if code.embedding_model != stage['embedding_model']:
         raise ValueError('FDD and code embedding models differ; vectors cannot be compared')
@@ -199,10 +216,18 @@ def build_proposals(*, fdd_stage: Path, snapshot_directory: Path, analysis_direc
         ranked = []
         for symbol_index, indexes in record_groups.items():
             symbol = implementations[symbol_index]
-            matches = [region for region in regions_by_path[symbol.source_path]
-                       if region.start_offset < symbol.source_map.end_offset and
-                       symbol.source_map.start_offset < region.end_offset and
-                       registry.get(region.identity) == {stem}]
+            matches = []
+            for region in regions_by_path[symbol.source_path]:
+                documents_for_region = scoped_registry.get(
+                    (region.identity, symbol.source_path.replace('\\', '/')),
+                    registry.get(region.identity, set()),
+                )
+                if (
+                    region.start_offset < symbol.source_map.end_offset
+                    and symbol.source_map.start_offset < region.end_offset
+                    and documents_for_region == {stem}
+                ):
+                    matches.append(region)
             # For comment candidates, select evidence from inside the marked block when possible.
             marked_indexes = [i for i in indexes if any(r.start_offset < code.records[i].source_map.end_offset
                               and code.records[i].source_map.start_offset < r.end_offset for r in matches)]
@@ -237,7 +262,10 @@ def build_proposals(*, fdd_stage: Path, snapshot_directory: Path, analysis_direc
         documents.append(dict(document_id=stem, status='candidates_for_review' if ranked else 'no_strong_candidate',
             ambiguous_top_match=ambiguous, total_candidates=len(ranked), returned_candidates=min(top_k, len(ranked)),
             truncated=len(ranked) > top_k, candidates=ranked[:top_k]))
-    unmapped = sorted({r['identity'] for f in marker_report for r in f['regions']} - registry.keys())
+    unmapped = sorted(
+        {r['identity'] for f in marker_report for r in f['regions']}
+        - registered_identities
+    )
     output = dict(schema_version=SCHEMA, status='candidate', external_api_calls=0, automatic_approvals=0,
         fdd_generation=stage['index_generation'], code_snapshot_id=code.snapshot_id,
         parse_generation=code.parse_generation, embedding_model=code.embedding_model,

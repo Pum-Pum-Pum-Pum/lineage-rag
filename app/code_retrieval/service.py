@@ -34,6 +34,7 @@ def retrieve_code_evidence(
     lexical_weight: float = 0.60,
     allowed_unit_ids: set[str] | None = None,
     max_units_per_parent: int = 2,
+    allow_provisional: bool = False,
 ) -> CodeRetrievalResult:
     """Retrieve only evidence belonging to one reviewed code artifact generation.
 
@@ -46,7 +47,9 @@ def retrieve_code_evidence(
         raise ValueError("Code retrieval query must not be blank")
     if mode not in {"dense", "lexical", "hybrid"}:
         raise ValueError("Code retrieval mode must be dense, lexical, or hybrid")
-    if artifact.status != "embedded" or artifact.dependency_review_status != "reviewed":
+    if allow_provisional and mode != "lexical":
+        raise ValueError("Provisional diagnostics are lexical only")
+    if artifact.status != "embedded" or (artifact.dependency_review_status != "reviewed" and not allow_provisional):
         raise ValueError("Code retrieval requires a reviewed embedded artifact")
     if limit <= 0 or candidate_limit < limit:
         raise ValueError("candidate_limit must be greater than or equal to positive limit")

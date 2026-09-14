@@ -1,0 +1,39 @@
+{
+  "schema_version": "enhancement_fdd_registry_v1",
+  "mappings": [
+    {
+      "code_release": "FCIS_14.7.0.0.0$ASNB_R66",
+      "requirement": null,
+      "title": "Neo Day2",
+      "fdd_document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Day2_Neo_AML_FlagRight_FCIS_Integration_v1.1",
+      "basis": "Operator explicitly identified Neo Day2 as the R66 code comment in this conversation; correspondence only, not approval of implementing routines."
+    },
+    {
+      "code_release": "FCIS_14.7.0.0.0$ASNB_R24",
+      "requirement": "REQ07",
+      "title": "NEO Day2 Part2 Enhancement",
+      "fdd_document_id": "FS_FCIS_14.7.0.0.0$ASNB_R24_Day2_Part2_Neo_AML_FlagRight_FCIS_Integration_v1.3",
+      "basis": "Operator explicitly distinguished the R24 REQ07 Part2 enhancement from R66 Day2 in this conversation; correspondence only, not approval of implementing routines."
+    },
+    {
+      "code_release": "FCIS_14.7.0.0.0$ASNB_R25",
+      "requirement": "REQ03",
+      "title": "Zakat Khultah Phase2 Enhancement",
+      "fdd_document_id": "FS_FCIS_14.7.0.0.0$ASNB_R25_Zakat_Khultah_2_v1.2",
+      "source_paths": [
+        "pkgpnbzakatpaydetwrapper_p_custom.sql"
+      ],
+      "basis": "R3 benchmark review accepted the exact package-body R25 enhancement comments and their stated FDD identities; discovery only, not lineage approval."
+    },
+    {
+      "code_release": "FCIS_14.7.0.0.0$ASNB_R25",
+      "requirement": "REQ03",
+      "title": "Zakat Khultah Phase2 Enhancement",
+      "fdd_document_id": "FS_FCIS_14.7.0.0.0$ASNB_R25_Zakat_Khultah_Enhancement_v1.6",
+      "source_paths": [
+        "pkgpnbzakatpaymentprocess_p_custom.sql"
+      ],
+      "basis": "R3 benchmark review accepted the exact package-body R25 enhancement comments and their stated FDD identities; discovery only, not lineage approval."
+    }
+  ]
+}

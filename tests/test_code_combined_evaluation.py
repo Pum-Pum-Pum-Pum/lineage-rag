@@ -77,6 +77,17 @@ def test_code_gate_fails_on_nearby_wrong_symbol() -> None:
     assert report.missing_code_symbols == ("process_aml",)
 
 
+def test_code_gate_matches_oracle_symbols_case_insensitively() -> None:
+    case = _case(expected_code_symbols=("PROCESS_AML",))
+
+    report = build_code_combined_retrieval_case_report(
+        case=case, retrieval=_code_retrieval(case.question)
+    )
+
+    assert report.positive_gate_passed is True
+    assert report.missing_code_symbols == ()
+
+
 def test_filename_only_expectation_matches_one_imported_logical_path() -> None:
     case = _case(expected_code_paths=("pkgaml_custom.sql",))
     retrieval = _code_retrieval(case.question).model_copy(

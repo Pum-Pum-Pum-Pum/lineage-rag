@@ -35,6 +35,7 @@ def test_code_launcher_exposes_guarded_stages_and_existing_scripts() -> None:
         "scripts/verify_prepared_code_index.py",
         "scripts/embed_code_index_artifacts.py",
         "scripts/index_code_qdrant.py",
+        "scripts/check_code_qdrant_collection_absent.py",
         "scripts/verify_code_qdrant.py",
     ):
         assert script in content
@@ -58,6 +59,8 @@ def test_code_launcher_exposes_guarded_stages_and_existing_scripts() -> None:
     assert "[string]$ActivationRequest" in content
     assert "[switch]$ApplyActivation" in content
     assert "[string]$SourceDirectory" in content
+    assert "[string]$ImmutableSnapshotId" in content
+    assert "-ImmutableSnapshotId must belong to request" in content
 
 
 def test_launcher_runbooks_document_exact_commands_and_boundaries() -> None:
@@ -84,6 +87,8 @@ def test_launcher_runbooks_document_exact_commands_and_boundaries() -> None:
     assert "-ApplyActivation" in code
     assert "automatically\nuses that exact base artifact as its cache source" in code
     assert "R3 seven-package expansion runbook" in code
+    assert "R3 mandatory reuse preflight" in code
+    assert "external_embedding_inputs" in code
     assert "code_documentation_boundary_case_v1" in (
         ROOT_DIR / "docs" / "R3_Seven_Package_Expansion_Runbook.md"
     ).read_text(encoding="utf-8")

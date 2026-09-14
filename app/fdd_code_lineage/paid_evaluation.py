@@ -260,7 +260,11 @@ def evaluate_answer_structure(
             failures.append(f"Missing expected cited FDD documents: {missing_documents}")
 
     missing_paths = sorted(set(case.expected_code_paths) - cited_paths)
-    missing_symbols = sorted(set(case.expected_code_symbols) - cited_symbols)
+    cited_symbol_keys = {symbol.casefold() for symbol in cited_symbols}
+    matched_symbols = {
+        symbol for symbol in case.expected_code_symbols if symbol.casefold() in cited_symbol_keys
+    }
+    missing_symbols = sorted(set(case.expected_code_symbols) - matched_symbols)
     if missing_paths:
         failures.append(f"Missing expected cited code paths: {missing_paths}")
     if missing_symbols and case.expected_code_symbol_policy == "all":
@@ -268,7 +272,7 @@ def evaluate_answer_structure(
     if (
         case.expected_code_symbols
         and case.expected_code_symbol_policy == "any"
-        and not set(case.expected_code_symbols).intersection(cited_symbols)
+        and not matched_symbols
     ):
         failures.append(
             "No alternative expected code symbol was cited: "

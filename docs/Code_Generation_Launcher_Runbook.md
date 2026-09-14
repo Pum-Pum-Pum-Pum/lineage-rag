@@ -1,5 +1,10 @@
 # Custom-code generation launcher
 
+For recurring updates above an active reviewed generation, use the
+[resumable code update runbook](Code_Update_Runbook.md). It consolidates commands,
+review and recovery into one persistent run. This document remains the low-level
+reference and bootstrap route; historical R3 instructions are retained separately.
+
 Use this runbook to create a complete, immutable custom-code generation from a
 read-only SVN working copy. Run each numbered step separately from the repository
 root, in the same PowerShell terminal. Stop whenever a command reports an error.
@@ -248,6 +253,29 @@ $dependencyLedger = "data\exports\code_analysis\reviews\$snapshotId-dependency-r
 The launcher creates and verifies the complete prepared artifact. No paid call,
 Qdrant write, or activation occurs. Every command pins the same parser generation;
 v15 is also the current launcher default.
+
+### 4.1 R3 mandatory reuse preflight
+
+For the controlled `fci-custom-r3` expansion, run this local preflight **after
+Step 4 and before any embedding approval**. It reports the exact count of
+unique code excerpts that would be sent to OpenAI after compatible R2 cache
+reuse. It does not create an OpenAI client, disclose code, write Qdrant, or
+activate a collection.
+
+```powershell
+$prepared = "data\staging\code_indexes\$r3SnapshotId\code_index_contract_v5\code_index_artifact.json"
+$baseArtifact = 'data\staging\code_embeddings\fci-custom-r2-ffd9732906d4\code_index_text_embedding_3_large_v1\code_index_artifact.json'
+
+.\.venv\Scripts\python.exe scripts\embed_code_index_artifacts.py `
+  $prepared --output-root data\staging\code_embeddings `
+  --cache-artifact $baseArtifact --dry-run
+```
+
+Record the prepared-artifact identity, base-artifact identity,
+`cached_embedding_inputs`, and `external_embedding_inputs`. Obtain separate
+bounded cost/disclosure approval for that reported cache-miss count before
+continuing to Step 5. For R3, pass both `-ImmutableSnapshotId $r3SnapshotId`
+and `-R3BenchmarkManifest $r3Reviewed` to every later launcher command.
 
 ## 5. Embed, index, and verify the isolated collection
 

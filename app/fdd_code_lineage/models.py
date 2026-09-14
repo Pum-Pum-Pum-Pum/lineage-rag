@@ -88,7 +88,7 @@ class FddCodeLineageArtifact(FrozenModel):
     def validate_status(self) -> "FddCodeLineageArtifact":
         if len({item.mapping_id for item in self.mappings}) != len(self.mappings):
             raise ValueError("Mapping IDs must be unique")
-        expected = "reviewed" if self.mappings and all(
+        expected = "reviewed" if (self.mappings or (self.reviewer and self.review_packet_sha256 and self.source_candidate_artifact_identity_sha256)) and all(
             item.mapping_status == "reviewed" for item in self.mappings
         ) else "candidate"
         if self.status != expected:
@@ -138,7 +138,7 @@ def build_lineage_artifact(
     reviewer: str | None = None,
 ) -> FddCodeLineageArtifact:
     ordered = tuple(sorted(mappings, key=lambda item: item.mapping_id))
-    status = "reviewed" if ordered and all(
+    status = "reviewed" if (ordered or (reviewer and review_packet_sha256 and source_candidate_artifact_identity_sha256)) and all(
         item.mapping_status == "reviewed" for item in ordered
     ) else "candidate"
     values = {

@@ -12,6 +12,8 @@ from app.retrieval.knowledge_service import (
     KnowledgeRetrievalService,
     SourceCatalog,
     _add_request_workbook_companions,
+    _to_combined_code_hits,
+    _to_fdd_evidence_hits,
 )
 from app.services.query_retrieval import PlannedRetrievalResult
 from app.retrieval.lexical_search import LexicalSearchDocument
@@ -173,6 +175,50 @@ def test_combined_search_emits_only_bounded_combined_lanes(monkeypatch, tmp_path
 
     assert response.ranking_scope == "per_source_type"
     assert response.results == (fdd_hit, code_hit)
+
+
+def test_combined_transport_labels_unreviewed_fdd_candidates_and_boundary(
+    monkeypatch,
+) -> None:
+    """A no-lineage result must not look like confirmed FDD implementation evidence."""
+
+    fdd_hit = KnowledgeSearchHit(
+        id="fdd_" + "a" * 64,
+        title="FDD candidate",
+        source_type="fdd",
+        short_excerpt="FDD evidence",
+        score=1.0,
+        metadata={"document_id": "FDD_R24.docx"},
+        source_reference="document:fdd#source=fdd_" + "a" * 64,
+    )
+    code_hit = KnowledgeSearchHit(
+        id="code_" + "b" * 64,
+        title="Code routine",
+        source_type="code",
+        short_excerpt="Code evidence",
+        score=1.0,
+        metadata={},
+        source_reference="code:snapshot/source.sql#L1-L1",
+    )
+    monkeypatch.setattr(knowledge_service, "_catalog_source", lambda _, unit_id: unit_id)
+    monkeypatch.setattr(
+        knowledge_service,
+        "_search_hit",
+        lambda source, *_: fdd_hit if source == "fdd-unit" else code_hit,
+    )
+    combined = SimpleNamespace(
+        fdd_evidence=(SimpleNamespace(unit_id="fdd-unit", score=1.0, retrieval_metadata={}),),
+        code_evidence=(SimpleNamespace(unit_id="code-unit", score=1.0, retrieval_metadata={}),),
+        reviewed_lineage=(),
+    )
+
+    fdd_results = _to_fdd_evidence_hits(combined, {}, limit=5)
+    code_results = _to_combined_code_hits(combined, {}, limit=5)
+
+    assert fdd_results[0].metadata["fdd_code_lineage_status"] == "unreviewed_documentation_candidate"
+    assert fdd_results[0].metadata["reviewed_fdd_code_mapping_ids"] == []
+    assert code_results[0].metadata["code_fdd_lineage_status"] == "no_reviewed_fdd_lineage"
+    assert code_results[0].metadata["reviewed_fdd_code_mapping_ids"] == []
 
 
 def test_request_json_query_retains_same_workbook_request_sheet_and_exposes_sheet_metadata() -> None:

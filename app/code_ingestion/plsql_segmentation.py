@@ -190,6 +190,7 @@ def detect_package_name(source_text: str) -> str | None:
 
 
 def _find_routine_end(tokens: list[Token], start_index: int) -> tuple[int, bool] | None:
+    routine_name = _next_identifier_text(tokens, start_index + 1)
     paren_depth = 0
     body_started = False
     begin_depth = 0
@@ -207,9 +208,21 @@ def _find_routine_end(tokens: list[Token], start_index: int) -> tuple[int, bool]
             body_started = True
             begin_depth += 1
         elif body_started and token.type == PlSqlLexer.CASE:
+            # ``END CASE`` is emitted as two lexer tokens.  The END branch
+            # below has already closed that CASE, so its label must not be
+            # counted as a new CASE expression on the following iteration.
+            if index > 0 and tokens[index - 1].type == PlSqlLexer.END:
+                continue
             case_depth += 1
         elif body_started and token.type == PlSqlLexer.END:
             next_type = tokens[index + 1].type if index + 1 < len(tokens) else Token.EOF
+            next_text = tokens[index + 1].text if index + 1 < len(tokens) else None
+            # A named routine terminator is definitive even if an earlier
+            # malformed or unusual CASE construct left transient depth state.
+            if routine_name and next_text and next_text.casefold() == routine_name.casefold():
+                semicolon = _next_token_type(tokens, index + 1, PlSqlLexer.SEMICOLON)
+                if semicolon is not None:
+                    return semicolon, False
             if next_type in {PlSqlLexer.IF, PlSqlLexer.LOOP}:
                 continue
             if next_type == PlSqlLexer.CASE:

@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import warnings
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from mcp.server import MCPServer
@@ -18,6 +19,7 @@ from mcp_types import CallToolResult, ToolAnnotations
 from pydantic import Field
 
 from app.core.config import Settings, get_settings
+from app.code_updates.runtime import RuntimeReceipt
 from app.mcp.adapter import MCPRetrievalAdapter, MCPToolFailure, encode_mcp_error, encode_mcp_result
 from app.mcp.preflight import require_mcp_startup_preflight
 from app.retrieval.knowledge_service import KnowledgeFetchResponse, KnowledgeSearchResponse
@@ -72,7 +74,10 @@ def create_mcp_server(
             "guarantee of complete behavior. Do not infer unavailable kernel behavior. "
             "When metadata.workflow_status is unreviewed_documentation_candidate, label "
             "the FDD as a candidate documentation link and do not present it as reviewed "
-            "lineage, conformance, or a confirmed code/FDD conflict."
+            "lineage, conformance, or a confirmed code/FDD conflict. When a code result "
+            "has metadata.code_fdd_lineage_status=no_reviewed_fdd_lineage, state that "
+            "boundary for that cited code result even if another FDD result has a reviewed "
+            "mapping to different code evidence."
         ),
         log_level=effective_settings.log_level.upper(),
     )
@@ -82,6 +87,16 @@ def create_mcp_server(
         idempotent_hint=True,
         open_world_hint=False,
     )
+
+    server_started_at = datetime.now(UTC).isoformat()
+
+    @server.tool(name="runtime_status", description="Return a local code-update restart receipt for an existing RunId. No evidence or paid query.", annotations=annotations, structured_output=True)
+    def runtime_status(run_id: Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")]) -> RuntimeReceipt:
+        from app.code_updates.runtime import attest_runtime
+        try:
+            return RuntimeReceipt.model_validate(attest_runtime(get_settings(), run_id, server_started_at))
+        except Exception:
+            raise ToolError("Runtime verification unavailable for this run.") from None
 
     @server.tool(
         name="search",
@@ -130,7 +145,14 @@ def main() -> None:
     if os.environ.get("MCP_PROTOCOL_TEST_EMIT_DIAGNOSTICS") == "1":
         logging.getLogger("httpx").warning("mcp-protocol-test-third-party-diagnostic")
         warnings.warn("mcp-protocol-test-warning", RuntimeWarning, stacklevel=1)
-    create_mcp_server(settings=settings).run(transport="stdio")
+    server = create_mcp_server(settings=settings)
+    # Operational startup evidence is separate from the read-only tool surface.
+    from app.code_updates.runtime import publish_restart_receipts
+    try:
+        publish_restart_receipts(settings, datetime.now(UTC).isoformat())
+    except Exception:
+        logging.getLogger(__name__).warning("Code-update startup receipt could not be recorded; runtime_status remains available.")
+    server.run(transport="stdio")
 
 
 if __name__ == "__main__":

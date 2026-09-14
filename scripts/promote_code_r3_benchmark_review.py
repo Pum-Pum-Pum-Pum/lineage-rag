@@ -36,7 +36,11 @@ def main(argv: list[str] | None = None) -> int:
     reviewed = draft.model_copy(
         update={"review_status": "reviewed", "sme_reviewed": True, "reviewer": reviewer}
     )
+    # Hash and write the exact same UTF-8/LF bytes.  Using ``write_text`` on
+    # Windows can translate LF to CRLF after the hash has been calculated,
+    # which would make the ledger bind different bytes from the reviewed file.
     reviewed_content = reviewed.model_dump_json(indent=2) + "\n"
+    reviewed_bytes = reviewed_content.encode("utf-8")
     ledger = {
         "schema_version": "code_r3_benchmark_review_ledger_v1",
         "reviewer": reviewer,
@@ -45,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         "draft_manifest": str(args.draft_manifest),
         "draft_manifest_sha256": hashlib.sha256(draft_bytes).hexdigest(),
         "reviewed_manifest": str(args.output),
-        "reviewed_manifest_sha256": hashlib.sha256(reviewed_content.encode("utf-8")).hexdigest(),
+        "reviewed_manifest_sha256": hashlib.sha256(reviewed_bytes).hexdigest(),
         "package_pairs": len(reviewed.package_pairs),
         "new_source_files": 14,
         "modified_base_source_path": reviewed.modified_base_source_path,
@@ -53,15 +57,15 @@ def main(argv: list[str] | None = None) -> int:
     canonical = json.dumps(ledger, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     ledger["ledger_identity_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     outputs = {
-        args.output: reviewed_content,
-        args.ledger: json.dumps(ledger, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        args.output: reviewed_bytes,
+        args.ledger: (json.dumps(ledger, indent=2, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"),
     }
     existing = [str(path) for path in outputs if path.exists()]
     if existing:
         raise FileExistsError(f"Refusing to overwrite reviewed R3 benchmark evidence: {existing}")
     for path, content in outputs.items():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        path.write_bytes(content)
     print("status=reviewed")
     print(f"reviewed_manifest_sha256={ledger['reviewed_manifest_sha256']}")
     print(f"ledger_identity_sha256={ledger['ledger_identity_sha256']}")

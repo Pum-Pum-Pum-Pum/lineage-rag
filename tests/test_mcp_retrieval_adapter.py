@@ -171,7 +171,7 @@ def test_mcp_server_publishes_only_read_only_closed_world_tools() -> None:
 
     tools = asyncio.run(server.list_tools())
 
-    assert [tool.name for tool in tools] == ["search", "fetch"]
+    assert [tool.name for tool in tools] == ["runtime_status", "search", "fetch"]
     for tool in tools:
         assert tool.annotations.read_only_hint is True
         assert tool.annotations.destructive_hint is False
@@ -182,6 +182,22 @@ def test_mcp_server_publishes_only_read_only_closed_world_tools() -> None:
 def test_mcp_server_refuses_startup_in_fastapi_only_mode() -> None:
     with pytest.raises(RuntimeError, match="MCP is disabled"):
         create_mcp_server(settings=_settings(disclosure_enabled=False, interface_mode="fastapi"))
+
+
+def test_runtime_status_is_callable_without_search_or_disclosure(monkeypatch):
+    import app.mcp.server as module
+    settings = _settings(disclosure_enabled=False)
+    service = FakeService()
+    monkeypatch.setattr(module, "get_settings", lambda: settings)
+    monkeypatch.setattr("app.code_updates.runtime.attest_runtime", lambda effective, run_id, started: {
+        "schema_version": "code_update_runtime_receipt_v1", "run_id": run_id, "nonce": "challenge",
+        "process_id": 12, "server_started_at": started, "observed_at": started,
+        "identity": {"collection": "code_custom_final"}, "signature": "signed-receipt"})
+    server = create_mcp_server(settings=settings, adapter=MCPRetrievalAdapter(settings_provider=lambda: settings, service_factory=lambda _: service))
+    result = asyncio.run(server.call_tool("runtime_status", {"run_id": "R4"}))
+    assert result.is_error is False
+    assert result.structured_content["identity"]["collection"] == "code_custom_final"
+    assert service.search_calls == [] and service.fetch_calls == []
 
 
 def test_fastapi_refuses_startup_in_mcp_only_mode(monkeypatch) -> None:

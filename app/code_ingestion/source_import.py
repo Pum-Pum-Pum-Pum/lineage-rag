@@ -64,7 +64,8 @@ def stage_external_code_source(
             shutil.copyfile(source_path, destination_path)
             copied[relative_path] = _sha256(destination_path)
 
-        after = {relative_path: _sha256(path) for relative_path, path in selected if path.is_file()}
+        after_selected, _ = _select_source_files(source_root, allowed_extensions)
+        after = {relative_path: _sha256(path) for relative_path, path in after_selected if path.is_file()}
         if before != copied or before != after:
             raise SourceImportError(
                 "External source changed during read-only import; no intake source was published. Update SVN, then rerun into a new empty request directory."

@@ -565,7 +565,27 @@ def _to_code_search_hits(
 
 
 def _to_fdd_evidence_hits(result: CombinedRetrievalResult, catalog: dict[str, _CatalogSource], *, limit: int) -> list[KnowledgeSearchHit]:
-    return [_search_hit(_catalog_source(catalog, item.unit_id), item.score, item.retrieval_metadata) for item in result.fdd_evidence[:limit]]
+    mapping_ids_by_document: dict[str, list[str]] = {}
+    for lineage_use in result.reviewed_lineage:
+        mapping_ids_by_document.setdefault(lineage_use.fdd_document_id, []).append(
+            lineage_use.mapping_id
+        )
+
+    hits: list[KnowledgeSearchHit] = []
+    for item in result.fdd_evidence[:limit]:
+        hit = _search_hit(
+            _catalog_source(catalog, item.unit_id), item.score, item.retrieval_metadata
+        )
+        mapping_ids = mapping_ids_by_document.get(str(hit.metadata.get("document_id", "")), [])
+        metadata = dict(hit.metadata)
+        metadata["fdd_code_lineage_status"] = (
+            "reviewed_mapping_available"
+            if mapping_ids
+            else "unreviewed_documentation_candidate"
+        )
+        metadata["reviewed_fdd_code_mapping_ids"] = sorted(mapping_ids)
+        hits.append(hit.model_copy(update={"metadata": metadata}))
+    return hits
 
 
 def _to_combined_code_hits(
@@ -575,10 +595,39 @@ def _to_combined_code_hits(
     limit: int,
     package_inventory: PackageInventory | None = None,
 ) -> list[KnowledgeSearchHit]:
-    return _add_package_inventory(
-        [_search_hit(_catalog_source(catalog, item.unit_id), item.score, item.retrieval_metadata) for item in result.code_evidence[:limit]],
+    code_items = result.code_evidence[:limit]
+    hits = _add_package_inventory(
+        [_search_hit(_catalog_source(catalog, item.unit_id), item.score, item.retrieval_metadata) for item in code_items],
         package_inventory,
     )
+    mapping_ids_by_unit: dict[str, list[str]] = {}
+    for lineage_use in result.reviewed_lineage:
+        for unit_id in lineage_use.code_unit_ids:
+            mapping_ids_by_unit.setdefault(unit_id, []).append(lineage_use.mapping_id)
+
+    annotated: list[KnowledgeSearchHit] = []
+    for item, hit in zip(code_items, hits, strict=True):
+        mapping_ids = sorted(set(mapping_ids_by_unit.get(item.unit_id, [])))
+        annotated.append(
+            hit.model_copy(
+                update={
+                    "metadata": {
+                        **hit.metadata,
+                        # This is deliberately per cited unit, rather than a
+                        # query-wide flag: one result can contain an unrelated
+                        # reviewed FDD mapping and direct code evidence that has
+                        # no reviewed relationship to that FDD.
+                        "code_fdd_lineage_status": (
+                            "reviewed_mapping_available"
+                            if mapping_ids
+                            else "no_reviewed_fdd_lineage"
+                        ),
+                        "reviewed_fdd_code_mapping_ids": mapping_ids,
+                    }
+                }
+            )
+        )
+    return annotated
 
 
 def _add_package_inventory(

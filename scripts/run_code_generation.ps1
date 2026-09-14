@@ -11,6 +11,10 @@ param(
     [string]$SourceDirectory,
 
     [string]$ParseGeneration = 'plsql_antlr_4_13_2_analysis_v15',
+    # Required for post-intake stages only when a request name has more than
+    # one immutable historical snapshot. The exact ID prevents any selection
+    # by creation time or directory order.
+    [string]$ImmutableSnapshotId,
     [string]$DependencyReviewLedger,
     [string]$CollectionName,
     [string]$EvaluationFile = 'data/evaluations/code_grounded_eval_v1_reviewed.jsonl',
@@ -62,6 +66,27 @@ function Confirm-ExternalOperation {
 }
 
 function Resolve-SnapshotId {
+    if (-not [string]::IsNullOrWhiteSpace($ImmutableSnapshotId)) {
+        if ($ImmutableSnapshotId -notlike "$SnapshotRequest-*") {
+            throw "-ImmutableSnapshotId must belong to request '$SnapshotRequest': $ImmutableSnapshotId"
+        }
+        $manifestPath = Join-Path $SnapshotRoot "$ImmutableSnapshotId\snapshot_manifest.json"
+        if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw "Immutable snapshot manifest does not exist: $manifestPath"
+        }
+        try {
+            $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            throw "Immutable snapshot manifest is not valid JSON: $manifestPath"
+        }
+        if ([string]$manifest.snapshot_id -ne $ImmutableSnapshotId -or
+            [string]$manifest.request.module_set -ne ($SnapshotRequest -replace '-r[0-9]+$', '') -or
+            [string]$manifest.request.svn_revision -ne ($SnapshotRequest -replace '^[A-Za-z0-9_-]+-r', '')) {
+            throw "-ImmutableSnapshotId does not match the requested immutable snapshot: $ImmutableSnapshotId"
+        }
+        return $ImmutableSnapshotId
+    }
     $matches = @(
         Get-ChildItem -LiteralPath $SnapshotRoot -Directory -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -like "$SnapshotRequest-*" }
@@ -176,6 +201,9 @@ try {
     if ($Stage -ne 'intake-parse' -and -not [string]::IsNullOrWhiteSpace($SourceDirectory)) {
         throw '-SourceDirectory is valid only with -Stage intake-parse.'
     }
+    if ($Stage -eq 'intake-parse' -and -not [string]::IsNullOrWhiteSpace($ImmutableSnapshotId)) {
+        throw '-ImmutableSnapshotId is valid only after a snapshot has been published.'
+    }
     switch ($Stage) {
         'intake-parse' {
             Require-R3Benchmark
@@ -244,6 +272,11 @@ try {
             if (Test-Path -LiteralPath $embeddedDirectory) {
                 throw "Embedded code generation already exists: $embeddedDirectory. Refusing a duplicate paid embedding run."
             }
+            Invoke-ProjectPython -Arguments @(
+                'scripts/check_code_qdrant_collection_absent.py',
+                '--qdrant-path', 'data/qdrant_code_local',
+                '--collection-name', $CollectionName
+            )
             $baseCacheArtifact = Resolve-BaseEmbeddingCacheArtifact -SnapshotId $snapshotId
             if ($null -ne $baseCacheArtifact) {
                 Write-Output "Embedding reuse enabled: base snapshot cache=$baseCacheArtifact"

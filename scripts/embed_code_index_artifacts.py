@@ -32,6 +32,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--cache-artifact", type=Path, action="append", default=[])
     parser.add_argument("--request-batch-size", type=int, default=32)
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=0,
+        help="OpenAI SDK retry count for paid code embeddings; defaults to zero.",
+    )
     parser.add_argument("--authorization", default="")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args(argv)
@@ -70,9 +76,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             "Paid code embedding is blocked. Pass the exact authorization token only after "
             "approval to send internal code excerpts to OpenAI."
         )
+    if args.max_retries < 0:
+        raise ValueError("--max-retries must be zero or greater")
     embedded, summary = embed_code_index_artifact(
         artifact,
-        client=get_embedding_client(),
+        client=get_embedding_client(max_retries=args.max_retries),
         cache_artifact_paths=args.cache_artifact,
         request_batch_size=args.request_batch_size,
     )
@@ -84,6 +92,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "status": embedded.status,
         **summary.__dict__,
         "artifact_identity_sha256": embedded.artifact_identity_sha256,
+        "max_retries": args.max_retries,
         "output": str(output.resolve()),
         "external_calls_performed": summary.request_count > 0,
     }, indent=2))
