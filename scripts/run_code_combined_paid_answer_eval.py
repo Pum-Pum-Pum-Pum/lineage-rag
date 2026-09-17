@@ -200,6 +200,7 @@ def main(argv: list[str] | None = None) -> int:
                         fdd_results=planned.results,
                         fdd_generation=args.fdd_generation,
                         known_fdd_document_ids=known_fdd_ids,
+                        fdd_documents=fdd_documents,
                         code_artifact=artifact,
                         lineage_artifact=lineage,
                         analysis_directory=args.analysis_directory,

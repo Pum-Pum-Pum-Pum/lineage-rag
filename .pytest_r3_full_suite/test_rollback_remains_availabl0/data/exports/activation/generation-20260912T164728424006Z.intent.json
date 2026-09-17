@@ -1,9 +1,0 @@
-{
-  "action": "rollback",
-  "activation_complete": false,
-  "applied": false,
-  "external_api_calls": 0,
-  "request_identity_sha256": "5e5928a575670c462d73304bc1aa8c2e00b357778d92abd1f08057879a9967cb",
-  "restart_required": true,
-  "rollback_disables_code_modes": true
-}

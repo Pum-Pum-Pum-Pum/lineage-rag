@@ -1,1 +1,0 @@
-{"status": "verified", "index_generation": "test_v1", "sources": [{"document_name": "fdd_a.docx"}, {"document_name": "fdd_b.docx"}, {"document_name": "fdd_c.docx"}], "embedding_model": "text-embedding-3-large", "embedding_record_artifact_version": "v1"}

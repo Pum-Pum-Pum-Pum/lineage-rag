@@ -40,3 +40,20 @@ def test_boundary_case_fails_if_reviewed_mapping_is_present() -> None:
     )
     assert report.passed is False
     assert "reviewed FDD-to-code mapping" in report.failures[0]
+
+
+def test_boundary_ignores_mapping_to_unrelated_code_evidence() -> None:
+    report = build_documentation_boundary_case_report(
+        case=_case(),
+        retrieval=_retrieval(
+            mappings=(
+                ReviewedLineageUse(
+                    mapping_id="m-unrelated",
+                    fdd_document_id="generic-fdd",
+                    code_unit_ids=("other-code-unit",),
+                ),
+            )
+        ),
+    )
+    assert report.passed is True
+    assert report.reviewed_mapping_ids == ()

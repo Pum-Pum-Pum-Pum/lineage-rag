@@ -40,6 +40,7 @@ def parse_code_snapshot(
     analysis_policy: CodeAnalysisPolicy | None = None,
     generation_directory: str = PARSER_GENERATION_DIRECTORY,
     reuse_generation_directory: Path | None = None,
+    base_generation_directory: Path | None = None,
 ) -> CodeParseStageManifest:
     """Parse one verified immutable snapshot and atomically publish local artifacts."""
 
@@ -77,6 +78,49 @@ def parse_code_snapshot(
         max_retrieval_unit_characters=max_retrieval_unit_characters,
         retrieval_overlap_characters=retrieval_overlap_characters,
     )
+    reuse_origins = {path: str(reuse_generation_directory.resolve()) for path in reuse_catalog}
+    if base_generation_directory is not None:
+        base_id = snapshot.request.base_snapshot_id
+        if not base_id:
+            raise ValueError("Baseline parse reuse requires an exact base snapshot")
+        base = load_snapshot_manifest(snapshot_directory.parent / base_id, verify_sources=True)
+        if base.request.compiler_context != snapshot.request.compiler_context:
+            raise ValueError("Baseline compiler context differs; reconcile parser inputs before reuse")
+        base_files = {entry.path: entry for entry in base.files}
+        eligible = {
+            entry.path: (entry.source_handler, entry.encoding)
+            for entry in snapshot.files
+            if entry.path in base_files and
+            (entry.sha256, entry.source_handler, entry.encoding) ==
+            (base_files[entry.path].sha256, base_files[entry.path].source_handler, base_files[entry.path].encoding)
+        }
+        base_catalog, _ = _load_reuse_catalog(
+            base_generation_directory, file_contracts=eligible,
+            compiler_context=base.request.compiler_context.model_dump(mode="json"),
+            snapshot_id=base.snapshot_id, snapshot_content_sha256=base.snapshot_content_sha256,
+            parser_generation=generation_directory,
+            analysis_policy_sha256=selected_analysis_policy.sha256,
+            timeout_seconds=timeout_seconds, memory_limit_bytes=memory_limit_bytes,
+            max_segment_characters=max_segment_characters,
+            max_retrieval_unit_characters=max_retrieval_unit_characters,
+            retrieval_overlap_characters=retrieval_overlap_characters,
+        )
+        for path, (parsed, retrieval, key) in base_catalog.items():
+            if parsed.source_sha256 != base_files[path].sha256:
+                raise ValueError(f"Baseline parse source identity mismatch: {path}")
+            parsed = parsed.model_copy(update={"snapshot_id": snapshot.snapshot_id})
+            previous_retrieval = retrieval
+            source_text = (snapshot_directory / snapshot.source_directory_name / path).read_bytes().decode(base_files[path].encoding)
+            retrieval = build_code_retrieval_artifact(
+                parsed, source_text, verified_source_sha256=base_files[path].sha256,
+                max_unit_characters=max_retrieval_unit_characters, overlap_characters=retrieval_overlap_characters,
+            )
+            if sorted(unit.retrieval_text for unit in retrieval.units) != sorted(
+                    unit.retrieval_text for unit in previous_retrieval.units):
+                raise ValueError(f"Baseline retrieval contract changed: {path}; reconcile before embedding")
+            reuse_catalog[path] = (parsed, retrieval, key)
+            reuse_origins[path] = str(base_generation_directory.resolve())
+        reused_from_generation = str(base_generation_directory.resolve())
     temporary = Path(tempfile.mkdtemp(prefix=".code-parse-", dir=target.parent))
     worker_root = temporary / ".workers"
     state_counts = {state: 0 for state in ("full_parse", "segmented_parse", "fallback_parse", "failed")}
@@ -147,7 +191,7 @@ def parse_code_snapshot(
                     source_sha256=entry.sha256,
                     reuse_key_sha256=reuse_key,
                     reused=reused,
-                    reused_from_generation=reused_from_generation if reused else None,
+                    reused_from_generation=reuse_origins.get(entry.path, reused_from_generation) if reused else None,
                 )
             )
             state_counts[parsed.parser_state] += 1
@@ -244,6 +288,8 @@ def _load_reuse_catalog(
         raise ValueError(
             "Reuse generation parser contract does not match the current segmentation contract"
         )
+    if manifest.status == "failed":
+        raise ValueError("Cannot reuse a failed parse generation")
     for field, value in expected.items():
         if getattr(manifest, field) != value:
             raise ValueError(f"Reuse generation {field} does not match the requested parse contract")
@@ -259,6 +305,11 @@ def _load_reuse_catalog(
         retrieval = CodeRetrievalArtifact.model_validate_json(
             (directory / retrieval_relative).read_text(encoding="utf-8")
         )
+        if (parsed.snapshot_id != manifest.snapshot_id or retrieval.snapshot_id != manifest.snapshot_id
+                or parsed.source_path != retrieval.source_path
+                or any(unit.snapshot_id != manifest.snapshot_id or unit.source_path != parsed.source_path
+                       for unit in retrieval.units)):
+            raise ValueError("Reuse artifact provenance does not match its parse manifest")
         if parsed.source_path not in file_contracts:
             continue
         source_handler, encoding = file_contracts[parsed.source_path]

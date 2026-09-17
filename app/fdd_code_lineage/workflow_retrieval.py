@@ -258,7 +258,8 @@ def promote_workflow_code_context(
         raise ValueError("Code result limit must be greater than zero")
     preferred: list[CodeEvidence] = []
     for item in current:
-        if _same_symbol_name(item.display_name, discovery.target.name.display_name):
+        if (item.source_path == discovery.target.source_path
+                and _same_symbol_name(item.display_name, discovery.target.name.display_name)):
             metadata = dict(item.retrieval_metadata)
             metadata.update(
                 retrieval_relation="workflow_target_routine",
@@ -330,8 +331,37 @@ def _unique_explicit_target(
         if symbol.occurrence_role == "implementation"
         and _normalize_identifier(symbol.name.display_name) == name
     ]
-    # A name collision across packages is not an exact enough selector.
-    return matches[0] if len(matches) == 1 else None
+    # Preserve package and path qualifiers. Repeated framework hook names are
+    # common across packages; a qualified query is not an ambiguous bare name.
+    qualified_mentions = {
+        token.casefold()
+        for token in re.findall(r"[A-Za-z_][\w$#]*(?:\.[A-Za-z_][\w$#]*)+", query)
+        if _normalize_identifier(token.rsplit(".", 1)[-1]) == name
+    }
+    if qualified_mentions:
+        matches = [s for s in matches if s.canonical_qualified_name.casefold() in qualified_mentions]
+    path_mentions = {
+        token.replace("\\", "/").casefold()
+        for token in re.findall(r"[\w./\\-]+\.(?:sql|spc|prc|fnc)\b", query, re.IGNORECASE)
+    }
+    if path_mentions:
+        matches = [s for s in matches if any(
+            s.source_path.replace("\\", "/").casefold() == path
+            or ("/" not in path and Path(s.source_path).name.casefold() == path)
+            for path in path_mentions
+        )]
+    # Do not resolve overloaded or still-ambiguous names by rank/order. The
+    # selected implementation must also actually occur in direct retrieval.
+    if len(matches) != 1:
+        return None
+    target = matches[0]
+    return target if any(
+        item.source_path == target.source_path
+        and _same_symbol_name(item.display_name, target.name.display_name)
+        and item.start_line <= target.source_map.end_line
+        and item.end_line >= target.source_map.start_line
+        for item in direct_code_evidence
+    ) else None
 
 
 def _resolved_callers(

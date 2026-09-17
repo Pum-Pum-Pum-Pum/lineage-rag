@@ -44,6 +44,31 @@ def stopped_mcp_guard(name=r"Local\CullingBladeLineageMcpStdio"):
         kernel.CloseHandle(handle)
 
 
+def desktop_mcp_running(name=r"Local\CullingBladeLineageMcpStdio") -> bool:
+    """Read the stdio launch mutex without starting a competing MCP child."""
+    if os.name != "nt":
+        raise RuntimeError("Desktop MCP ownership probing currently requires Windows")
+    import ctypes
+    from ctypes import wintypes
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateMutexW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
+    kernel.CreateMutexW.restype = wintypes.HANDLE
+    kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    kernel.ReleaseMutex.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    handle = kernel.CreateMutexW(None, False, name)
+    if not handle:
+        raise RuntimeError("Cannot verify Desktop MCP ownership")
+    acquired = False
+    try:
+        acquired = kernel.WaitForSingleObject(handle, 0) in (0, 128)
+        return not acquired
+    finally:
+        if acquired:
+            kernel.ReleaseMutex(handle)
+        kernel.CloseHandle(handle)
+
+
 class RuntimeReceipt(BaseModel):
     schema_version: str
     run_id: str
@@ -138,6 +163,11 @@ def publish_restart_receipts(settings, started_at, *, root=None):
         output = path.parent / "runtime_receipts" / f"{receipt['process_id']}-{receipt['process_creation_token']}.json"
         if not output.exists():
             immutable(output, receipt)
+    # Coordinated FDD/code releases use a distinct challenge schema but are
+    # attested by this same already-started MCP process. Import lazily to avoid
+    # a module cycle during normal code-update startup.
+    from app.knowledge_updates.runtime import publish_restart_receipts as publish_knowledge_receipts
+    publish_knowledge_receipts(settings, started_at, root=root)
 
 
 def verify_restart_receipt(run, receipt_path):
@@ -173,14 +203,72 @@ def unpack(result):
     return data.get("result", data)
 
 
+def _task_group_details(error: BaseException) -> str:
+    """Return the leaf failures hidden by an anyio/asyncio exception group."""
+
+    details: list[str] = []
+
+    def collect(value: BaseException) -> None:
+        children = getattr(value, "exceptions", None)
+        if children:
+            for child in children:
+                collect(child)
+            return
+        message = str(value).strip() or value.__class__.__name__
+        details.append(f"{value.__class__.__name__}: {message}")
+
+    collect(error)
+    return "; ".join(dict.fromkeys(details)) or error.__class__.__name__
+
+
+def _reviewed_lineage_uat_case(final: dict, config: dict) -> dict:
+    """Choose a reviewed combined expectation already eligible for this release.
+
+    A UAT must prove the live MCP follows a reviewed relationship, but it must
+    not select a mapping merely by artifact order. The final combined gate has
+    already established the eligible questions and their exact code paths.
+    """
+
+    candidates = [final.get("new_combined_cases"), *config.get("combined_evals", [])]
+    for value in candidates:
+        if not value:
+            continue
+        path = Path(value)
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            if (
+                item.get("mode") == "combined"
+                and item.get("review_status") == "reviewed"
+                and item.get("sme_reviewed") is True
+                and item.get("require_reviewed_lineage") is True
+                and item.get("should_abstain") is False
+                and item.get("expected_code_paths")
+            ):
+                return item
+    raise RuntimeError(
+        "No reviewed combined evaluation case is available for bounded MCP lineage UAT"
+    )
+
+
 def staged_uat(root, config, state, final, collection):
     from app.code_indexing.contract import load_code_index_artifact
     from app.fdd_code_lineage.reviewed_bundle import load_reviewed_lineage
     from qdrant_client import QdrantClient
     artifact = load_code_index_artifact(Path(final["code"]))
     lineage = load_reviewed_lineage(Path(final["lineage"]))
-    # Open/close detects store ownership before starting a child. The existing
-    # launcher mutex remains the final check against another MCP process.
+    # Do not launch a stdio child when Desktop already owns it. The launcher
+    # reports this condition in PowerShell text, which is deliberately not a
+    # JSON-RPC response and must never be fed to the MCP client parser.
+    if desktop_mcp_running():
+        raise RuntimeError(
+            "Bounded MCP UAT cannot start while Desktop MCP is running. "
+            "Stop the Desktop MCP, then resume finalize; no competing child was started."
+        )
+    # Open/close also detects local-store ownership before starting the child.
     from app.core.config import Settings
     settings = Settings()
     for directory in {config["code_store"], str(settings.qdrant_local_path)}:
@@ -212,9 +300,16 @@ def staged_uat(root, config, state, final, collection):
         checks.append({"kind": "table_behavior", "mode": "code", "path": path,
             "query": f"Explain {symbol.qualified_display_name} in {path} and its operation on {edge.target_canonical_name}",
             "expected_table": edge.target_canonical_name})
-    for mapping in lineage.mappings[:1]:
-        target = mapping.targets[0]
-        checks.append({"kind": "lineage", "mode": "combined", "query": f"Explain {target.qualified_name or target.path} in {target.path} and its FDD requirement", "path": target.path})
+    lineage_case = _reviewed_lineage_uat_case(final, config)
+    checks.append(
+        {
+            "kind": "lineage",
+            "mode": "combined",
+            "query": lineage_case["question"],
+            "path": lineage_case["expected_code_paths"][0],
+            "expected_fdd_documents": lineage_case.get("expected_fdd_document_ids", []),
+        }
+    )
     mapped = {t.path for m in lineage.mappings for t in m.targets}
     boundary = next((p for p in files if p not in mapped), None)
     if boundary:
@@ -226,48 +321,67 @@ def staged_uat(root, config, state, final, collection):
                CODE_ANALYSIS_DIRECTORY=state["analysis"], CODE_QDRANT_COLLECTION_NAME=collection,
                FDD_CODE_LINEAGE_ARTIFACT_PATH=final["lineage"], FDD_GENERATION=config["fdd_generation"],
                PROCESSED_DIR=config["fdd_directory"], RETRIEVAL_INDEX_PATH=config["fdd_directory"])
+    diagnostic_directory = run_directory(root, state["run_id"]) / "logs"
+    diagnostic_directory.mkdir(parents=True, exist_ok=True)
+    diagnostic_log = diagnostic_directory / f"mcp-uat-{secrets.token_hex(8)}.stderr.log"
+    diagnostic_searches = diagnostic_log.with_suffix(".searches.json")
+    attempted_searches = []
+
     async def run():
         from mcp import ClientSession, StdioServerParameters
         from mcp.client.stdio import stdio_client
         params = StdioServerParameters(command="powershell.exe", args=["-NoProfile", "-ExecutionPolicy", "Bypass",
             "-File", str(root / "scripts/run_mcp_stdio.ps1")], cwd=str(root), env=env)
         results = []
-        async with stdio_client(params) as (reader, writer):
-            async with ClientSession(reader, writer) as session:
-                await session.initialize()
-                for check in checks[:5]:
-                    mode, query, path = check["mode"], check["query"], check["path"]
-                    response = unpack(await session.call_tool("search", {"query": query, "mode": mode}))
-                    if response.get("retrieval_mode") != "lexical":
-                        raise RuntimeError("UAT must run in lexical mode")
-                    hits = [h for h in response.get("results", []) if h["source_type"] == "code"]
-                    matches = [h for h in hits if path.casefold() in json.dumps(h).casefold()]
-                    if not matches:
-                        raise RuntimeError(f"MCP UAT did not retrieve {path}")
-                    if check["kind"] == "inventory":
-                        from app.fdd_code_lineage.workflow_retrieval import enumerate_package_inventory
-                        expected = enumerate_package_inventory(analysis_directory=Path(state["analysis"]), source_path=path)
-                        inventories = [h["metadata"].get("parser_inventory") for h in hits if h["metadata"].get("parser_inventory")]
-                        if not any(i.get("source_path") == path and i.get("procedures") == list(expected.procedures)
-                                   and i.get("functions") == list(expected.functions) for i in inventories):
-                            raise RuntimeError(f"MCP package inventory is incomplete for {path}")
-                    if check["kind"] == "caller_context":
-                        for caller in check["expected_callers"]:
-                            if not any(caller.casefold() in json.dumps(hit).casefold() for hit in hits):
-                                raise RuntimeError("MCP did not retrieve expected bounded caller context")
-                    if check["kind"] == "lineage" and not any(h["metadata"].get("code_fdd_lineage_status") == "reviewed_mapping_available" for h in matches):
-                        raise RuntimeError("MCP did not expose the expected reviewed relationship")
-                    if boundary == path and mode == "combined":
-                        if any(h["metadata"].get("code_fdd_lineage_status") != "no_reviewed_fdd_lineage" for h in matches):
-                            raise RuntimeError("MCP falsely claimed reviewed lineage on boundary source")
-                    fetched = unpack(await session.call_tool("fetch", {"id": matches[0]["id"]}))
-                    if not fetched.get("text") or fetched.get("id") != matches[0]["id"]:
-                        raise RuntimeError("MCP fetch failed for returned evidence ID")
-                    if check["kind"] == "table_behavior" and check["expected_table"].casefold() not in (json.dumps(matches) + fetched["text"]).casefold():
-                        raise RuntimeError("MCP table-behavior evidence did not include the expected operation target")
-                    results.append({**check, "passed": True,
-                                    "search": response, "fetch": fetched})
+        with diagnostic_log.open("w", encoding="utf-8") as stderr:
+            async with stdio_client(params, errlog=stderr) as (reader, writer):
+                async with ClientSession(reader, writer) as session:
+                    await session.initialize()
+                    for check in checks[:5]:
+                        mode, query, path = check["mode"], check["query"], check["path"]
+                        response = unpack(await session.call_tool("search", {"query": query, "mode": mode}))
+                        attempted_searches.append({"check": check, "search": response})
+                        if response.get("retrieval_mode") != "lexical":
+                            raise RuntimeError("UAT must run in lexical mode")
+                        hits = [h for h in response.get("results", []) if h["source_type"] == "code"]
+                        matches = [h for h in hits if path.casefold() in json.dumps(h).casefold()]
+                        if not matches:
+                            raise RuntimeError(f"MCP UAT did not retrieve {path}")
+                        if check["kind"] == "inventory":
+                            from app.fdd_code_lineage.workflow_retrieval import enumerate_package_inventory
+                            expected = enumerate_package_inventory(analysis_directory=Path(state["analysis"]), source_path=path)
+                            inventories = [h["metadata"].get("parser_inventory") for h in hits if h["metadata"].get("parser_inventory")]
+                            if not any(i.get("source_path") == path and i.get("procedures") == list(expected.procedures)
+                                       and i.get("functions") == list(expected.functions) for i in inventories):
+                                raise RuntimeError(f"MCP package inventory is incomplete for {path}")
+                        if check["kind"] == "caller_context":
+                            for caller in check["expected_callers"]:
+                                if not any(caller.casefold() in json.dumps(hit).casefold() for hit in hits):
+                                    raise RuntimeError(
+                                        f"MCP did not retrieve expected bounded caller context: {caller}; "
+                                        f"query={query!r}; returned code IDs={[h.get('id') for h in hits]}"
+                                    )
+                        if check["kind"] == "lineage" and not any(h["metadata"].get("code_fdd_lineage_status") == "reviewed_mapping_available" for h in matches):
+                            raise RuntimeError("MCP did not expose the expected reviewed relationship")
+                        if boundary == path and mode == "combined":
+                            if any(h["metadata"].get("code_fdd_lineage_status") != "no_reviewed_fdd_lineage" for h in matches):
+                                raise RuntimeError("MCP falsely claimed reviewed lineage on boundary source")
+                        fetched = unpack(await session.call_tool("fetch", {"id": matches[0]["id"]}))
+                        if not fetched.get("text") or fetched.get("id") != matches[0]["id"]:
+                            raise RuntimeError("MCP fetch failed for returned evidence ID")
+                        if check["kind"] == "table_behavior" and check["expected_table"].casefold() not in (json.dumps(matches) + fetched["text"]).casefold():
+                            raise RuntimeError("MCP table-behavior evidence did not include the expected operation target")
+                        results.append({**check, "passed": True,
+                                        "search": response, "fetch": fetched})
         return {"passed": True, "code_artifact_identity": artifact.artifact_identity_sha256,
                 "lineage_identity": lineage.artifact_identity_sha256, "collection": collection,
                 "external_api_calls": 0, "cases": results}
-    return asyncio.run(asyncio.wait_for(run(), timeout=240))
+    try:
+        return asyncio.run(asyncio.wait_for(run(), timeout=240))
+    except BaseExceptionGroup as exc:
+        immutable(diagnostic_searches, {"passed": False, "cases": attempted_searches,
+                                      "failure": _task_group_details(exc), "external_api_calls": 0})
+        raise RuntimeError(
+            "Bounded MCP UAT failed: " + _task_group_details(exc)
+            + f". Search diagnostics: {diagnostic_searches}. Server diagnostics: {diagnostic_log}"
+        ) from exc

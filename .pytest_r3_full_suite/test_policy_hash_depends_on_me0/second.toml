@@ -1,9 +1,0 @@
-# reordered but equivalent
-schema_version = "ingestion_source_policy_v1"
-[code.extensions]
-".ddl" = "ddl"
-".fnc" = "plsql"
-".prc" = "plsql"
-".sql" = "plsql"
-[fdd.extensions]
-".docx" = "docx"

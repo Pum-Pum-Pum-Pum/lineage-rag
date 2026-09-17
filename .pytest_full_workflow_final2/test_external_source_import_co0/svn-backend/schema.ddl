@@ -1,1 +1,0 @@
-create table stale_t (id number);

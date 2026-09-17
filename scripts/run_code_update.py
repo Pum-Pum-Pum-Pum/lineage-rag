@@ -17,11 +17,23 @@ from app.code_updates.coordinator import Coordinator
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--action", required=True, choices=["init", "prepare", "build", "finalize", "activate", "verify", "status"])
+    parser.add_argument("--action", required=True, choices=["init", "prepare", "build", "amend-review", "finalize", "activate", "verify", "status"])
     parser.add_argument("--run-id", required=True)
     for name in ("source-directory", "svn-revision", "application-build", "reviewer", "price-per-million", "pricing-basis",
                  "enhancement-registry", "max-usd", "runtime-receipt"):
         parser.add_argument("--" + name)
+    # Internal compatibility hook for the coordinated workflow.  Legacy users
+    # omit these and continue to bind the configured active FDD generation.
+    parser.add_argument("--fdd-generation")
+    parser.add_argument("--fdd-directory")
+    parser.add_argument("--fdd-stage")
+    parser.add_argument("--coordinated-release", action="store_true")
+    parser.add_argument("--fdd-document-id")
+    parser.add_argument("--source-path")
+    parser.add_argument("--qualified-name")
+    parser.add_argument("--symbol-kind", choices=["procedure", "function"])
+    parser.add_argument("--source-marker")
+    parser.add_argument("--evidence-query")
     parser.add_argument("--services-stopped", action="store_true")
     args = parser.parse_args(argv)
     os.chdir(ROOT)

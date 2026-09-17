@@ -10,6 +10,18 @@ __pycache__/
 .pytest-*/
 .mypy_cache/
 
+# Local development/test output (including legacy root-level scratch folders)
+/.local/
+/.pytest*/
+/._codex*/
+/_codex*/
+/.codex/
+/.uv_cache*/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
 # Virtual environments
 .venv/
 venv/
@@ -59,6 +71,8 @@ data/staging/*
 data/indexes/*
 data/tmp/
 data/test_runtime/
+data/code_updates/
+data/knowledge_updates/
 
 
 # Evaluation outputs
@@ -68,6 +82,7 @@ data/eval/generated/*
 # Vector DB and local indexes
 qdrant_storage/
 data/qdrant_local/
+data/qdrant_code_local/
 *.sqlite
 *.sqlite3
 *.db

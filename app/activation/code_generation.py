@@ -102,16 +102,27 @@ def write_new(path: Path, payload: dict) -> None:
 def verify_report(path: Path, *, artifact, lineage=None) -> dict:
     report = json.loads(path.read_bytes())
     meta = report['metadata']
+    expected_mode = 'combined' if lineage else 'code'
+    details = []
+    for case in report['cases']:
+        failures = list(case['failures'])
+        if case['mode'] != expected_mode:
+            failures.append(f"Expected mode {expected_mode}, got {case['mode']}")
+        if failures:
+            details.append(f"{case.get('case_id', '<missing case ID>')}: " + '; '.join(failures))
+    failure_detail = ' | '.join(details or (['Report contains no cases'] if not report['cases'] else []))
     if (not report['summary']['release_gate_eligible'] or not meta['reviewed_manifest']
             or meta['code_artifact_identity_sha256'] != artifact.artifact_identity_sha256
             or meta['code_snapshot_id'] != artifact.snapshot_id):
-        raise ValueError('Evaluation is failed, unreviewed, or for another code generation')
+        raise ValueError('Evaluation is failed, unreviewed, or for another code generation'
+                         + ('. ' + failure_detail if failure_detail else ''))
     if lineage and (meta['lineage_artifact_identity_sha256'] != lineage.artifact_identity_sha256
                     or meta['fdd_generation'] != lineage.fdd_generation):
         raise ValueError('Combined evaluation lineage/FDD identity mismatch')
-    expected_mode = 'combined' if lineage else 'code'
     if not report['cases'] or any(c['mode'] != expected_mode or c['failures'] for c in report['cases']):
-        raise ValueError('Evaluation contains failed cases or the wrong mode')
+        raise ValueError('Evaluation contains failed cases or the wrong mode. '
+                         + failure_detail
+                         + '. Inspect the report and existing review evidence; do not relax expectations to pass.')
     for name, expected in meta['eval_file_sha256'].items():
         if sha(Path(name)) != expected:
             raise ValueError('Reviewed evaluation manifest changed')

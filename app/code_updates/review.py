@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import html
+import hashlib
 import json
 import re
+from pathlib import Path, PurePosixPath
 
 from app.code_updates.storage import atomic_text, digest, read
 from app.code_ingestion.dependency_review_ledger import (
@@ -69,12 +71,48 @@ def decisions(items, path):
             continue
         if verdict not in {"accepted", "corrected", "deferred"} or not rationale:
             raise ValueError(f"Unresolved SME item {entry['id']}; supply decision and rationale")
+        if entry["kind"] in {"lineage", "inherited_lineage"} and verdict != "deferred" and len(rationale) < 10:
+            raise ValueError(f"SME item {entry['id']}: lineage rationale requires at least 10 characters explaining the evidence")
         if verdict == "deferred" and entry["kind"] != "lineage":
             raise ValueError("Only new lineage candidates can be deferred")
         if not isinstance(correction, dict) or (verdict != "corrected" and correction):
             raise ValueError("Only corrected decisions may supply a JSON correction")
         result[entry["id"]] = {"verdict": verdict, "rationale": rationale, "correction": correction}
     return result
+
+
+def collect_review_decisions(primary_items, primary_path, *, amendment_items=(), amendment_path=None):
+    """Load a reviewed packet plus an optional, separately bound amendment.
+
+    An amendment is deliberately a second packet rather than a rewrite of the
+    original consolidated review. That retains the original evidence binding
+    and decisions while allowing a regression-discovered candidate to receive
+    one narrow SME decision.
+    """
+    selected = decisions(primary_items, primary_path)
+    all_items = list(primary_items)
+    if amendment_items:
+        if amendment_path is None:
+            raise ValueError("Amendment evidence requires an amendment review packet")
+        amendment_selected = decisions(amendment_items, amendment_path)
+        duplicate_ids = set(selected).intersection(amendment_selected)
+        if duplicate_ids:
+            raise ValueError("Review amendment duplicates an existing review item")
+        selected.update(amendment_selected)
+        all_items.extend(amendment_items)
+    return all_items, selected
+
+
+def combined_review_identity(primary_path, amendment_path=None):
+    """Return the hash-bound identity of one or two independently reviewed packets."""
+    payload = {"primary_review_sha256": sha_file(primary_path)}
+    if amendment_path is not None:
+        payload["amendment_review_sha256"] = sha_file(amendment_path)
+    return digest(payload)
+
+
+def sha_file(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def dependency_ledger(packet, packet_path, review_hash, items, selected, reviewer):
@@ -119,8 +157,58 @@ def reviewed_cases(items, selected):
     return result
 
 
-def finalize_lineage(items, selected, artifact, generation, review_hash, reviewer):
+def normalize_lineage_targets(items, selected, artifact):
+    """Rebind an accepted moved source path only when its basename is unique.
+
+    The review packet remains immutable evidence of what the SME saw.  This
+    narrow normalization accounts for an intentional directory move between a
+    baseline and the current immutable snapshot; it never guesses between two
+    same-named files and leaves explicit SME corrections untouched.
+    """
+    known_paths = {record.source_path for record in artifact.records}
+    by_name = {}
+    for path in known_paths:
+        name = PurePosixPath(path.replace("\\", "/")).name.casefold()
+        by_name.setdefault(name, []).append(path)
+    overrides, rebindings = {}, []
+    for entry in items:
+        if entry["kind"] not in {"lineage", "inherited_lineage"}:
+            continue
+        decision = selected[entry["id"]]
+        if decision["verdict"] == "deferred":
+            continue
+        targets = decision["correction"].get("targets", entry["evidence"]["targets"])
+        normalized = []
+        for target in targets:
+            source_path = target["path"]
+            if source_path in known_paths:
+                normalized.append(target)
+                continue
+            if "targets" in decision["correction"]:
+                raise ValueError(f"Unknown explicitly corrected code path: {source_path}. Use an exact current snapshot path")
+            name = PurePosixPath(source_path.replace("\\", "/")).name.casefold()
+            matches = sorted(by_name.get(name, ()))
+            if len(matches) != 1:
+                choices = ", ".join(matches) if matches else "none"
+                raise ValueError(
+                    f"Unknown code path: {source_path}. Cannot safely rebind by filename; "
+                    f"current matches: {choices}"
+                )
+            rebound = matches[0]
+            normalized.append({**target, "path": rebound})
+            rebindings.append({
+                "review_item_id": entry["id"],
+                "from_path": source_path,
+                "to_path": rebound,
+                "reason": "unique_basename_rebind_after_source_directory_move",
+            })
+        overrides[entry["id"]] = normalized
+    return overrides, rebindings
+
+
+def finalize_lineage(items, selected, artifact, generation, review_hash, reviewer, *, target_overrides=None):
     candidates, mappings, deferred = [], [], []
+    target_overrides = target_overrides or {}
     for entry in items:
         if entry["kind"] not in {"lineage", "inherited_lineage"}:
             continue
@@ -129,7 +217,7 @@ def finalize_lineage(items, selected, artifact, generation, review_hash, reviewe
             deferred.append({**entry, "decision": decision})
             continue
         data = entry["evidence"]
-        targets = decision["correction"].get("targets", data["targets"])
+        targets = target_overrides.get(entry["id"], decision["correction"].get("targets", data["targets"]))
         if set(decision["correction"]) - {"targets", "fdd_document_id", "fdd_release_label", "evaluation_question"}:
             raise ValueError("Unsupported lineage correction")
         params = dict(fdd_document_id=decision["correction"].get("fdd_document_id", data["fdd_document_id"]),

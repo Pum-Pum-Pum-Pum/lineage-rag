@@ -157,6 +157,7 @@ def main(argv: list[str] | None = None) -> int:
                     fdd_results=fdd_results,
                     fdd_generation=args.fdd_generation,
                     known_fdd_document_ids={item.document_id for item in fdd_documents},
+                    fdd_documents=fdd_documents,
                     code_artifact=code_artifact,
                     lineage_artifact=lineage,
                     analysis_directory=args.analysis_directory,

@@ -1,4 +1,0 @@
-CREATE OR REPLACE PACKAGE BODY pkg_customer_custom AS
-  PROCEDURE run IS BEGIN NULL; END;
-END;
-/

@@ -12,10 +12,11 @@ from app.code_retrieval.models import CodeCandidateSummary, CodeEvidence, CodeRe
 from app.code_retrieval.service import retrieve_code_evidence
 from app.fdd_code_lineage.models import (
     FddCodeLineageArtifact,
+    resolve_code_target_unit_ids,
     resolve_target_unit_ids,
 )
 from app.retrieval.identifier_affinity import identifier_affinity
-from app.retrieval.lexical_search import LexicalSearchDocument, tokenize
+from app.retrieval.lexical_search import LexicalSearchDocument, search_lexical_documents, tokenize
 from app.fdd_code_lineage.workflow_retrieval import (
     discover_explicit_routine_workflow,
     merge_workflow_fdd_candidates,
@@ -135,6 +136,15 @@ def retrieve_combined_evidence(
         fdd_evidence = _reserve_fdd_topic_diversity_slot(
             query=query, candidates=baseline_fdd, limit=fdd_limit
         )
+    # Reverse lookup must also work when the linked FDD missed global top-k.
+    # Reserve at most one slot, and only for an exact, unambiguous routine link.
+    anchor = _retrieve_exact_reviewed_fdd(
+        query=query, direct=direct.evidence, documents=fdd_documents,
+        lineage=lineage_artifact, code_artifact=code_artifact,
+        analysis_directory=analysis_directory,
+    )
+    if anchor is not None and anchor.document_id not in {item.document_id for item in fdd_evidence}:
+        fdd_evidence = (*fdd_evidence[:max(0, fdd_limit - 1)], anchor)
     selected_document_ids = {item.document_id for item in fdd_evidence}
     mapped_unit_ids, mapping_ids = resolve_target_unit_ids(
         lineage_artifact,
@@ -213,6 +223,64 @@ def retrieve_combined_evidence(
         reviewed_lineage=lineage_uses,
         unknowns=tuple(unknowns),
     )
+
+
+def _retrieve_exact_reviewed_fdd(
+    *, query: str, direct: Sequence[CodeEvidence],
+    documents: Sequence[LexicalSearchDocument], lineage: FddCodeLineageArtifact,
+    code_artifact: CodeIndexArtifact, analysis_directory: Path,
+) -> FddEvidence | None:
+    """Follow one reviewed document link; passage selection is NOT SME approval.
+
+    Bare routine names, file selectors, competing documents, and other overloads
+    cannot trigger this fallback. Normal candidate ranking remains unchanged.
+    The containing artifact is validated by resolve_target_unit_ids before return.
+    """
+    if not documents or not direct:
+        return None
+    anchors: dict[str, list[CodeEvidence]] = {}
+    query_folded = query.replace("\\", "/").casefold()
+    for mapping in lineage.mappings:
+        if mapping.mapping_status != "reviewed":
+            continue
+        for target in mapping.targets:
+            if target.selector_scope == "file" or not target.qualified_name:
+                continue
+            qualified = target.qualified_name.casefold()
+            if not re.search(r"(?<![\w.$#])" + re.escape(qualified) + r"(?![\w$#])", query_folded):
+                continue
+            matching = [item for item in direct
+                        if item.module_id == target.module_id
+                        and item.source_path == target.path
+                        and item.source_kind == target.symbol_kind
+                        and ".".join(filter(None, (item.package_name, item.display_name))).casefold() == qualified]
+            # If the user supplies a source path, do not substitute another file.
+            named_paths = {item.source_path for item in direct
+                           if item.source_path.replace("\\", "/").casefold() in query_folded}
+            if not matching or (named_paths and target.path not in named_paths):
+                continue
+            unit_ids = resolve_code_target_unit_ids(
+                target, code_artifact=code_artifact, analysis_directory=analysis_directory,
+            )
+            matching = [item for item in matching if item.unit_id in unit_ids]
+            if matching:
+                anchors.setdefault(mapping.fdd_document_id, []).extend(matching)
+    if len(anchors) != 1:
+        return None
+    document_id, context = next(iter(anchors.items()))
+    scoped_documents = [item for item in documents if item.document_id == document_id]
+    # Bounded source context supplies business terms; no expected answer or FDD
+    # title is injected into the passage query.
+    context_by_id = {item.unit_id: item for item in context}
+    passage_query = query + " " + " ".join(item.text[:6000] for item in list(context_by_id.values())[:2])
+    results = search_lexical_documents(scoped_documents, passage_query, limit=1)
+    if not results:
+        return None
+    evidence = _fdd_evidence(results[0])
+    return evidence.model_copy(update={"retrieval_metadata": {
+        "retrieval_relation": "exact_reviewed_routine_document_link",
+        "passage_selection": "lexical_candidate_not_separately_reviewed",
+    }})
 
 
 def _fdd_evidence(result: Any) -> FddEvidence:
@@ -425,8 +493,21 @@ def _select_lineage_anchored_fdd_evidence(
     if len(candidates) <= limit or not direct_code_candidates:
         return tuple(selected)
     selected_documents = {item.document_id for item in selected}
-    direct_names = {
-        item.display_name.casefold() for item in direct_code_candidates
+    # An explicitly named routine is stronger evidence than overlapping
+    # identifier tokens.  For example, ``spProcessZakatPayment`` and
+    # ``spZakatPaymentProcessWrapper`` share several tokens but are distinct
+    # routines and can have separately reviewed FDD mappings.  Preserve the
+    # natural-language affinity fallback when no returned routine is named
+    # literally in the question.
+    query_folded = query.casefold()
+    explicit_names = {
+        item.display_name.casefold()
+        for item in direct_code_candidates
+        if item.display_name.casefold() in query_folded
+    }
+    direct_names = explicit_names or {
+        item.display_name.casefold()
+        for item in direct_code_candidates
         if identifier_affinity(query, item.display_name) > 0
     }
     anchor_documents = {

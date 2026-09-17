@@ -1,1 +1,0 @@
-app/api/routes/readiness.py

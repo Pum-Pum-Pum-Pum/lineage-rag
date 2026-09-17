@@ -167,7 +167,7 @@ def test_preparation_rejects_invalid_evaluation_evidence(tmp_path, failure):
               'metadata': {'reviewed_manifest':True, 'code_artifact_identity_sha256':'a'*64,
                            'code_snapshot_id':'snapshot-r2', 'lineage_artifact_identity_sha256':'b'*64,
                            'fdd_generation':'fdd-v9', 'eval_file_sha256':{str(manifest):promotion.sha(manifest)}},
-              'cases':[{'mode':'combined', 'failures':[]}]}
+              'cases':[{'case_id':'regression-001', 'mode':'combined', 'failures':[]}]}
     if failure == 'gate': report['summary']['release_gate_eligible'] = False
     if failure == 'generation': report['metadata']['code_snapshot_id'] = 'other'
     if failure == 'case': report['cases'][0]['failures'] = ['missing evidence']
@@ -175,5 +175,5 @@ def test_preparation_rejects_invalid_evaluation_evidence(tmp_path, failure):
     if failure == 'lineage': report['metadata']['lineage_artifact_identity_sha256'] = 'c'*64
     path = tmp_path/'report.json'
     path.write_text(json.dumps(report))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='regression-001: missing evidence' if failure == 'case' else None):
         promotion.verify_report(path, artifact=artifact, lineage=lineage)

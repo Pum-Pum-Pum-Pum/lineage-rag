@@ -46,9 +46,10 @@ def main() -> None:
     fdd_results = search_lexical_artifacts(
         args.fdd_directory, args.query, limit=args.limit
     )
+    fdd_documents = load_retrieval_ready_documents(args.fdd_directory)
     known_fdd_ids = {
         item.document_id
-        for item in load_retrieval_ready_documents(args.fdd_directory)
+        for item in fdd_documents
     }
     needs_dense = args.code_mode in {"dense", "hybrid"}
     if needs_dense and (
@@ -71,6 +72,7 @@ def main() -> None:
             fdd_results=fdd_results,
             fdd_generation=args.fdd_generation,
             known_fdd_document_ids=known_fdd_ids,
+            fdd_documents=fdd_documents,
             code_artifact=code_artifact,
             lineage_artifact=lineage,
             analysis_directory=args.analysis_directory,

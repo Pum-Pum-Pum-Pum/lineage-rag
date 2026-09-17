@@ -108,16 +108,22 @@ class Run:
                 raise ValueError(f"Bound input changed: {path}. Create a new run; approvals cannot be reused.")
         for directory, binding in self.state.get("trees", {}).items():
             observed = sorted(str(p.relative_to(directory)) for p in Path(directory).rglob(binding["pattern"]) if p.is_file())
-            if observed != binding["members"]:
+            # Directory enumeration order is not stable on Windows. Individual files are
+            # separately hash-bound; this check is strictly for additions/removals.
+            if len(observed) != len(binding["members"]) or set(observed) != set(binding["members"]):
                 raise ValueError(f"Bound directory membership changed: {directory}. Create a new run.")
 
     def bind_tree(self, directory, pattern="*"):
         directory = Path(directory).resolve()
-        files = sorted(p for p in directory.rglob(pattern) if p.is_file())
+        files = sorted((p for p in directory.rglob(pattern) if p.is_file()), key=lambda p: str(p.relative_to(directory)))
         binding = {"pattern": pattern, "members": [str(p.relative_to(directory)) for p in files]}
         trees = self.state.setdefault("trees", {})
-        if str(directory) in trees and trees[str(directory)] != binding:
-            raise ValueError(f"Bound directory membership changed: {directory}")
+        previous = trees.get(str(directory))
+        if previous is not None:
+            if (previous["pattern"] != pattern or len(previous["members"]) != len(binding["members"])
+                    or set(previous["members"]) != set(binding["members"])):
+                raise ValueError(f"Bound directory membership changed: {directory}")
+            binding = previous
         trees[str(directory)] = binding
         self.bind(files)
 

@@ -206,6 +206,32 @@ def validate_lineage_artifact(
     }
 
 
+def resolve_code_target_unit_ids(
+    target: FddCodeTarget,
+    *,
+    code_artifact: CodeIndexArtifact,
+    analysis_directory: Path,
+) -> set[str]:
+    """Resolve one symbol selector, including overload and source-range bounds.
+
+    Callers must still validate the containing lineage artifact before use.
+    File-wide selectors deliberately do not qualify for reverse routine lookup.
+    """
+    if target.selector_scope == "file" or target.module_id != code_artifact.module_id:
+        return set()
+    symbols = _load_analysis(analysis_directory).get(target.path, ())
+    return {
+        record.unit_id
+        for symbol in symbols
+        if symbol.canonical_qualified_name == target.qualified_name
+        and symbol.symbol_kind == target.symbol_kind
+        and (target.selector_scope == "all_overloads"
+             or symbol.overload_discriminator_hash == target.overload_discriminator_hash)
+        for record in code_artifact.records
+        if record.source_path == target.path and _ranges_overlap(record, symbol.source_map)
+    }
+
+
 def resolve_target_unit_ids(
     artifact: FddCodeLineageArtifact,
     *,

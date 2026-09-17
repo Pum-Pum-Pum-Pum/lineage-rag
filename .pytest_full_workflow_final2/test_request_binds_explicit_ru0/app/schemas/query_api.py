@@ -1,1 +1,0 @@
-app/schemas/query_api.py

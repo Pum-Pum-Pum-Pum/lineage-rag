@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.code_updates.storage import Run, locked, read, write, digest, sha
+from app.code_updates.coordinator import finalized_review_identity
 from app.code_updates.embedding import plan_embeddings, checkpointed_embed
 from app.code_updates import review
 from app.code_updates.inheritance import affected_context
@@ -111,6 +112,25 @@ def test_cache_only_and_metadata_rebinding_never_calls_provider(tmp_path):
     assert all(r.embedding_status == "cached" for r in new.records)
 
 
+def test_finalized_review_identity_binds_primary_and_amendment_packets(tmp_path):
+    primary = tmp_path / "review.md"
+    amendment = tmp_path / "review_amendment.md"
+    evidence = tmp_path / "review_amendment_evidence.json"
+    primary.write_text("primary review", encoding="utf-8")
+    amendment.write_text("amendment review", encoding="utf-8")
+    evidence.write_text("[]", encoding="utf-8")
+
+    expected = review.combined_review_identity(primary, amendment)
+    assert finalized_review_identity(tmp_path) == expected
+
+    amendment.write_text("changed amendment review", encoding="utf-8")
+    assert finalized_review_identity(tmp_path) != expected
+
+    amendment.unlink()
+    with pytest.raises(ValueError, match="must either both exist"):
+        finalized_review_identity(tmp_path)
+
+
 def test_provisional_diagnostics_cannot_enter_normal_retrieval(tmp_path):
     artifact, plan, approval = planned(tmp_path)
     embedded = checkpointed_embed(artifact, plan, approval, tmp_path / "batches", lambda: Provider())
@@ -166,6 +186,21 @@ def test_deferred_link_remains_candidate_and_no_approval_is_invented(tmp_path):
     assert final.status == "reviewed" and candidate.status == "candidate"
 
 
+def test_accepted_lineage_rebinds_a_unique_filename_after_directory_move(tmp_path):
+    artifact = _prepared(tmp_path)
+    entry = review.item("lineage", {"fdd_document_id": "R1-doc", "fdd_release_label": "R1",
+        "targets": [{"module_id": artifact.module_id, "path": "SQL/pkg_claim.sql", "selector_scope": "file",
+                     "rationale": "Candidate discovery only."}]}, "Does it implement this requirement?")
+    path = accept_packet([entry], tmp_path)
+    chosen = review.decisions([entry], path)
+    overrides, rebindings = review.normalize_lineage_targets([entry], chosen, artifact)
+    assert overrides[entry["id"]][0]["path"] == "pkg_claim.sql"
+    assert rebindings[0]["from_path"] == "SQL/pkg_claim.sql"
+    _, final, _ = review.finalize_lineage([entry], chosen, artifact, "v9", sha(path), "Pum",
+        target_overrides=overrides)
+    assert final.mappings[0].targets[0].path == "pkg_claim.sql"
+
+
 def test_dependency_cannot_be_deferred(tmp_path):
     entry = review.item("dependency", {"review_id": "b" * 64}, "Check dependency")
     with pytest.raises(ValueError, match="Only new lineage"):
@@ -182,6 +217,34 @@ def test_review_rejects_edited_evidence_and_missing_decisions(tmp_path):
     path.write_text(path.read_text(encoding="utf-8").replace('"old.sql"', '"new.sql"'), encoding="utf-8")
     with pytest.raises(ValueError, match="evidence was edited"):
         review.decisions([entry], path)
+
+
+def test_review_amendment_preserves_primary_decisions_and_has_own_binding(tmp_path):
+    primary = review.item("lineage", {"path": "primary.sql"}, "Check primary")
+    amendment = review.item("lineage", {"path": "amendment.sql"}, "Check amendment")
+    primary_path = accept_packet([primary], tmp_path)
+    amendment_path = accept_packet([amendment], tmp_path / "amendment")
+
+    items, selected = review.collect_review_decisions(
+        [primary], primary_path, amendment_items=[amendment], amendment_path=amendment_path
+    )
+
+    assert [entry["id"] for entry in items] == [primary["id"], amendment["id"]]
+    assert selected[primary["id"]]["verdict"] == "accepted"
+    assert selected[amendment["id"]]["verdict"] == "accepted"
+    assert review.combined_review_identity(primary_path) != review.combined_review_identity(
+        primary_path, amendment_path
+    )
+
+
+def test_review_amendment_cannot_duplicate_a_primary_item(tmp_path):
+    entry = review.item("lineage", {"path": "same.sql"}, "Check link")
+    primary_path = accept_packet([entry], tmp_path)
+    amendment_path = accept_packet([entry], tmp_path / "amendment")
+    with pytest.raises(ValueError, match="duplicates"):
+        review.collect_review_decisions(
+            [entry], primary_path, amendment_items=[entry], amendment_path=amendment_path
+        )
 
 
 def test_changed_caller_invalidates_transitive_context(tmp_path):
@@ -219,6 +282,18 @@ def test_bound_tree_detects_added_file(tmp_path):
     write(tmp_path / "evidence/b.json", {"b": 2})
     with pytest.raises(ValueError, match="membership changed"):
         Run(tmp_path, "tree").check_bindings()
+
+
+def test_bound_tree_ignores_windows_enumeration_order(tmp_path):
+    run = Run(tmp_path, "tree-order")
+    run.directory.mkdir(parents=True)
+    write(tmp_path / "evidence/a.json", {"a": 1})
+    write(tmp_path / "evidence/b.json", {"b": 2})
+    run.bind_tree(tmp_path / "evidence", "*.json")
+    directory = str((tmp_path / "evidence").resolve())
+    run.state["trees"][directory]["members"].reverse()
+    run.save()
+    Run(tmp_path, "tree-order").check_bindings()
 
 
 def test_baseline_resolution_rejects_ambiguous_applied_requests(tmp_path):
@@ -368,6 +443,58 @@ def test_promotion_mutex_rejects_live_owner():
         pass
 
 
+def test_desktop_mcp_running_probes_without_launching_a_child():
+    import os
+    import threading
+    import uuid
+    from app.code_updates.runtime import desktop_mcp_running, stopped_mcp_guard
+    if os.name != "nt":
+        pytest.skip("Windows Desktop ownership guard")
+    name = "Local\\CullingBladeUpdateProbe" + uuid.uuid4().hex
+    ready, release = threading.Event(), threading.Event()
+    def owner():
+        with stopped_mcp_guard(name):
+            ready.set()
+            release.wait(10)
+    thread = threading.Thread(target=owner)
+    thread.start()
+    try:
+        assert ready.wait(3)
+        assert desktop_mcp_running(name) is True
+    finally:
+        release.set()
+        thread.join(3)
+    assert desktop_mcp_running(name) is False
+
+
+def test_reviewed_lineage_uat_case_prefers_new_reviewed_combined_expectation(tmp_path):
+    from app.code_updates.runtime import _reviewed_lineage_uat_case
+
+    cases = tmp_path / "new_combined_cases.jsonl"
+    cases.write_text(
+        json.dumps(
+            {
+                "mode": "combined",
+                "review_status": "reviewed",
+                "sme_reviewed": True,
+                "require_reviewed_lineage": True,
+                "should_abstain": False,
+                "question": "What requirement is implemented by PKG.TEST?",
+                "expected_code_paths": ["SQL/pkg_test.sql"],
+                "expected_fdd_document_ids": ["FDD-1"],
+            }
+        ) + "\n",
+        encoding="utf-8",
+    )
+
+    selected = _reviewed_lineage_uat_case(
+        {"new_combined_cases": str(cases)}, {"combined_evals": []}
+    )
+
+    assert selected["question"] == "What requirement is implemented by PKG.TEST?"
+    assert selected["expected_code_paths"] == ["SQL/pkg_test.sql"]
+
+
 def test_collection_collision_preserves_existing_and_resume(tmp_path):
     from qdrant_client import QdrantClient
     from qdrant_client.models import VectorParams, Distance
@@ -472,7 +599,8 @@ def test_real_prepare_and_build_resume_without_paid_calls(tmp_path, monkeypatch)
     run.run.save()
     def commands(script, *arguments, **kwargs):
         if script.endswith("parse_code_snapshot.py"):
-            parse_code_snapshot(base_dir.parent / arguments[0], run.path("parse"))
+            from scripts.parse_code_snapshot import main as parse_main
+            parse_main(list(map(str, arguments)))
         elif script.endswith("check_code_preindex_gate.py"):
             with pytest.raises(SystemExit) as exit_info:
                 check_parse(list(map(str, arguments)))

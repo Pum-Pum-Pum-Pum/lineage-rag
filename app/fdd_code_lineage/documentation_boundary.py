@@ -117,7 +117,20 @@ def build_documentation_boundary_case_report(
             "None of the expected code symbols were retrieved: "
             f"{list(case.expected_code_symbols)}"
         )
-    mapping_ids = tuple(item.mapping_id for item in retrieval.reviewed_lineage)
+    # A combined response can legitimately contain an FDD document which has a
+    # reviewed relationship to *other* code in the corpus.  The boundary is
+    # about the requested code path, so only a mapping whose selected units
+    # overlap that path can contradict a no-reviewed-lineage assertion.
+    expected_unit_ids = {
+        item.unit_id
+        for item in retrieval.code_evidence
+        if item.source_path in set(case.expected_code_paths)
+    }
+    mapping_ids = tuple(
+        item.mapping_id
+        for item in retrieval.reviewed_lineage
+        if expected_unit_ids.intersection(item.code_unit_ids)
+    )
     if mapping_ids:
         failures.append(
             "A reviewed FDD-to-code mapping was returned for a no-reviewed-lineage case"

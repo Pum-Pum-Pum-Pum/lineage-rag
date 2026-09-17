@@ -44,6 +44,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=PARSER_GENERATION_DIRECTORY,
         help="New no-overwrite parser generation directory name.",
     )
+    parser.add_argument("--reuse-directory", type=Path, help="Exact same-snapshot parse directory for recovery reuse.")
+    parser.add_argument("--base-generation-directory", type=Path, help="Exact base snapshot parse directory for unchanged-source reuse.")
     parser.add_argument(
         "--memory-limit-mib",
         type=int,
@@ -69,6 +71,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.reuse_directory and args.reuse_generation:
+        raise ValueError("Choose reuse-directory or reuse-generation, not both")
     manifest = parse_code_snapshot(
         args.snapshot_root / args.snapshot_id,
         args.staging_root,
@@ -82,8 +86,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         reuse_generation_directory=(
             args.staging_root / args.snapshot_id / args.reuse_generation
             if args.reuse_generation
-            else None
+            else args.reuse_directory
         ),
+        base_generation_directory=args.base_generation_directory,
     )
     output_directory = (
         args.staging_root / manifest.snapshot_id / manifest.parser_generation

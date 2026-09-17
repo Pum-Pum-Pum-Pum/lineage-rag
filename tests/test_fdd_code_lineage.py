@@ -276,6 +276,72 @@ def test_combined_retrieval_keeps_lanes_separate_and_follows_only_reviewed_links
     assert reviewed_result.mapped_lexical_candidates
 
 
+@pytest.mark.parametrize("variant", ["reviewed", "candidate", "bare_name", "wrong_package", "wrong_path", "file", "ambiguous"])
+def test_reverse_lineage_recovers_missing_fdd_only_for_exact_reviewed_symbol(tmp_path, monkeypatch, variant):
+    from app.fdd_code_lineage import combined_retrieval as combined
+    from app.retrieval.lexical_search import LexicalSearchDocument
+
+    # Isolate reviewed reverse lookup from unrelated unreviewed workflow discovery.
+    monkeypatch.setattr(combined, "discover_explicit_routine_workflow", lambda **kwargs: None)
+    code = _code_artifact()
+    mapping = _mapping("candidate" if variant == "candidate" else "reviewed")
+    if variant == "file":
+        mapping = mapping.model_copy(update={"targets": (FddCodeTarget(
+            module_id="fci-custom", path="pkgaml_custom.sql", selector_scope="file",
+            rationale="Whole package is too broad for routine lookup.",
+        ),)})
+    mappings = [mapping]
+    if variant == "ambiguous":
+        mappings.append(mapping.model_copy(update={"mapping_id": "9" * 64, "fdd_document_id": "other-fdd"}))
+    lineage = build_lineage_artifact(
+        fdd_generation="functional_specs_v5", code_artifact=code, mappings=mappings,
+        **({} if variant == "candidate" else REVIEW_BINDINGS),
+    )
+    query = "What FDD requirement is implemented by PKG_AML_CUSTOM.PROCESS_AML in pkgaml_custom.sql?"
+    if variant == "bare_name":
+        query = "What FDD implements PROCESS_AML?"
+    if variant == "wrong_package":
+        query = query.replace("PKG_AML_CUSTOM.", "OTHER_PACKAGE.")
+    if variant == "wrong_path":
+        # A same-named routine in a different returned file cannot steer lookup.
+        code = code.model_copy(update={"records": (code.records[0].model_copy(update={"source_path": "other.sql"}),)})
+        # Test the helper directly since full validation must reject this stale binding.
+        from app.code_retrieval.service import retrieve_code_evidence
+        direct = retrieve_code_evidence(artifact=code, query=query, mode="lexical", limit=5, candidate_limit=20)
+        assert combined._retrieve_exact_reviewed_fdd(
+            query=query, direct=direct.evidence, documents=[LexicalSearchDocument(
+                document_name=FDD_ID, document_id=FDD_ID, unit_id="linked", unit_index=0,
+                source_kind="paragraph", document_family="AML", release_label="R22", text="process_aml requirements",
+            )], lineage=lineage, code_artifact=code, analysis_directory=_analysis_directory(tmp_path),
+        ) is None
+        return
+    result = combined.retrieve_combined_evidence(
+        query=query, fdd_results=[], fdd_generation="functional_specs_v5",
+        known_fdd_document_ids={FDD_ID, "other-fdd"}, code_artifact=code,
+        lineage_artifact=lineage, analysis_directory=_analysis_directory(tmp_path),
+        code_mode="lexical", fdd_limit=1, fdd_documents=[LexicalSearchDocument(
+            document_name=FDD_ID, document_id=FDD_ID, unit_id="linked", unit_index=0,
+            source_kind="paragraph", document_family="AML", release_label="R22", text="process_aml requirements",
+        )],
+    )
+    if variant == "reviewed":
+        assert len(result.fdd_evidence) == 1
+        assert result.fdd_evidence[0].document_id == FDD_ID
+        assert result.fdd_evidence[0].retrieval_metadata["passage_selection"] == "lexical_candidate_not_separately_reviewed"
+        assert result.reviewed_lineage
+    else:
+        assert result.fdd_evidence == ()
+
+
+def test_reverse_lineage_target_resolution_respects_overload(tmp_path):
+    from app.fdd_code_lineage.models import resolve_code_target_unit_ids
+    target = _mapping("reviewed").targets[0]
+    analysis = _analysis_directory(tmp_path)
+    assert resolve_code_target_unit_ids(target, code_artifact=_code_artifact(), analysis_directory=analysis) == {"unit-aml"}
+    assert not resolve_code_target_unit_ids(target.model_copy(update={"overload_discriminator_hash": "9" * 64}),
+        code_artifact=_code_artifact(), analysis_directory=analysis)
+
+
 def test_combined_retrieval_caps_merged_direct_and_mapped_evidence(
     tmp_path: Path,
 ) -> None:

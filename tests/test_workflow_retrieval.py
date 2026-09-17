@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -205,6 +206,58 @@ def _inputs(tmp_path: Path):
         records=(target_record, caller_record, validation_record),
     )
     return directory, artifact, target_record, caller_record
+
+
+@pytest.mark.parametrize("selector, expected", [
+    ("PKG_UH.SpDeleteUnauthKhairatInfo", True),
+    ("PKG_UH.SpDeleteUnauthKhairatInfo in utpks_utduh_custom.sql", True),
+    ("SpDeleteUnauthKhairatInfo in utpks_utduh_custom.sql", True),
+    ("SpDeleteUnauthKhairatInfo", False),
+    ("UNKNOWN.SpDeleteUnauthKhairatInfo", False),
+    ("PKG_UH.SpDeleteUnauthKhairatInfo in other.sql", False),
+    ("PKG_UH.SpDeleteUnauthKhairatInfo in missing.sql", False),
+])
+def test_qualified_workflow_target_disambiguates_same_named_packages(tmp_path, selector, expected):
+    from app.fdd_code_lineage.workflow_retrieval import _load_analyses, _unique_explicit_target
+    directory, _, record, _ = _inputs(tmp_path)
+    analyses = _load_analyses(directory)
+    original = analyses[record.source_path]
+    target = original.symbols[0]
+    other = target.model_copy(update={
+        "source_path": "other.sql", "source_map": _map("other.sql", 100, 200),
+        "occurrence_id": "f" * 64,
+        "canonical_qualified_name": "PKG_OTHER.SPDELETEUNAUTHKHAIRATINFO",
+        "qualified_display_name": "PKG_OTHER.SpDeleteUnauthKhairatInfo",
+    })
+    analyses["other.sql"] = original.model_copy(update={"source_path": "other.sql", "symbols": (other,)})
+    result = _unique_explicit_target(query=f"Explain {selector} and its callers",
+        direct_code_evidence=(_evidence(record),), analyses=analyses)
+    assert (result == target) if expected else result is None
+
+
+def test_qualified_workflow_does_not_guess_overload_or_unretrieved_target(tmp_path):
+    from app.fdd_code_lineage.workflow_retrieval import _load_analyses, _unique_explicit_target
+    directory, _, record, _ = _inputs(tmp_path)
+    analyses = _load_analyses(directory)
+    query = "Explain PKG_UH.SpDeleteUnauthKhairatInfo and its callers"
+    assert _unique_explicit_target(query=query, direct_code_evidence=(
+        _evidence(record).model_copy(update={"source_path": "other.sql"}),
+    ), analyses=analyses) is None
+    original = analyses[record.source_path]
+    overload = original.symbols[0].model_copy(update={"occurrence_id": "e" * 64, "overload_discriminator_hash": "f" * 64})
+    analyses[record.source_path] = original.model_copy(update={"symbols": (*original.symbols, overload)})
+    assert _unique_explicit_target(query=query, direct_code_evidence=(_evidence(record),), analyses=analyses) is None
+
+
+def test_workflow_promotion_retains_target_file_not_same_named_other_package(tmp_path):
+    directory, artifact, record, _ = _inputs(tmp_path)
+    discovery = discover_explicit_routine_workflow(query="Explain PKG_UH.SpDeleteUnauthKhairatInfo",
+        direct_code_evidence=(_evidence(record),), code_artifact=artifact, analysis_directory=directory,
+        fdd_documents=(), fdd_limit=5)
+    wrong = _evidence(record).model_copy(update={"unit_id": "wrong", "source_path": "other.sql"})
+    result = promote_workflow_code_context(current=(wrong, _evidence(record)), discovery=discovery, limit=3)
+    assert result[0].source_path == record.source_path
+    assert result[0].unit_id == record.unit_id
 
 
 def test_inventory_is_complete_parser_output_not_ranked_search(tmp_path: Path) -> None:

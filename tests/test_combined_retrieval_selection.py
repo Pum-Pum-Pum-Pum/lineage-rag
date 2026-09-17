@@ -108,6 +108,45 @@ def test_file_scoped_lineage_cannot_override_fdd_ranking() -> None:
     assert [item.document_id for item in selected] == ["other-fdd"]
 
 
+def test_explicit_routine_name_does_not_become_ambiguous_with_related_routine() -> None:
+    primary = _lineage(selector_scope="all_overloads")
+    related_target = FddCodeTarget(
+        module_id="module",
+        path="pkg_aml.sql",
+        selector_scope="all_overloads",
+        qualified_name="PKG_AML.SPSENDBATCHTXNENDDATAWRAPPER",
+        symbol_kind="procedure",
+        rationale="The reviewed wrapper target is relevant to another documented flow.",
+    )
+    related = create_mapping(
+        fdd_document_id="wrapper-fdd",
+        fdd_release_label="R24",
+        code_snapshot_id="snapshot-r2",
+        targets=[related_target],
+        rationale="The SME reviewed this wrapper relationship separately.",
+        mapping_status="reviewed",
+        reviewer="SME",
+    )
+    lineage = primary.model_copy(update={"mappings": (*primary.mappings, related)})
+
+    selected = _select_lineage_anchored_fdd_evidence(
+        query="Explain spSendBatchTxnEndData in pkg_aml.sql",
+        candidates=(
+            _fdd("other-fdd", score=3.0),
+            _fdd("expected-fdd", score=2.0),
+            _fdd("wrapper-fdd", score=1.0),
+        ),
+        direct_code_candidates=(
+            _code("spSendBatchTxnEndData", score=3.0),
+            _code("spSendBatchTxnEndDataWrapper", score=2.0),
+        ),
+        lineage_artifact=lineage,
+        limit=1,
+    )
+
+    assert [item.document_id for item in selected] == ["expected-fdd"]
+
+
 def test_identifier_affinity_replaces_only_one_code_slot() -> None:
     selected = _reserve_identifier_affinity_slot(
         query="How is batch transaction data sent?",

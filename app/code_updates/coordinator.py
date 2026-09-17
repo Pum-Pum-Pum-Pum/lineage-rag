@@ -59,6 +59,22 @@ def active_baseline(root, settings):
     return matches[0]
 
 
+def finalized_review_identity(directory: Path) -> str:
+    """Return the review identity that must remain unchanged through promotion.
+
+    A review amendment is a separately reviewed packet.  It is part of the
+    finalization identity whenever its evidence exists, just as it is during
+    finalization itself.  Checking only ``review.md`` here would reject a
+    valid amended finalization (or, worse, fail to notice a changed amendment).
+    """
+    primary = directory / "review.md"
+    amendment_evidence = directory / "review_amendment_evidence.json"
+    amendment = directory / "review_amendment.md"
+    if amendment_evidence.exists() != amendment.exists():
+        raise ValueError("Review amendment evidence and Markdown packet must either both exist or both be absent")
+    return review.combined_review_identity(primary, amendment if amendment_evidence.exists() else None)
+
+
 class Coordinator:
     def __init__(self, root, run_id, prompt=input):
         self.run = Run(root, run_id)
@@ -134,6 +150,9 @@ class Coordinator:
                 if not payload["summary"]["passed"] or sha(boundary_file) != meta["eval_file_sha256"]:
                     raise ValueError("Active documentation-boundary evidence changed or failed")
                 boundary_manifests.add(str(boundary_file))
+                # Boundary reports have their own passed contract; they are
+                # not code/combined retrieval reports with release_gate_eligible.
+                continue
             if payload.get("ledger_identity_sha256") == artifact.dependency_review_ledger_sha256:
                 ledger_path = p
             if "metadata" in payload and "summary" in payload and "cases" in payload:
@@ -155,19 +174,32 @@ class Coordinator:
             # Registry is a discovery aid, not a prerequisite for blind discovery.
             registry = str(self.path("empty_registry.json"))
             immutable(Path(registry), {"schema_version": "enhancement_fdd_registry_v1", "mappings": []})
+        # The coordinated knowledge workflow may stage a new FDD generation
+        # before creating a complete code snapshot.  These explicit arguments
+        # are a compatibility adapter, never an inferred directory selection.
+        target_fdd_generation = getattr(args, "fdd_generation", None) or settings.fdd_generation
+        target_fdd_directory = getattr(args, "fdd_directory", None) or str(settings.fdd_retrieval_artifact_dir.resolve())
+        target_fdd_stage = getattr(args, "fdd_stage", None) or str((settings.data_dir / "staging" / settings.fdd_generation).resolve())
+        target_fdd_directory = str(Path(target_fdd_directory).resolve(strict=True))
+        target_fdd_stage = str(Path(target_fdd_stage).resolve(strict=True))
+        if not (Path(target_fdd_stage) / "stage_manifest.json").is_file():
+            raise ValueError("Selected FDD stage lacks a verified stage manifest")
+        if read(Path(target_fdd_stage) / "stage_manifest.json").get("status") != "verified":
+            raise ValueError("Selected FDD stage is not verified")
         self.config = dict(schema_version="code_update_config_v1", run_id=self.run.state["run_id"],
             source_directory=str(source), request=snapshot_request.model_dump(mode="json"),
             base_artifact=str(Path(settings.code_index_artifact_path).resolve()),
             base_analysis=str(Path(settings.code_analysis_directory).resolve()),
             base_lineage=str(Path(settings.fdd_code_lineage_artifact_path).resolve()),
             base_dependency_ledger=str(ledger_path), base_promotion=str(request_path),
-            fdd_generation=settings.fdd_generation, fdd_directory=str(settings.fdd_retrieval_artifact_dir.resolve()),
-            fdd_stage=str((settings.data_dir / "staging" / settings.fdd_generation).resolve()),
+            fdd_generation=target_fdd_generation, fdd_directory=target_fdd_directory,
+            fdd_stage=target_fdd_stage,
             code_store=str(settings.code_qdrant_local_path.resolve()),
             snapshot_root=str(settings.code_snapshots_dir.resolve()),
             parse_generation=artifact.parse_generation, model=artifact.embedding_model,
             price_per_million=price, pricing_basis=basis, registry=registry,
-            code_evals=sorted(manifests["code"]), combined_evals=sorted(manifests["combined"]), boundary_evals=sorted(boundary_manifests))
+            code_evals=sorted(manifests["code"]), combined_evals=sorted(manifests["combined"]), boundary_evals=sorted(boundary_manifests),
+            coordinated_release=bool(getattr(args, "coordinated_release", False)))
         if artifact.embedding_model != "text-embedding-3-large":
             raise ValueError("This workflow version supports text-embedding-3-large only")
         immutable(self.path("config.json"), self.config)
@@ -260,20 +292,65 @@ class Coordinator:
             if not (analysis / "parse_stage_manifest.json").exists():
                 self.command("scripts/parse_code_snapshot.py", result["snapshot_id"],
                     "--snapshot-root", self.config["snapshot_root"], "--staging-root", parse_root,
-                    "--generation", self.config["parse_generation"])
+                    "--generation", self.config["parse_generation"],
+                    "--base-generation-directory", self.config["base_analysis"])
             self.command("scripts/check_code_preindex_gate.py", result["snapshot_id"],
                 "--snapshot-root", self.config["snapshot_root"], "--staging-root", parse_root,
                 "--generation", self.config["parse_generation"], "--output", self.path("preindex_gate.json"))
             return {}, [*analysis.rglob("*.json"), self.path("preindex_gate.json")]
         self.run.step("parse", parsing)
         self.run.bind_tree(analysis, "*.json")
+        # Older runs parsed unchanged sources again. Wall-clock resource limits
+        # can select a different parser path and invalidate otherwise reusable
+        # vectors. Preserve that attempt and publish a baseline-consistent stage.
+        if ("prepare_index" not in self.run.state["steps"] and
+                read(analysis / "parse_stage_manifest.json").get("reused_from_generation") !=
+                str(Path(self.config["base_analysis"]).resolve())):
+            original_analysis = analysis
+            recovery_root = self.path("parse_baseline_reuse")
+            recovered = recovery_root / result["snapshot_id"] / self.config["parse_generation"]
+            def recover_baseline_parse():
+                if not (recovered / "parse_stage_manifest.json").exists():
+                    self.command("scripts/parse_code_snapshot.py", result["snapshot_id"],
+                        "--snapshot-root", self.config["snapshot_root"], "--staging-root", recovery_root,
+                        "--generation", self.config["parse_generation"],
+                        "--reuse-directory", original_analysis,
+                        "--base-generation-directory", self.config["base_analysis"])
+                self.command("scripts/check_code_preindex_gate.py", result["snapshot_id"],
+                    "--snapshot-root", self.config["snapshot_root"], "--staging-root", recovery_root,
+                    "--generation", self.config["parse_generation"], "--output", self.path("preindex_baseline_reuse_gate.json"))
+                return {"original_analysis": str(original_analysis), "analysis": str(recovered)}, [
+                    *recovered.rglob("*.json"), self.path("preindex_baseline_reuse_gate.json")]
+            recovery = self.run.step("parse_baseline_reuse", recover_baseline_parse)
+            analysis = Path(recovery["analysis"])
+            self.run.bind_tree(analysis, "*.json")
+            self.run.state["analysis"] = str(analysis)
+            self.run.save()
+        elif "parse_baseline_reuse" in self.run.state["steps"]:
+            analysis = Path(self.run.step("parse_baseline_reuse", lambda: None)["analysis"])
+            self.run.state["analysis"] = str(analysis)
+            self.run.save()
         def prepare_index():
             packet = build_dependency_review_packet(Path(self.config["snapshot_root"]) / result["snapshot_id"], analysis)
+            def preserve_unapproved(path, model):
+                if not path.exists() or read(path) == model.model_dump(mode="json"):
+                    return
+                if "parse_baseline_reuse" not in self.run.state["steps"] or self.path("embedding_request.json").exists():
+                    raise ValueError("Prepared input changed; reconcile existing embedding approval")
+                prior = self.path("failed_preparation") / f"{path.stem}-{sha(path)}.json"
+                prior.parent.mkdir(parents=True, exist_ok=True)
+                if prior.exists():
+                    raise ValueError(f"Prior failed preparation already preserved: {prior}")
+                path.replace(prior)
+                self.run.event("failed_preparation_preserved", path=str(prior))
+            preserve_unapproved(self.path("dependency_packet.json"), packet)
             dump_model(self.path("dependency_packet.json"), packet)
             prepared = build_code_index_artifact(analysis, embedding_model=self.config["model"])
             from app.code_indexing.contract import verify_prepared_code_index_artifact
             verify_prepared_code_index_artifact(prepared, analysis, expected_policy_sha256=prepared.analysis_policy_sha256)
-            dump_model(self.path("provisional_prepared.json"), prepared)
+            prepared_path = self.path("provisional_prepared.json")
+            preserve_unapproved(prepared_path, prepared)
+            dump_model(prepared_path, prepared)
             plan = plan_embeddings(prepared, [Path(self.config["base_artifact"])], delta["unchanged"],
                                    self.config["price_per_million"], self.config["pricing_basis"])
             immutable(self.path("embedding_request.json"), plan)
@@ -364,6 +441,15 @@ class Coordinator:
                 raise RuntimeError(f"Evaluator could not produce {attempt_report}; inspect logs")
             if not preliminary and (rc or not read(attempt_report)["summary"]["release_gate_eligible"]):
                 raise RuntimeError(f"Final {mode} regression gate failed: {attempt_report}. Existing expectations remain unchanged.")
+            # Apply the same per-case and identity requirements as promotion
+            # before publishing a reusable successful checkpoint.
+            from app.activation.code_generation import verify_report
+            from app.fdd_code_lineage.reviewed_bundle import load_reviewed_lineage
+            try:
+                verify_report(attempt_report, artifact=load_code_index_artifact(Path(artifact)),
+                              lineage=load_reviewed_lineage(Path(lineage)) if mode == "combined" else None)
+            except ValueError as exc:
+                raise RuntimeError(f"Final {mode} regression gate failed: {attempt_report}. {exc}") from exc
             immutable(report, read(attempt_report))
             outputs.append(report)
         return outputs
@@ -371,7 +457,7 @@ class Coordinator:
     def build(self, args):
         if self.run.state.get("pending_review_embedding"):
             pending = self.run.state["pending_review_embedding"]
-            if sha(self.path("review.md")) != pending["review_hash"]:
+            if finalized_review_identity(self.dir) != pending["review_hash"]:
                 raise ValueError("Review changed; run finalize to prepare the matching additional-input request")
             plan = read(pending["request"])
             approval = Path(pending["approval"])
@@ -560,6 +646,98 @@ class Coordinator:
             review.render(items, self.path("review.md"))
         return {"items": len(items)}, [self.path("review_evidence.json"), report_path, self.path("inventory.json")]
 
+    def amend_review(self, args):
+        """Create one narrow, evidence-bound lineage amendment for SME review."""
+        from app.fdd_code_lineage.models import _load_analysis
+        from app.retrieval.lexical_search import load_retrieval_ready_documents, search_lexical_documents
+
+        if self.path("activation.json").exists():
+            raise ValueError("This run was activated; new review decisions require a new update run")
+        if "review_packet" not in self.run.state["steps"]:
+            raise ValueError("Build the consolidated review packet before creating an amendment")
+        values = {
+            "fdd_document_id": getattr(args, "fdd_document_id", None),
+            "source_path": getattr(args, "source_path", None),
+            "qualified_name": getattr(args, "qualified_name", None),
+            "symbol_kind": getattr(args, "symbol_kind", None),
+            "source_marker": getattr(args, "source_marker", None),
+            "evidence_query": getattr(args, "evidence_query", None),
+        }
+        missing = [name for name, value in values.items() if not value]
+        if missing:
+            raise ValueError("Review amendment requires: " + ", ".join(missing))
+        evidence_path = self.path("review_amendment_evidence.json")
+        review_path = self.path("review_amendment.md")
+        if evidence_path.exists() or review_path.exists():
+            raise ValueError("A review amendment already exists; review it or start a new update run")
+        artifact = load_code_index_artifact(self.path("provisional_embedded.json"))
+        analyses = _load_analysis(Path(self.run.state["analysis"]))
+        matches = [
+            symbol for symbol in analyses.get(values["source_path"], ())
+            if symbol.canonical_qualified_name == values["qualified_name"]
+            and symbol.symbol_kind == values["symbol_kind"]
+        ]
+        if not matches:
+            raise ValueError("Amendment target is not an exact current parsed symbol")
+        documents = load_retrieval_ready_documents(self.config["fdd_directory"])
+        document_units = [item for item in documents if item.document_id == values["fdd_document_id"]]
+        if not document_units:
+            raise ValueError("Amendment FDD document is not in the configured FDD generation")
+        source = Path(self.config["snapshot_root"]) / artifact.snapshot_id / "source" / values["source_path"]
+        if not source.is_file():
+            raise ValueError("Amendment source is not present in the immutable snapshot")
+        source_text = source.read_text(encoding="utf-8-sig", errors="replace")
+        marker = str(values["source_marker"])
+        marker_at = source_text.casefold().find(marker.casefold())
+        if marker_at < 0:
+            raise ValueError("The supplied source marker is not present in the immutable source")
+        marker_line = source_text[:marker_at].count("\n") + 1
+        symbol = matches[0]
+        symbol_records = [
+            record for record in artifact.records
+            if record.source_path == values["source_path"]
+            and record.source_map.start_offset < symbol.source_map.end_offset
+            and symbol.source_map.start_offset < record.source_map.end_offset
+        ]
+        marker_context = "\n".join(source_text.splitlines()[max(0, marker_line - 2):marker_line + 2])
+        passages = search_lexical_documents(document_units, values["evidence_query"], limit=2)
+        if not passages:
+            raise ValueError("No FDD passages matched the evidence query; refine it before creating an amendment")
+        target = {
+            "module_id": artifact.module_id,
+            "path": values["source_path"],
+            "qualified_name": values["qualified_name"],
+            "symbol_kind": values["symbol_kind"],
+            "selector_scope": "all_overloads",
+            "rationale": "Regression-discovered exact routine candidate, bound to the immutable source marker and FDD passage for SME review.",
+        }
+        release = re.search(r"(?:^|_)R(\d+)(?:_|$)", values["fdd_document_id"])
+        if not release:
+            raise ValueError("Amendment FDD identity has no release label")
+        from app.code_updates.review import item
+        entry = item("lineage", {
+            "snapshot_id": artifact.snapshot_id,
+            "provisional_artifact_identity": artifact.artifact_identity_sha256,
+            "fdd_document_id": values["fdd_document_id"],
+            "fdd_release_label": "R" + release[1],
+            "targets": [target],
+            "evaluation_question": f"How does {values['qualified_name']} in {values['source_path']} implement or support: {values['evidence_query']}?",
+            "proposal": {
+                "discovery": "final_regression_gap",
+                "evidence_query": values["evidence_query"],
+                "source_marker": marker,
+                "source_marker_line": marker_line,
+                "source_marker_context": marker_context,
+                "routine_source_map": symbol.source_map.model_dump(mode="json"),
+                "routine_excerpts": [record.citation_text for record in symbol_records[:2]],
+                "fdd_passages": [{"unit_id": passage.point_id, "payload": passage.payload} for passage in passages],
+            },
+        }, "Does this exact routine implement/support the cited FDD requirement? Defer if uncertain.")
+        immutable(evidence_path, [entry])
+        review.render([entry], review_path)
+        self.run.event("review_amendment_created", item_id=entry["id"], target=values["qualified_name"])
+        print(f"Review amendment created: {review_path}")
+
     def finalize(self, args):
         from app.code_ingestion.dependency_review import DependencyReviewPacket
         from app.code_indexing.embedding import embed_code_index_artifact
@@ -568,13 +746,21 @@ class Coordinator:
         if "review_packet" not in self.run.state["steps"]:
             raise ValueError("Run build first")
         if self.path("activation.json").exists():
-            if sha(self.path("review.md")) != self.run.state["final_review_hash"]:
+            if finalized_review_identity(self.dir) != self.run.state["final_review_hash"]:
                 raise ValueError("This run was activated; changed reviews require a new update run")
             print("Finalization already activated; current state retained.")
             return
-        items = read(self.path("review_evidence.json"))
-        selected = review.decisions(items, self.path("review.md"))
-        review_hash = sha(self.path("review.md"))
+        primary_items = read(self.path("review_evidence.json"))
+        amendment_evidence = self.path("review_amendment_evidence.json")
+        amendment_review = self.path("review_amendment.md")
+        amendment_items = read(amendment_evidence) if amendment_evidence.exists() else ()
+        if amendment_items and not amendment_review.exists():
+            raise ValueError("Review amendment evidence exists but its Markdown packet is missing")
+        items, selected = review.collect_review_decisions(
+            primary_items, self.path("review.md"), amendment_items=amendment_items,
+            amendment_path=amendment_review if amendment_items else None,
+        )
+        review_hash = finalized_review_identity(self.dir)
         revision = review_hash[:16]
         directory = self.path(f"final/{revision}")
         directory.mkdir(parents=True, exist_ok=True)
@@ -610,15 +796,17 @@ class Coordinator:
                 embedded, _ = embed_code_index_artifact(prepared, client=NoPaidClient(),
                     cache_artifact_paths=[self.path("provisional_embedded.json")])
             dump_model(code_path, embedded)
+            target_overrides, path_rebindings = review.normalize_lineage_targets(items, selected, embedded)
             candidate, lineage, deferred = review.finalize_lineage(items, selected, embedded,
-                self.config["fdd_generation"], review_hash, self.config["request"]["reviewer"])
+                self.config["fdd_generation"], review_hash, self.config["request"]["reviewer"],
+                target_overrides=target_overrides)
             known = {d.document_id for d in load_retrieval_ready_documents(self.config["fdd_directory"])}
             validate_lineage_artifact(lineage, fdd_document_ids=known, code_artifact=embedded,
                                       analysis_directory=Path(self.run.state["analysis"]))
             dump_model(directory / "candidate_lineage.json", candidate)
             dump_model(directory / "reviewed_lineage.json", lineage)
             immutable(directory / "decisions.json", {"review_sha256": review_hash, "reviewer": self.config["request"]["reviewer"],
-                                                      "decisions": selected})
+                                                      "decisions": selected, "automatic_path_rebindings": path_rebindings})
             immutable(directory / "deferred_lineage.json", deferred)
             write(self.path("deferred_lineage.json"), deferred)
             cases = review.reviewed_cases(items, selected)
@@ -634,7 +822,7 @@ class Coordinator:
                     continue
                 decision, data = selected[entry["id"]], entry["evidence"]
                 correction = decision["correction"]
-                targets = correction.get("targets", data["targets"])
+                targets = target_overrides.get(entry["id"], correction.get("targets", data["targets"]))
                 combined_cases.append(CodeCombinedEvalCase(case_id="update-combined-" + entry["id"][:16], mode="combined",
                     question=correction.get("evaluation_question", data["evaluation_question"]),
                     expected_code_paths=tuple(sorted({t["path"] for t in targets})),
@@ -690,6 +878,15 @@ class Coordinator:
         self.run.step(label + "_mcp", lambda: self.local_uat(final, collection, label))
         if digest(runtime_files(self.root))[:12] != runtime_revision:
             raise ValueError("Runtime changed while final gates ran; repeat finalize for fresh evidence")
+        if self.config.get("coordinated_release"):
+            # The parent knowledge workflow owns the one joint release request.
+            # Do not create a code-only request that would become incompatible
+            # the moment the staged FDD generation is selected.
+            self.run.state["joint_ready"] = {"code": final["code"], "lineage": final["lineage"],
+                                               "collection": collection, "runtime_revision": runtime_revision}
+            self.run.save()
+            self.run.transition("READY_FOR_PROMOTION", "status")
+            return
         def promotion():
             from app.activation.code_generation import prepare, verify_request
             published_request = self.root / "data/exports/activation" / f"code-update-{self.run.state['run_id']}-{revision}-{runtime_revision}-request.json"
@@ -705,7 +902,10 @@ class Coordinator:
                 combined_report=self.path(label + "_combined_evaluation.json"), collection=collection,
                 requested_by=self.config["request"]["reviewer"])
             from app.activation.code_generation import file_set, digest as promotion_digest
-            request["evidence_files"].update(file_set(self.root, [self.path("review_evidence.json"), self.path("review.md"),
+            review_files = [self.path("review_evidence.json"), self.path("review.md")]
+            if self.path("review_amendment_evidence.json").exists():
+                review_files.extend([self.path("review_amendment_evidence.json"), self.path("review_amendment.md")])
+            request["evidence_files"].update(file_set(self.root, [*review_files,
                 directory / "decisions.json", directory / "deferred_lineage.json", self.path(label + "_mcp_uat.json"),
                 self.path("batches/reuse_report.json")]))
             if final["boundary_cases"]:
@@ -767,7 +967,7 @@ class Coordinator:
             raise ValueError("Finalize successfully before activation")
         request = read(request_path)
         verify_request(request, self.root)
-        if sha(self.path("review.md")) != self.run.state["final_review_hash"]:
+        if finalized_review_identity(self.dir) != self.run.state["final_review_hash"]:
             raise ValueError("Review changed after finalization")
         approval_path = Path(request_path).with_name(Path(request_path).stem + "-approval.json")
         if not approval_path.exists():
@@ -848,4 +1048,4 @@ class Coordinator:
                 for path, expected in entry["outputs"].items():
                     if not Path(path).is_file() or sha(path) != expected:
                         raise ValueError(f"Checkpoint output changed: {path}")
-        getattr(self, action)(args)
+        getattr(self, action.replace("-", "_"))(args)

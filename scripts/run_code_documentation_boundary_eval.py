@@ -77,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
             ),
             fdd_generation=args.fdd_generation,
             known_fdd_document_ids={item.document_id for item in documents},
+            fdd_documents=documents,
             code_artifact=artifact,
             lineage_artifact=lineage,
             analysis_directory=args.analysis_directory,
